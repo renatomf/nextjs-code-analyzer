@@ -1,10 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Intel_One_Mono, Syne } from "next/font/google";
 import "./globals.css";
-import { ThemeProvider } from "@/components/theme-provider";
 
-// Inter with its optical-size axis renders the "Inter Display" cut at large
-// sizes, which is what the headings are designed around.
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
@@ -38,16 +35,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         suppressHydrationWarning
       >
         <head />
-        <body>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange
-          >
-            {children}
-          </ThemeProvider>
-        </body>
+        <body>{children}</body>
       </html>
     </>
   );

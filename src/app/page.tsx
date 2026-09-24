@@ -1,5 +1,4 @@
 import { HeroSilk } from "@/components/hero-silk";
-import { ThemeToggle } from "@/components/theme-toggle";
 import {
   Boxes,
   FlaskConical,
@@ -136,7 +135,7 @@ export default function HomePage() {
           <header className="landing-reveal flex items-center justify-between gap-4 py-2">
             <a
               href="#top"
-              className="k-display max-w-[8.5rem] shrink-0 text-xs leading-[1.15] tracking-tight text-white sm:max-w-none sm:text-sm"
+              className="k-display max-w-34 shrink-0 text-xs leading-[1.15] tracking-tight text-white sm:max-w-none sm:text-sm"
             >
               AI Codebase Auditor
             </a>
@@ -150,8 +149,7 @@ export default function HomePage() {
                 </a>
               ))}
             </nav>
-            <div className="flex shrink-0 items-center gap-2 text-sm sm:gap-3">
-              <ThemeToggle className="rounded-sm border-white/10 bg-transparent text-white hover:bg-white/10 hover:text-white dark:border-white/10 dark:bg-transparent dark:hover:bg-white/10" />
+            <div className="flex shrink-0 items-center gap-2 text-sm sm:gap-6">
               <Link
                 href="/login"
                 className="hidden text-[0.8125rem] text-[#999] transition-colors hover:text-white sm:inline"
@@ -272,7 +270,7 @@ export default function HomePage() {
           />
 
           <div className="k-scroll-reveal mt-14 grid gap-2 md:mt-20 md:grid-cols-4">
-            <article className="k-tile k-tile-dark flex flex-col md:col-span-2 md:min-h-[32rem]">
+            <article className="k-tile k-tile-dark flex flex-col md:col-span-2 md:min-h-128">
               <span className="k-diamond text-(--k-green)" aria-hidden />
               <h3 className="k-title mt-4 text-3xl sm:text-4xl">
                 <span className="k-accent">Health</span> report
@@ -421,7 +419,7 @@ export default function HomePage() {
       </section>
 
       <footer className="k-footer k-dark k-guides">
-        <p className="k-display k-footer-mark" aria-hidden>
+        <p className="k-display k-footer-mark text-white/4!" aria-hidden>
           Auditor
         </p>
         <div className="k-container relative pt-[clamp(6rem,14vw,13rem)] pb-8">
@@ -431,7 +429,7 @@ export default function HomePage() {
                 AI Codebase Auditor
               </p>
               <p className="k-mono mt-4 text-xs text-[#666]">
-                Next.js · RAG · Groq · pgvector
+                Connect a project, get a health report.
               </p>
             </div>
             <nav

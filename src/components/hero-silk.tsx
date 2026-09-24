@@ -36,11 +36,11 @@ void main() {
   float lit = pow(h * 0.5 + 0.5, 2.2);
   float crease = pow(max(0.0, 1.0 - abs(h - 0.6) * 3.0), 3.0);
 
-  vec3 col = vec3(0.015) + vec3(0.24) * lit + vec3(0.1) * crease;
+  vec3 col = vec3(0.012) + vec3(0.17) * lit + vec3(0.07) * crease;
 
   // Keep the headline side calm: fade the folds toward the top-left.
   float focus = smoothstep(0.05, 0.95, uv.x * 0.75 + (1.0 - uv.y) * 0.35);
-  col *= mix(0.55, 1.0, focus);
+  col *= mix(0.5, 1.0, focus);
 
   col += (hash(gl_FragCoord.xy + fract(uTime) * 91.0) - 0.5) * 0.025;
   gl_FragColor = vec4(col, 1.0);
