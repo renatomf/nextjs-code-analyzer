@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 import { projects } from "@/db/schema";
 import { db } from "@/lib/db";
@@ -8,7 +8,9 @@ export {
   type AnalysisStepId,
 } from "@/lib/analysis/progress-steps";
 
+/** `userId` must come from the server session; other users' projects are never touched. */
 export async function setProjectProgress(
+  userId: string,
   projectId: string,
   options: {
     step: string;
@@ -35,5 +37,5 @@ export async function setProjectProgress(
         ? { fileCount: options.fileCount }
         : {}),
     })
-    .where(eq(projects.id, projectId));
+    .where(and(eq(projects.id, projectId), eq(projects.userId, userId)));
 }

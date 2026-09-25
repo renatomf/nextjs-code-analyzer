@@ -12,6 +12,12 @@ import {
   vector,
 } from "drizzle-orm/pg-core";
 
+import type {
+  CategoryScores,
+  CategorySummaries,
+  ReportIssue,
+} from "@/lib/analysis/report-types";
+
 // Enums
 
 export const planEnum = pgEnum("plan", ["free", "premium"]);
@@ -177,19 +183,8 @@ export const codeChunks = pgTable(
   (t) => [index("code_chunks_project_id_idx").on(t.projectId)],
 ).enableRLS();
 
-export type CategoryScores = {
-  architecture: number;
-  security: number;
-  performance: number;
-  codeQuality: number;
-  maintainability: number;
-  documentation: number;
-};
-
-export type ReportIssue = {
-  title: string;
-  description: string;
-};
+// Shape written by the report step (scores plus per-category summaries).
+type StoredCategoryScores = CategoryScores & { summaries?: CategorySummaries };
 
 export const reports = pgTable("reports", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -198,7 +193,7 @@ export const reports = pgTable("reports", {
     .unique()
     .references(() => projects.id, { onDelete: "cascade" }),
   healthScore: integer("health_score").notNull(),
-  categoryScores: jsonb("category_scores").$type<CategoryScores>().notNull(),
+  categoryScores: jsonb("category_scores").$type<StoredCategoryScores>().notNull(),
   issues: jsonb("issues").$type<ReportIssue[]>().notNull(),
   createdAt: createdAt(),
 }).enableRLS();

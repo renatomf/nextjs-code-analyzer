@@ -97,7 +97,7 @@ async function finalizeProjectFromZip(options: {
   });
 
   try {
-    await setProjectProgress(project.id, {
+    await setProjectProgress(options.userId, project.id, {
       step: "Reading files",
       percent: 15,
       status: "processing",
@@ -108,7 +108,7 @@ async function finalizeProjectFromZip(options: {
     });
 
     if (!extracted.ok) {
-      await setProjectProgress(project.id, {
+      await setProjectProgress(options.userId, project.id, {
         step: "Import failed",
         percent: 15,
         status: "failed",
@@ -117,7 +117,7 @@ async function finalizeProjectFromZip(options: {
       return { projectId: project.id, failed: true as const };
     }
 
-    await setProjectProgress(project.id, {
+    await setProjectProgress(options.userId, project.id, {
       step: "Detecting framework",
       percent: 22,
       status: "processing",
@@ -133,7 +133,7 @@ async function finalizeProjectFromZip(options: {
 
     await persistProjectFiles(options.userId, project.id, extracted.sourceFiles);
 
-    await setProjectProgress(project.id, {
+    await setProjectProgress(options.userId, project.id, {
       step: "Files ready for analysis",
       percent: 25,
       status: "queued",
@@ -147,12 +147,17 @@ async function finalizeProjectFromZip(options: {
 
     return { projectId: project.id, failed: false as const };
   } catch (error) {
-    await deleteProjectFiles(options.userId, project.id);
-    await setProjectProgress(project.id, {
+    // Mark as failed first: if the cleanup below also fails, the project must
+    // still leave `processing`.
+    await setProjectProgress(options.userId, project.id, {
       step: "Import failed",
       percent: 10,
       status: "failed",
       errorMessage: publicErrorMessage(error, "Project ingestion failed."),
+    });
+    // Best effort: persistProjectFiles is atomic, so there is rarely anything left.
+    await deleteProjectFiles(options.userId, project.id).catch(() => {
+      console.error("Failed to clean up project files");
     });
     return { projectId: project.id, failed: true as const };
   }
