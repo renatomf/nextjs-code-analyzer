@@ -142,6 +142,25 @@ export const projects = pgTable(
   (t) => [index("projects_user_id_idx").on(t.userId)],
 ).enableRLS();
 
+// Extracted files of a project (replaces the tutorial's local .data/ folder,
+// which does not survive or get shared across serverless instances).
+export const projectFiles = pgTable(
+  "project_files",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    relativePath: text("relative_path").notNull(),
+    content: text("content").notNull(),
+    sizeBytes: integer("size_bytes").notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    unique("project_files_project_id_relative_path_key").on(t.projectId, t.relativePath),
+  ],
+).enableRLS();
+
 export const codeChunks = pgTable(
   "code_chunks",
   {
@@ -207,8 +226,13 @@ export const sessionsRelations = relations(sessions, ({ one }) => ({
 
 export const projectsRelations = relations(projects, ({ one, many }) => ({
   user: one(users, { fields: [projects.userId], references: [users.id] }),
+  files: many(projectFiles),
   chunks: many(codeChunks),
   report: one(reports),
+}));
+
+export const projectFilesRelations = relations(projectFiles, ({ one }) => ({
+  project: one(projects, { fields: [projectFiles.projectId], references: [projects.id] }),
 }));
 
 export const codeChunksRelations = relations(codeChunks, ({ one }) => ({

@@ -1,4 +1,5 @@
 import { HeroSilk } from "@/components/hero-silk";
+import { Button } from "@/components/ui/button";
 import {
   Boxes,
   FlaskConical,
@@ -82,7 +83,7 @@ function CodePlane() {
       aria-hidden
     >
       <div className="landing-code-bar">
-        <span className="k-dots">
+        <span className="ca-dots">
           <i />
           <i />
           <i />
@@ -116,12 +117,12 @@ function SectionHeader({
   lead: React.ReactNode;
 }) {
   return (
-    <div className="k-grid k-scroll-reveal gap-y-6">
-      <p className="k-kicker pt-2">{kicker}</p>
-      <h2 className="k-title text-4xl sm:text-5xl md:col-span-2 lg:text-[4rem]">
+    <div className="ca-grid ca-scroll-reveal gap-y-6">
+      <p className="ca-kicker pt-2">{kicker}</p>
+      <h2 className="ca-title text-4xl sm:text-5xl md:col-span-2 lg:text-[4rem]">
         {title}
       </h2>
-      <p className="k-lead max-w-xs md:self-center">{lead}</p>
+      <p className="ca-lead max-w-xs md:self-center">{lead}</p>
     </div>
   );
 }
@@ -129,13 +130,13 @@ function SectionHeader({
 export default function HomePage() {
   return (
     <div className="landing-shell">
-      <section id="top" className="k-hero k-dark k-grain k-guides">
-        <HeroSilk className="k-hero-silk" />
-        <div className="k-container relative z-40 pt-5">
+      <section id="top" className="ca-hero ca-dark ca-grain ca-guides">
+        <HeroSilk className="ca-hero-silk" />
+        <div className="ca-container relative z-40 pt-5">
           <header className="landing-reveal flex items-center justify-between gap-4 py-2">
             <a
               href="#top"
-              className="k-display max-w-34 shrink-0 text-xs leading-[1.15] tracking-tight text-white sm:max-w-none sm:text-sm"
+              className="ca-display max-w-34 shrink-0 text-xs leading-[1.15] tracking-tight text-white sm:max-w-none sm:text-sm"
             >
               AI Codebase Auditor
             </a>
@@ -144,7 +145,7 @@ export default function HomePage() {
               className="hidden items-center gap-1 md:flex"
             >
               {NAV_LINKS.map((link) => (
-                <a key={link.href} href={link.href} className="k-nav-link">
+                <a key={link.href} href={link.href} className="ca-nav-link">
                   {link.label}
                 </a>
               ))}
@@ -156,64 +157,75 @@ export default function HomePage() {
               >
                 Sign in
               </Link>
-              <Link href="/register" className="k-bar k-bar-compact">
+              <Button
+                variant="night"
+                size="sm"
+                bar
+                nativeButton={false}
+                render={<Link href="/register" />}
+              >
                 Get started
-              </Link>
+              </Button>
             </div>
           </header>
         </div>
 
-        <div className="k-container relative z-10 flex flex-1 flex-col pt-[clamp(3rem,9vh,6.5rem)]">
-          <div className="k-grid gap-y-10">
+        <div className="ca-container relative z-10 flex flex-1 flex-col pt-[clamp(3rem,9vh,6.5rem)]">
+          <div className="ca-grid gap-y-10">
             <div className="md:col-span-2">
-              <h1 className="k-title landing-reveal landing-reveal-delay-1 text-[2.9rem] sm:text-6xl lg:text-[5.25rem]">
-                <span className="k-accent">AI Codebase</span> Auditor
+              <h1 className="ca-title landing-reveal landing-reveal-delay-1 text-[2.9rem] sm:text-6xl lg:text-[5.25rem]">
+                <span className="ca-accent">AI Codebase</span> Auditor
               </h1>
               <p className="landing-reveal landing-reveal-delay-2 mt-6 text-xl font-semibold tracking-tight text-white sm:text-2xl">
                 An AI senior developer for your repository.
               </p>
-              <p className="k-lead landing-reveal landing-reveal-delay-2 mt-4 max-w-md">
+              <p className="ca-lead landing-reveal landing-reveal-delay-2 mt-4 max-w-md">
                 Connect a project, get a health report, and ask precise
                 questions grounded in your real code.
               </p>
             </div>
 
             <div className="landing-reveal landing-reveal-delay-3 flex flex-col gap-2 md:col-start-4">
-              <Link href="/login" className="k-bar k-bar-green">
+              <Button bar nativeButton={false} render={<Link href="/login" />}>
                 Analyze My Repository
-              </Link>
-              <a href="#demo" className="k-bar">
+              </Button>
+              <Button
+                variant="night"
+                bar
+                nativeButton={false}
+                render={<a href="#demo" />}
+              >
                 View Demo
-              </a>
+              </Button>
             </div>
           </div>
 
-          <div className="k-grid mt-auto pt-10">
+          <div className="ca-grid mt-auto pt-10">
             <div className="hidden md:col-span-2 md:col-start-3 md:block md:-translate-y-12">
               <CodePlane />
             </div>
           </div>
         </div>
 
-        <div className="k-display k-wordmark k-mask k-mask-dark" aria-hidden>
+        <div className="ca-display ca-wordmark ca-mask ca-mask-dark" aria-hidden>
           <span>Auditor</span>
         </div>
       </section>
 
-      <section id="why" className="k-section k-guides pt-16!">
-        <div className="k-container">
-          <div className="k-grid k-scroll-reveal gap-y-6">
-            <p className="k-kicker pt-2">Why it exists</p>
-            <h2 className="k-title text-4xl sm:text-5xl md:col-span-2 lg:text-[4rem]">
-              <span className="k-dim">Stop guessing</span> through unfamiliar
+      <section id="why" className="ca-section ca-guides pt-16!">
+        <div className="ca-container">
+          <div className="ca-grid ca-scroll-reveal gap-y-6">
+            <p className="ca-kicker pt-2">Why it exists</p>
+            <h2 className="ca-title text-4xl sm:text-5xl md:col-span-2 lg:text-[4rem]">
+              <span className="ca-dim">Stop guessing</span> through unfamiliar
               code.
             </h2>
           </div>
-          <div className="k-grid k-scroll-reveal mt-14 md:mt-20">
+          <div className="ca-grid ca-scroll-reveal mt-14 md:mt-20">
             <p className="text-2xl leading-[1.15] font-medium tracking-[-0.03em] text-balance sm:text-3xl md:col-span-2 md:col-start-2 lg:text-[2.5rem]">
               Static linters catch patterns. This product builds a searchable
               understanding of your codebase{" "}
-              <span className="text-(--k-muted)">
+              <span className="text-(--ca-muted)">
                 — then reasons over it like a senior engineer sitting beside
                 you.
               </span>
@@ -222,15 +234,15 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section id="how" className="k-section k-dark k-guides">
-        <div className="k-container">
-          <div className="k-grid gap-y-14">
-            <div className="k-scroll-reveal md:sticky md:top-10 md:self-start">
-              <p className="k-kicker">How it works</p>
-              <h2 className="k-title mt-6 text-4xl sm:text-5xl">
-                <span className="k-accent">From repository</span> to insight
+      <section id="how" className="ca-section ca-dark ca-guides">
+        <div className="ca-container">
+          <div className="ca-grid gap-y-14">
+            <div className="ca-scroll-reveal md:sticky md:top-10 md:self-start">
+              <p className="ca-kicker">How it works</p>
+              <h2 className="ca-title mt-6 text-4xl sm:text-5xl">
+                <span className="ca-accent">From repository</span> to insight
               </h2>
-              <p className="k-lead mt-6 max-w-xs">
+              <p className="ca-lead mt-6 max-w-xs">
                 One clear path. No dashboard clutter in the first five minutes.
               </p>
             </div>
@@ -239,15 +251,15 @@ export default function HomePage() {
               {FLOW.map((item) => (
                 <li
                   key={item.step}
-                  className="k-row k-scroll-reveal grid gap-4 py-10 sm:grid-cols-3 sm:py-14"
+                  className="ca-row ca-scroll-reveal grid gap-4 py-10 sm:grid-cols-3 sm:py-14"
                 >
-                  <span className="k-step k-mono text-sm text-(--k-soft)">
+                  <span className="ca-step ca-mono text-sm text-(--ca-soft)">
                     {item.step}
                   </span>
                   <h3 className="text-xl font-semibold tracking-tight text-[#cfcfcf]">
                     {item.title}
                   </h3>
-                  <p className="text-base leading-relaxed text-(--k-muted) sm:text-lg">
+                  <p className="text-base leading-relaxed text-(--ca-muted) sm:text-lg">
                     {item.text}
                   </p>
                 </li>
@@ -257,23 +269,23 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section id="features" className="k-section k-guides">
-        <div className="k-container">
+      <section id="features" className="ca-section ca-guides">
+        <div className="ca-container">
           <SectionHeader
             kicker="Features"
             title={
               <>
-                <span className="k-dim">Built for</span> real review sessions
+                <span className="ca-dim">Built for</span> real review sessions
               </>
             }
             lead="Everything a course viewer expects to demo — and a developer wants to keep using."
           />
 
-          <div className="k-scroll-reveal mt-14 grid gap-2 md:mt-20 md:grid-cols-4">
-            <article className="k-tile k-tile-dark flex flex-col md:col-span-2 md:min-h-128">
-              <span className="k-diamond text-(--k-green)" aria-hidden />
-              <h3 className="k-title mt-4 text-3xl sm:text-4xl">
-                <span className="k-accent">Health</span> report
+          <div className="ca-scroll-reveal mt-14 grid gap-2 md:mt-20 md:grid-cols-4">
+            <article className="ca-tile ca-tile-dark flex flex-col md:col-span-2 md:min-h-128">
+              <span className="ca-diamond text-(--ca-green)" aria-hidden />
+              <h3 className="ca-title mt-4 text-3xl sm:text-4xl">
+                <span className="ca-accent">Health</span> report
               </h3>
               <p className="mt-3 max-w-xs text-sm leading-relaxed text-[#999]">
                 {OUTCOMES[0].text}
@@ -282,13 +294,13 @@ export default function HomePage() {
                 <ul className="space-y-3 text-sm font-medium" aria-hidden>
                   {HEALTH_AREAS.map(({ icon: Icon, label }) => (
                     <li key={label} className="flex items-center gap-2.5">
-                      <Icon className="size-4 text-(--k-green)" />
+                      <Icon className="size-4 text-(--ca-green)" />
                       {label}
                     </li>
                   ))}
                 </ul>
                 <p
-                  className="k-title text-7xl sm:text-8xl"
+                  className="ca-title text-7xl sm:text-8xl"
                   aria-hidden
                 >
                   82
@@ -296,28 +308,28 @@ export default function HomePage() {
               </div>
             </article>
 
-            <article className="k-tile k-tile-green min-h-104">
-              <span className="k-diamond" aria-hidden />
+            <article className="ca-tile ca-tile-green min-h-104">
+              <span className="ca-diamond" aria-hidden />
               <h3 className="mt-4 text-base font-semibold tracking-tight">
                 {OUTCOMES[1].title}
               </h3>
               <p className="mt-3 text-sm leading-relaxed text-black/60">
                 {OUTCOMES[1].text}
               </p>
-              <p className="k-stack-word" aria-hidden>
+              <p className="ca-stack-word" aria-hidden>
                 <span>proxy.ts</span>
                 <span className="text-white! mb-1">auth.ts</span>
               </p>
             </article>
 
-            <article className="k-tile k-tile-light flex min-h-104 flex-col">
+            <article className="ca-tile ca-tile-light flex min-h-104 flex-col">
               <h3 className="text-base font-semibold tracking-tight">
                 {OUTCOMES[2].title}
               </h3>
-              <p className="mt-3 text-sm leading-relaxed text-(--k-muted)">
+              <p className="mt-3 text-sm leading-relaxed text-(--ca-muted)">
                 {OUTCOMES[2].text}
               </p>
-              <div className="k-bars mt-auto" aria-hidden>
+              <div className="ca-bars mt-auto" aria-hidden>
                 {ROADMAP_BARS.map((height, index) => (
                   <span
                     key={height}
@@ -333,29 +345,29 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section id="demo" className="k-section k-band k-guides">
-        <div className="k-container">
+      <section id="demo" className="ca-section ca-band ca-guides">
+        <div className="ca-container">
           <SectionHeader
             kicker="Demo"
             title={
               <>
-                <span className="k-dim">A product</span> you can show on camera
+                <span className="ca-dim">A product</span> you can show on camera
               </>
             }
             lead="Progress, report, chat, and explorer — the full loop looks polished in a YouTube walkthrough."
           />
 
-          <div className="k-demo k-scroll-reveal mt-14 grid gap-10 p-5 sm:p-8 md:mt-20 lg:grid-cols-2 lg:p-10">
+          <div className="ca-demo ca-scroll-reveal mt-14 grid gap-10 p-5 sm:p-8 md:mt-20 lg:grid-cols-2 lg:p-10">
             <div className="flex flex-col">
-              <p className="k-mono flex items-center gap-2.5 text-xs text-[#999]">
-                <span className="k-dots" aria-hidden>
+              <p className="ca-mono flex items-center gap-2.5 text-xs text-[#999]">
+                <span className="ca-dots" aria-hidden>
                   <i />
                   <i />
                   <i />
                 </span>
                 project / payment-api
               </p>
-              <p className="k-title mt-10 text-8xl sm:text-9xl lg:mt-auto">
+              <p className="ca-title mt-10 text-8xl sm:text-9xl lg:mt-auto">
                 82
                 <span className="text-3xl tracking-tight text-white/35">
                   {" "}
@@ -368,18 +380,18 @@ export default function HomePage() {
               </p>
             </div>
 
-            <div className="k-mono space-y-2 text-xs sm:text-sm">
-              <div className="k-chat px-4 py-4">
-                <p className="text-(--k-green)">You</p>
+            <div className="ca-mono space-y-2 text-xs sm:text-sm">
+              <div className="ca-chat px-4 py-4">
+                <p className="text-(--ca-green)">You</p>
                 <p className="mt-2 text-white/90">
                   Explain the authentication flow.
                 </p>
               </div>
-              <div className="k-chat px-4 py-4">
-                <p className="text-(--k-green)">AI Engineer</p>
+              <div className="ca-chat px-4 py-4">
+                <p className="text-(--ca-green)">AI Engineer</p>
                 <p className="mt-2 leading-relaxed text-white/85">
                   Auth starts in{" "}
-                  <span className="text-(--k-green)">src/lib/auth.ts</span>.
+                  <span className="text-(--ca-green)">src/lib/auth.ts</span>.
                   Sessions are issued after credential checks, then the proxy
                   guards dashboard routes.
                 </p>
@@ -392,43 +404,46 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="k-section k-guides border-t border-(--k-line)">
-        <div className="k-container">
+      <section className="ca-section ca-guides border-t border-(--ca-line)">
+        <div className="ca-container">
           <SectionHeader
             kicker="Get started"
             title={
               <>
-                <span className="k-dim">Build it. Demo it.</span> Ship the
+                <span className="ca-dim">Build it. Demo it.</span> Ship the
                 understanding.
               </>
             }
             lead="Free to try with daily analysis limits. Upgrade to Premium in Settings when you need more runs, projects, and chat capacity."
           />
-          <div className="k-grid k-scroll-reveal mt-14 gap-y-2 md:mt-20">
-            <Link
-              href="/login"
-              className="k-bar k-bar-light md:col-span-2 md:col-start-2"
+          <div className="ca-grid ca-scroll-reveal mt-14 gap-y-2 md:mt-20">
+            <Button
+              variant="secondary"
+              bar
+              nativeButton={false}
+              render={<Link href="/login" />}
+              className="md:col-span-2 md:col-start-2"
             >
               Analyze My Repository
-            </Link>
-            <Link href="/register" className="k-bar k-bar-green">
+            </Button>
+            <Button bar nativeButton={false} render={<Link href="/register" />}>
               Create Account
-            </Link>
+            </Button>
           </div>
         </div>
       </section>
 
-      <footer className="k-footer k-dark k-guides">
-        <p className="k-display k-footer-mark text-white/4!" aria-hidden>
+      <footer className="ca-footer ca-dark ca-guides">
+        <p className="ca-display ca-footer-mark text-white/4!" aria-hidden>
           Auditor
         </p>
-        <div className="k-container relative pt-[clamp(6rem,14vw,13rem)] pb-8">
-          <div className="k-grid gap-y-12">
+        <div className="ca-container relative pt-[clamp(6rem,14vw,13rem)] pb-8">
+          <div className="ca-grid gap-y-12">
             <div className="md:col-span-2">
-              <p className="k-display text-base text-white">
+              <p className="ca-display text-base text-white">
                 AI Codebase Auditor
               </p>
-              <p className="k-mono mt-4 text-xs text-[#666]">
+              <p className="ca-mono mt-4 text-xs text-[#666]">
                 Connect a project, get a health report.
               </p>
             </div>
@@ -437,7 +452,7 @@ export default function HomePage() {
               className="flex flex-col gap-2 md:col-span-2"
             >
               {NAV_LINKS.map((link) => (
-                <a key={link.href} href={link.href} className="k-footer-link">
+                <a key={link.href} href={link.href} className="ca-footer-link">
                   {link.label}
                 </a>
               ))}

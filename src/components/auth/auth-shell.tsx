@@ -38,25 +38,25 @@ export function AuthShell({ children, mode }: AuthShellProps) {
 
   return (
     <div className="landing-shell auth-shell grid min-h-svh lg:grid-cols-[1fr_1fr]">
-      <aside className="k-hero k-dark k-grain k-guides auth-panel hidden lg:flex">
-        <HeroSilk className="k-hero-silk" />
+      <aside className="ca-hero ca-dark ca-grain ca-guides auth-panel hidden lg:flex">
+        <HeroSilk className="ca-hero-silk" />
 
-        <div className="relative z-10 flex flex-1 flex-col px-(--k-gutter) py-8">
+        <div className="relative z-10 flex flex-1 flex-col px-(--ca-gutter) py-8">
           <Link
             href="/"
-            className="k-display landing-reveal self-start text-sm tracking-tight text-white"
+            className="ca-display landing-reveal self-start text-sm tracking-tight text-white"
           >
             AI Codebase Auditor
           </Link>
 
           <div className="mt-auto max-w-md pb-[clamp(4rem,12vh,8rem)]">
-            <p className="k-kicker landing-reveal landing-reveal-delay-1">
+            <p className="ca-kicker landing-reveal landing-reveal-delay-1">
               {content.kicker}
             </p>
-            <h1 className="k-title landing-reveal landing-reveal-delay-1 mt-6 text-5xl xl:text-[4.25rem]">
-              <span className="k-accent">{content.accent}</span> {content.title}
+            <h1 className="ca-title landing-reveal landing-reveal-delay-1 mt-6 text-5xl xl:text-[4.25rem]">
+              <span className="ca-accent">{content.accent}</span> {content.title}
             </h1>
-            <p className="k-lead landing-reveal landing-reveal-delay-2 mt-6 max-w-xs">
+            <p className="ca-lead landing-reveal landing-reveal-delay-2 mt-6 max-w-xs">
               {content.lead}
             </p>
 
@@ -64,12 +64,12 @@ export function AuthShell({ children, mode }: AuthShellProps) {
               {content.steps.map((step) => (
                 <li
                   key={step.n}
-                  className="k-row grid grid-cols-[4.5rem_1fr] items-center py-4"
+                  className="ca-row grid grid-cols-[4.5rem_1fr] items-center py-4"
                 >
                   <span
                     className={cn(
-                      "k-step k-mono text-xs",
-                      step.active ? "text-(--k-green)" : "text-(--k-soft)",
+                      "ca-step ca-mono text-xs",
+                      step.active ? "text-(--ca-green)" : "text-(--ca-soft)",
                     )}
                   >
                     {step.n}
@@ -77,7 +77,7 @@ export function AuthShell({ children, mode }: AuthShellProps) {
                   <p
                     className={cn(
                       "text-sm font-medium tracking-tight",
-                      step.active ? "text-white" : "text-(--k-muted)",
+                      step.active ? "text-white" : "text-(--ca-muted)",
                     )}
                   >
                     {step.label}
@@ -87,21 +87,21 @@ export function AuthShell({ children, mode }: AuthShellProps) {
             </ol>
           </div>
 
-          {/* <p className="k-mono text-xs text-[#666]">
+          {/* <p className="ca-mono text-xs text-[#666]">
             Health reports · grounded chat · issue roadmap
           </p> */}
         </div>
 
-        <p className="k-display auth-wordmark" aria-hidden>
+        <p className="ca-display auth-wordmark" aria-hidden>
           Auditor
         </p>
       </aside>
 
-      <main className="auth-main flex flex-col px-(--k-gutter) py-6">
+      <main className="auth-main flex flex-col px-(--ca-gutter) py-6">
         <header className="flex items-center justify-between gap-4">
           <Link
             href="/"
-            className="k-display text-xs tracking-tight text-(--k-ink) lg:invisible"
+            className="ca-display text-xs tracking-tight text-(--ca-ink) lg:invisible"
           >
             AI Codebase Auditor
           </Link>
@@ -113,7 +113,7 @@ export function AuthShell({ children, mode }: AuthShellProps) {
           </div>
         </div>
 
-        {/* <p className="k-mono text-center text-[0.7rem] text-(--k-soft)">
+        {/* <p className="ca-mono text-center text-[0.7rem] text-(--ca-soft)">
           © AI Codebase Auditor
         </p> */}
       </main>

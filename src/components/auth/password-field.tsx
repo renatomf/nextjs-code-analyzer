@@ -3,6 +3,9 @@
 import { Eye, EyeOff } from "lucide-react";
 import { useId, useState } from "react";
 
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+
 type PasswordFieldProps = {
   autoComplete: "current-password" | "new-password";
   placeholder: string;
@@ -16,11 +19,9 @@ export function PasswordField({ autoComplete, placeholder, hint }: PasswordField
 
   return (
     <div className="space-y-2">
-      <label htmlFor="password" className="k-field-label">
-        Password
-      </label>
+      <Label htmlFor="password">Password</Label>
       <div className="relative">
-        <input
+        <Input
           id="password"
           name="password"
           type={visible ? "text" : "password"}
@@ -30,12 +31,12 @@ export function PasswordField({ autoComplete, placeholder, hint }: PasswordField
           minLength={8}
           maxLength={72}
           aria-describedby={hint ? hintId : undefined}
-          className="k-input pe-11!"
+          className="pe-11"
         />
         <button
           type="button"
           onClick={() => setVisible((v) => !v)}
-          className="absolute top-1/2 right-3 -translate-y-1/2 text-(--k-muted) transition-colors hover:text-(--k-ink)"
+          className="absolute top-1/2 right-3 -translate-y-1/2 text-(--ca-muted) transition-colors hover:text-(--ca-ink) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--ca-ink)"
           aria-label={visible ? "Hide password" : "Show password"}
           aria-pressed={visible}
         >
@@ -43,7 +44,7 @@ export function PasswordField({ autoComplete, placeholder, hint }: PasswordField
         </button>
       </div>
       {hint ? (
-        <p id={hintId} className="k-mono text-[0.7rem] text-(--k-soft)">
+        <p id={hintId} className="font-mono text-[0.7rem] text-(--ca-soft)">
           {hint}
         </p>
       ) : null}
