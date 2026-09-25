@@ -835,35 +835,178 @@ html:has(.landing-shell) {
   }
 }
 
-/* Auth pages — single bordered frame with split panels */
-.auth-frame {
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.08);
+/* Auth pages — dark hero panel (same language as the landing) + paper form side */
+@media (min-width: 1024px) {
+  .auth-panel {
+    position: sticky;
+    top: 0;
+    height: 100svh;
+  }
 }
 
-.dark .auth-frame {
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+.auth-wordmark {
+  pointer-events: none;
+  position: absolute;
+  inset-inline: 0;
+  bottom: -0.14em;
+  z-index: 1;
+  font-size: clamp(5rem, 11vw, 10rem);
+  line-height: 0.8;
+  text-align: center;
+  white-space: nowrap;
+  color: rgba(255, 255, 255, 0.04);
 }
 
-.auth-panel {
-  background:
-    radial-gradient(
-      900px 560px at 10% -10%,
-      rgba(8, 145, 178, 0.85),
-      transparent 55%
-    ),
-    radial-gradient(
-      700px 500px at 90% 110%,
-      rgba(14, 116, 144, 0.45),
-      transparent 50%
-    ),
-    linear-gradient(165deg, #0a1220 0%, #0b1524 48%, #05080f 100%);
+.auth-main {
+  background: var(--k-paper);
+  color: var(--k-ink);
 }
 
-.auth-panel-noise {
-  opacity: 0.35;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
-  background-size: 180px 180px;
-  mix-blend-mode: overlay;
+@media (min-width: 1024px) {
+  .auth-main {
+    border-left: 1px solid var(--k-line);
+  }
+}
+
+/* Forms — flat fields and bar buttons in the landing's language */
+.k-bar {
+  cursor: pointer;
+  border-radius: 0;
+}
+
+.k-bar:focus-visible {
+  outline: 2px solid var(--k-ink);
+  outline-offset: 2px;
+}
+
+.k-bar:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+/* Auth pages: bar buttons without the dotted handle */
+.auth-shell .k-bar::after {
+  display: none;
+}
+
+/* App pages — list rows and status tags for light surfaces */
+.k-list-row {
+  border-top: 1px solid var(--k-line);
+  transition: background-color 200ms ease;
+}
+
+.k-list-row:last-child {
+  border-bottom: 1px solid var(--k-line);
+}
+
+.k-list-row:hover {
+  background: var(--k-card);
+}
+
+.k-list-row > a:focus-visible {
+  outline: 2px solid var(--k-ink);
+  outline-offset: -2px;
+}
+
+.k-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-family: var(--font-intel-mono), ui-monospace, monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--k-muted);
+}
+
+.k-status::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  transform: rotate(45deg);
+  background: var(--k-status-color, var(--k-soft));
+}
+
+.k-status-completed {
+  --k-status-color: var(--k-green-deep);
+}
+
+.k-status-running {
+  --k-status-color: #f59e0b;
+}
+
+.k-status-running::before {
+  animation: k-status-pulse 1.4s ease-in-out infinite;
+}
+
+.k-status-failed {
+  --k-status-color: #ef4444;
+}
+
+@keyframes k-status-pulse {
+  50% {
+    opacity: 0.3;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .k-status-running::before {
+    animation: none;
+  }
+}
+
+.k-field-label {
+  display: block;
+  font-family: var(--font-intel-mono), ui-monospace, monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--k-muted);
+}
+
+.k-input {
+  display: block;
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.65rem 0.9rem;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+  color: var(--k-ink);
+  background: var(--k-card);
+  box-shadow: inset 0 0 0 1px var(--k-line);
+  transition: box-shadow 160ms ease;
+}
+
+.k-input::placeholder {
+  color: var(--k-soft);
+}
+
+.k-input:hover {
+  box-shadow: inset 0 0 0 1px var(--k-soft);
+}
+
+.k-input:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 1px var(--k-ink);
+}
+
+.k-divider {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-family: var(--font-intel-mono), ui-monospace, monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--k-muted);
+}
+
+.k-divider::before,
+.k-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--k-line);
 }
 
 /* Authenticated app shell — same cyan / graphite language as landing */

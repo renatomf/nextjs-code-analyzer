@@ -1,0 +1,10 @@
+import { config } from "dotenv"; import pg from "pg";
+config({ path: ".env.local", quiet: true });
+const p = new pg.Pool({ connectionString: process.env.DATABASE_URL, ssl: true, max: 1 });
+const t = await p.query(`select table_name from information_schema.tables where table_schema='public' order by 1`);
+console.log("tables:", t.rows.map(r => r.table_name).join(", "));
+const c = await p.query(`select table_name, string_agg(column_name, ',' order by ordinal_position) cols from information_schema.columns where table_schema='public' and table_name in ('users','accounts') group by 1`);
+for (const r of c.rows) console.log(r.table_name + ":", r.cols);
+const n = await p.query(`select (select count(*) from users) users, (select count(*) from accounts) accounts, (select count(*) from accounts where provider='github') gh`).catch(e => ({ rows: [e.message] }));
+console.log("counts:", n.rows[0]);
+await p.end();
