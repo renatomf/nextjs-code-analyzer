@@ -99,7 +99,7 @@ export default async function ProjectReportPage({ params }: PageProps) {
   const overallTone = scoreTone(report?.healthScore);
 
   return (
-    <main className="landing-shell ca-guides min-h-svh">
+    <main className="landing-shell ca-guides flex-1">
       <div className="ca-container py-[clamp(3rem,8vw,6rem)]">
         <header className="mb-10 flex flex-wrap items-end justify-between gap-4">
           <div className="min-w-0">

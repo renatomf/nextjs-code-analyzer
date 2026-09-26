@@ -129,7 +129,7 @@ function SectionHeader({
 
 export default function HomePage() {
   return (
-    <div className="landing-shell">
+    <div className="landing-shell ca-home">
       <section id="top" className="ca-hero ca-dark ca-grain ca-guides">
         <HeroSilk className="ca-hero-silk" />
         <div className="ca-container relative z-40 pt-5">

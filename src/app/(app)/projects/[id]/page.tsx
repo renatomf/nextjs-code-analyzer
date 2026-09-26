@@ -82,7 +82,7 @@ export default async function ProjectOverviewPage({ params }: PageProps) {
   }>;
 
   return (
-    <main className="landing-shell ca-guides min-h-svh">
+    <main className="landing-shell ca-guides flex-1">
       <div className="ca-container py-[clamp(3rem,8vw,6rem)]">
         <div className="mx-auto max-w-3xl">
           <header className="mb-10">

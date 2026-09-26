@@ -39,7 +39,7 @@ export default async function ProjectChatPage({ params }: PageProps) {
   const ready = Boolean(chunk);
 
   return (
-    <main className="landing-shell ca-guides min-h-svh">
+    <main className="landing-shell ca-guides flex-1">
       <div className="ca-container py-[clamp(3rem,8vw,6rem)]">
         <div className="mx-auto max-w-3xl">
           <header className="mb-10 flex flex-wrap items-end justify-between gap-3">

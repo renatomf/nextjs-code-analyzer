@@ -44,7 +44,7 @@ export default async function DashboardPage() {
   const firstName = session.user.name?.split(" ")[0] ?? "there";
 
   return (
-    <main className="landing-shell ca-guides min-h-svh">
+    <main className="landing-shell ca-guides flex-1">
       <div className="ca-container py-[clamp(3rem,8vw,6rem)]">
         <header className="ca-grid gap-y-8">
           <div className="md:col-span-3">

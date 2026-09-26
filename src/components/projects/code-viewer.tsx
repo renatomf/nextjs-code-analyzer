@@ -33,8 +33,8 @@ export function CodeViewer({
     () => false,
   );
 
-  // The app renders light by default (no ThemeProvider yet), so the server
-  // render starts light too; otherwise it would flash dark before hydrating.
+  // The server can't know the visitor's theme, so render light until mounted
+  // to keep the first client render identical to the server HTML.
   const isDark = mounted ? resolvedTheme === "dark" : false;
   const style = isDark ? oneDark : oneLight;
   const lineCount = content.length === 0 ? 1 : content.split("\n").length;

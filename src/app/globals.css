@@ -161,15 +161,18 @@
   --ca-gutter: clamp(1rem, 2.5vw, 3rem);
 }
 
+/* Dark theme = the landing's night surfaces: page on --ca-night, panels one
+   step up (--ca-night-2), hovers/slabs on --ca-night-3, mint as the accent.
+   The landing itself is forced light (see theme-provider.tsx). */
 .dark {
   --ca-ink: #fafafa;
   --ca-muted: #999999;
   --ca-soft: #666666;
-  --ca-paper: #0a0a0a;
-  --ca-paper-2: #0d0d0d;
-  --ca-card: #141414;
+  --ca-paper: var(--ca-night);
+  --ca-paper-2: #0a0a0a;
+  --ca-card: var(--ca-night-2);
   --ca-line: #1f1f1f;
-  --ca-green-deep: #00ffc8;
+  --ca-green-deep: var(--ca-green);
 }
 
 /* Corner ticks of the bar buttons, as a layered class so shadcn variants
@@ -244,6 +247,35 @@
 
 html:has(.landing-shell) {
   scroll-behavior: smooth;
+}
+
+/* Landing-only scrollbar (`ca-home` is set only on the landing root): thin
+   night track with a graphite thumb, matching the hero and footer. */
+html:has(.ca-home) {
+  scrollbar-width: thin;
+  scrollbar-color: #333333 var(--ca-night);
+}
+
+html:has(.ca-home):hover {
+  scrollbar-color: #4d4d4d var(--ca-night);
+}
+
+/* Safari (no scrollbar-color support yet) */
+html:has(.ca-home)::-webkit-scrollbar {
+  width: 10px;
+}
+
+html:has(.ca-home)::-webkit-scrollbar-track {
+  background: var(--ca-night);
+}
+
+html:has(.ca-home)::-webkit-scrollbar-thumb {
+  border: 3px solid var(--ca-night);
+  background: #333333;
+}
+
+html:has(.ca-home)::-webkit-scrollbar-thumb:hover {
+  background: var(--ca-green);
 }
 
 /* Layout: 4-column editorial grid with faint column guides */
@@ -391,6 +423,21 @@ html:has(.landing-shell) {
 
 .ca-nav-link:hover {
   color: #fafafa;
+}
+
+/* App navbar (AppShell): translucent paper bar, follows the theme. */
+.ca-appbar {
+  border-bottom: 1px solid var(--ca-line);
+  background: color-mix(in srgb, var(--ca-paper) 85%, transparent);
+  backdrop-filter: blur(12px);
+}
+
+.ca-appbar .ca-nav-link {
+  color: var(--ca-muted);
+}
+
+.ca-appbar .ca-nav-link:hover {
+  color: var(--ca-ink);
 }
 
 /* Hero */
@@ -619,10 +666,6 @@ html:has(.landing-shell) {
     #050505;
 }
 
-.dark .ca-tile-dark {
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
-}
-
 .ca-tile-green {
   color: #050505;
   background: var(--ca-green);
@@ -689,10 +732,6 @@ html:has(.landing-shell) {
     ),
     #050505;
   color: #fafafa;
-}
-
-.dark .ca-demo {
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
 }
 
 .ca-chat {
