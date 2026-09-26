@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@ai-sdk/groq": "^4.0.48",
+    "@ai-sdk/react": "^4.0.119",
     "@auth/drizzle-adapter": "^1.11.3",
     "@base-ui/react": "^1.8.0",
     "@neon/config": "^1.7.3",
@@ -42,6 +43,7 @@
     "react-day-picker": "^10.0.1",
     "react-dom": "19.2.8",
     "react-resizable-panels": "^4.13.3",
+    "react-syntax-highlighter": "^16.1.1",
     "recharts": "^3.8.0",
     "shadcn": "^4.21.0",
     "tree-sitter": "^0.25.1",
@@ -56,6 +58,7 @@
     "@types/pg": "^8.23.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/react-syntax-highlighter": "^15.5.13",
     "babel-plugin-react-compiler": "1.0.0",
     "dotenv": "^18.0.3",
     "drizzle-kit": "^0.31.11",

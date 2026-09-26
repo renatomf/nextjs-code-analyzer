@@ -2,16 +2,37 @@
 
 import { hash } from "bcryptjs";
 import { AuthError } from "next-auth";
+import { headers } from "next/headers";
 
 import { users } from "@/db/schema";
 import { signIn, signOut } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { assertRateLimit, RateLimitError } from "@/lib/rate-limit";
 import { loginSchema, registerSchema } from "@/lib/validations/auth";
 
 export type AuthFormState = {
   error?: string;
   success?: boolean;
 };
+
+const AUTH_WINDOW_MS = 15 * 60 * 1000;
+
+// Brute-force protection: IP + email stops guessing one account; IP alone
+// stops credential stuffing (many emails from the same address).
+async function authRateLimited(action: string, email: string): Promise<boolean> {
+  const ip = (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  try {
+    await assertRateLimit(`${action}:${ip}:${email}`, 10, AUTH_WINDOW_MS, "Too many attempts.");
+    // Skipped without an IP, otherwise every such request would share one bucket.
+    if (ip !== "unknown") {
+      await assertRateLimit(`${action}:${ip}`, 50, AUTH_WINDOW_MS, "Too many attempts.");
+    }
+    return false;
+  } catch (error) {
+    if (error instanceof RateLimitError) return true;
+    throw error;
+  }
+}
 
 export async function registerWithEmail(
   _prev: AuthFormState,
@@ -29,6 +50,11 @@ export async function registerWithEmail(
   }
 
   const { firstName, lastName, email, password } = parsed.data;
+
+  if (await authRateLimited("register", email)) {
+    return { error: "Too many attempts. Please try again later." };
+  }
+
   const passwordHash = await hash(password, 12);
 
   // Atomic insert: the unique constraint decides, so two concurrent requests
@@ -72,6 +98,10 @@ export async function loginWithEmail(
 
   if (!parsed.success) {
     return { error: "Invalid email or password." };
+  }
+
+  if (await authRateLimited("login", parsed.data.email)) {
+    return { error: "Too many attempts. Please try again later." };
   }
 
   try {

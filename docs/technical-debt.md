@@ -206,11 +206,20 @@ maintainability) · **Low** (cleanup).
 - **Direction:** keep one flow (naturally solved by TD-15).
 - **Phase:** Clean Architecture.
 
-### TD-17 — No brute-force protection on login/register · High
-- **Where:** [actions/auth.ts](../src/lib/actions/auth.ts)
-- **Problem:** already a planned TODO: apply the shared rate limiter (IP +
-  email) when the tutorial reaches `rate-limit.ts`.
-- **Phase:** Tutorial (`rate-limit.ts` step).
+### TD-17 — Rate limiter follow-ups · Low
+- **Where:** [rate-limit.ts](../src/lib/rate-limit.ts),
+  [actions/auth.ts](../src/lib/actions/auth.ts)
+- **Done:** Postgres-backed limiter (`rate_limits`, atomic upsert) on login and
+  register (IP + email, and IP alone), chat, and the report/knowledge actions.
+- **Problem:** (1) login counts successful attempts too, not only failures;
+  (2) `rate_limits` rows are never deleted (one row per key); (3) fixed window
+  allows up to 2× the limit around a window boundary; (4) `x-forwarded-for`
+  is only trustworthy behind Vercel (or a proxy that overwrites it).
+- **Direction:** count only failed logins; periodic
+  `DELETE FROM rate_limits WHERE window_start < now() - interval '1 day'` from
+  a cron; move to Upstash Ratelimit (sliding window, TTL) if traffic grows —
+  `assertRateLimit`'s signature stays the same.
+- **Phase:** Cron / deploy.
 
 ### TD-18 — JWT sessions cannot be revoked · Medium
 - **Where:** [auth.ts:92](../src/lib/auth.ts#L92)
@@ -307,6 +316,18 @@ maintainability) · **Low** (cleanup).
   domain errors; everything else stays generic and is logged (TD-26).
 - **Phase:** Clean Architecture.
 
+### TD-34 — No full Content-Security-Policy · Medium
+- **Where:** [next.config.ts](../next.config.ts)
+- **Problem:** only baseline headers are set (`frame-ancestors 'none'`,
+  `X-Frame-Options`, `nosniff`, `Referrer-Policy`, `Permissions-Policy`).
+  Without `script-src` / `connect-src` / `img-src`, an XSS would run with no
+  second line of defense. The app renders repository code and LLM output,
+  so this matters more than usual.
+- **Direction:** nonce-based CSP generated in the proxy, following the Next.js
+  CSP guide; allow GitHub/Google avatars and fonts; roll out with
+  `Content-Security-Policy-Report-Only` first and test every page.
+- **Phase:** Security.
+
 ### TD-27 — No tests, no CI · High
 - **Problem:** the most test-worthy code is pure and easy to test: `chunking`,
   `filters` (zip-slip, sensitive files), `extract` (zip bombs), `encryption`,
@@ -333,3 +354,8 @@ Security hardening applied on top of the original, kept here as a record:
   (no race).
 - Uploaded files moved from local disk to Postgres (serverless-safe).
 - Generic error messages to the client; verified TLS to Postgres.
+- Postgres-backed rate limiter (atomic upsert) on login/register, chat,
+  explain and the report/knowledge actions.
+- API input validated with zod (chat, explorer); client-sent `system`
+  messages rejected; private code responses sent with `no-store`.
+- Baseline security headers (clickjacking, `nosniff`, referrer, permissions).

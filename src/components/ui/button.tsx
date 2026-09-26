@@ -14,7 +14,7 @@ const buttonVariants = cva(
         night:
           "ca-corners bg-(--ca-night-3) text-[#fafafa] [--ca-corner:var(--ca-green)] hover:bg-[#262626]",
         outline:
-          "border-(--ca-line) bg-transparent text-(--ca-ink) hover:bg-(--ca-card) aria-expanded:bg-(--ca-card)",
+          "border-(--ca-line) bg-(--ca-card) text-(--ca-ink) hover:border-(--ca-green-deep) hover:bg-(--ca-green)/15 aria-expanded:border-(--ca-green-deep) aria-expanded:bg-(--ca-green)/15",
         secondary:
           "ca-corners bg-[#e0e0e0] text-[#050505] [--ca-corner:#050505] hover:bg-[#d4d4d4] aria-expanded:bg-[#d4d4d4] dark:bg-[#1a1a1a] dark:text-[#fafafa] dark:[--ca-corner:var(--ca-green)] dark:hover:bg-[#262626] dark:aria-expanded:bg-[#262626]",
         ghost:

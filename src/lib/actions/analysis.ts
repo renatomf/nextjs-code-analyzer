@@ -22,6 +22,7 @@ import { isSourceFile } from "@/lib/files/filters";
 import { detectFramework } from "@/lib/files/framework";
 import { persistProjectFiles } from "@/lib/files/storage";
 import { downloadGitHubZipball, GitHubError } from "@/lib/github";
+import { assertRateLimit, RateLimitError } from "@/lib/rate-limit";
 
 export type RetryState = {
   error?: string;
@@ -29,12 +30,28 @@ export type RetryState = {
 
 const projectIdSchema = z.uuid();
 
+// LLM / embedding cost protection, keyed by userId.
+const AI_ACTION_MAX_PER_HOUR = 10;
+
+function assertAiActionRateLimit(action: string, userId: string) {
+  return assertRateLimit(
+    `${action}:${userId}`,
+    AI_ACTION_MAX_PER_HOUR,
+    60 * 60 * 1000,
+    `Rate limit reached (${AI_ACTION_MAX_PER_HOUR}/hour). Try again later.`,
+  );
+}
+
 /**
  * Only our own error types carry user-facing messages; anything else (DB,
  * LLM provider, bugs) may contain internals and becomes a generic message.
  */
 function publicErrorMessage(error: unknown, fallback: string): string {
-  if (error instanceof BillingLimitError || error instanceof GitHubError) {
+  if (
+    error instanceof BillingLimitError ||
+    error instanceof GitHubError ||
+    error instanceof RateLimitError
+  ) {
     return error.message;
   }
   console.error(fallback);
@@ -158,6 +175,7 @@ export async function retryProjectKnowledge(
   if (!project) return { error: "Project not found." };
 
   try {
+    await assertAiActionRateLimit("knowledge", project.userId);
     await buildProjectKnowledge(project.userId, project.id);
     revalidatePath(`/projects/${project.id}`);
     revalidatePath("/dashboard");
@@ -257,6 +275,7 @@ export async function generateReportAction(
   if (!project) return { error: "Project not found." };
 
   try {
+    await assertAiActionRateLimit("report", project.userId);
     await generateProjectReport(project.userId, project.id);
     revalidatePath(`/projects/${project.id}`);
     revalidatePath(`/projects/${project.id}/report`);

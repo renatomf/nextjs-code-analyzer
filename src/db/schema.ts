@@ -86,6 +86,14 @@ export const usageEvents = pgTable(
   (t) => [index("usage_events_user_id_type_created_at_idx").on(t.userId, t.type, t.createdAt)],
 ).enableRLS();
 
+// Fixed-window counters shared by every serverless instance (replaces the
+// tutorial's in-memory Map). `key` is a SHA-256 hash, so no emails/IPs are stored.
+export const rateLimits = pgTable("rate_limits", {
+  key: text("key").primaryKey(),
+  count: integer("count").notNull(),
+  windowStart: timestamp("window_start", { withTimezone: true }).defaultNow().notNull(),
+}).enableRLS();
+
 export const accounts = pgTable(
   "accounts",
   {

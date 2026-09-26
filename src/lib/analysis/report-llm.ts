@@ -60,7 +60,18 @@ export async function runLlmHealthReview(options: {
     endLine: number | null;
   }>;
 }): Promise<LlmReportResult> {
-  const sampled = options.chunks.slice(0, 24);
+  // Groq's free tier allows 8000 tokens/minute per model, and a single
+  // request above that always fails. Cap the code sent (not just the chunk
+  // count) so prompt + answer stay well under it (~3.5 chars per code token).
+  const MAX_CODE_CHARS = 16_000;
+  const sampled: typeof options.chunks = [];
+  let usedChars = 0;
+  for (const chunk of options.chunks.slice(0, 24)) {
+    const size = Math.min(chunk.content.length, 2500);
+    if (usedChars + size > MAX_CODE_CHARS) break;
+    sampled.push(chunk);
+    usedChars += size;
+  }
 
   const { object } = await generateObject({
     model: getStructuredLanguageModel(),

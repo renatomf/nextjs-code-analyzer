@@ -64,7 +64,7 @@ export default async function DashboardPage() {
         </header>
 
         {userProjects.length === 0 ? (
-          <section className="ca-tile ca-tile-light mt-14 flex min-h-0! flex-col items-start gap-4 p-8! md:mt-20">
+          <section className="ca-panel mt-14 flex flex-col items-start gap-4 p-8 md:mt-20">
             <span className="ca-diamond text-(--ca-green-deep)" aria-hidden />
             <h2 className="ca-title text-3xl">
               <span className="ca-dim">No projects</span> yet
@@ -102,7 +102,7 @@ export default async function DashboardPage() {
                   <li key={project.id} className="ca-list-row">
                     <Link
                       href={href}
-                      className="grid grid-cols-[2.5rem_1fr_auto] items-center gap-4 py-5 sm:grid-cols-[3.5rem_1fr_7rem_8rem]"
+                      className="grid grid-cols-[2.5rem_1fr_auto] items-center gap-4 px-4 py-5 sm:grid-cols-[3.5rem_1fr_7rem_8rem] sm:px-6"
                     >
                       <span className="ca-mono text-xs text-(--ca-soft)">
                         {String(index + 1).padStart(2, "0")}

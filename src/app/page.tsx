@@ -207,8 +207,8 @@ export default function HomePage() {
           </div>
         </div>
 
-        <div className="ca-display ca-wordmark ca-mask ca-mask-dark" aria-hidden>
-          <span>Auditor</span>
+        <div className="ca-display ca-wordmark ca-mask ca-mask-dark hidden! md:block! md:text-[9.2rem]!" aria-hidden>
+          <span>Code Auditor</span>
         </div>
       </section>
 
