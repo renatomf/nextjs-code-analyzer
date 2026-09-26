@@ -9,4 +9,10 @@
 - TODO when reaching the tutorial's `rate-limit.ts`: replace its in-memory Map with a shared store (Postgres table or Upstash) and also apply it to login/register in `src/lib/actions/auth.ts` (brute-force protection, keyed by IP + email) and to `generateReportAction` / `retryProjectKnowledge` in `src/lib/actions/analysis.ts` (LLM / embedding cost, keyed by userId).
 - UI: the tutorial's look (cyan gradients, `app-*` / `--app-*` classes, `report-hero`) is replaced by our "Kudos" layout: `ca-*` classes and `--ca-*` tokens in `globals.css`, and the shadcn components in `src/components/ui/` (already restyled; Button has extra `night` variant and `bar` prop). Keep the tutorial's JSX/components, drop its color/gradient classNames, and map `app-*` to the `ca-*` equivalents (`app-panel` → `ca-panel`). Page shell: `landing-shell ca-guides` + `ca-container` (see `dashboard/page.tsx`).
 - TODO at the end of the project (remind the user): check `globals.css` again for `ca-*` classes that are no longer referenced.
+- TODO after the tutorial is finished (refactoring, remind the user) — the health report of this very repo scored 41/100 mostly from noise:
+  1. Ingestion analyzes `.claude/skills/**` scripts instead of the app: add `.claude` (and other tooling/docs dirs) to `ALWAYS_EXCLUDE_DIR_NAMES` in `src/lib/limits.ts`.
+  2. `src/lib/analysis/report.ts` sends the LLM the first 80 chunks ordered by `filePath` (alphabetical, dot-dirs first): sample chunks spread across the whole project instead.
+  3. Group repeated findings (e.g. one "Critical area may lack tests" listing all files) so the roadmap isn't filled with identical rows.
+  4. Scoring: `scoreFromIssues` penalties are linear and uncapped, so one repeated rule zeroes a category (Code Quality 0, Testing 0): cap per rule or use diminishing penalties.
+  5. LLM false positives (e.g. "duplicate const prodId" that was three separate block scopes, ranked High / #1): require file + snippet evidence for high/critical issues and tighten the prompt.
 - Translate every Prisma call from the tutorial to Drizzle (`@/lib/db`, schema in `@/db/schema`); never use `sql.raw` or string-built SQL with user input.
