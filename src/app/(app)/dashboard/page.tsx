@@ -56,7 +56,7 @@ export default async function DashboardPage() {
               Your analyzed repositories and health scores live here.
             </p>
           </div>
-          <div className="md:self-end">
+          <div className="md:self-end md:pr-0!">
             <Button bar nativeButton={false} render={<Link href="/projects/new" />}>
               Analyze repository
             </Button>

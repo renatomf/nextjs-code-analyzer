@@ -14,7 +14,7 @@ const buttonVariants = cva(
         night:
           "ca-corners bg-(--ca-night-3) text-[#fafafa] [--ca-corner:var(--ca-green)] hover:bg-[#262626]",
         outline:
-          "border-(--ca-line) bg-(--ca-card) text-(--ca-ink) hover:border-(--ca-green-deep) hover:bg-(--ca-green)/15 aria-expanded:border-(--ca-green-deep) aria-expanded:bg-(--ca-green)/15",
+          "border-(--ca-line) bg-(--ca-card) text-(--ca-ink) hover:border-(--ca-green-deep) hover:bg-(--ca-green-soft) aria-expanded:border-(--ca-green-deep) aria-expanded:bg-(--ca-green-soft)",
         secondary:
           "ca-corners bg-[#e0e0e0] text-[#050505] [--ca-corner:#050505] hover:bg-[#d4d4d4] aria-expanded:bg-[#d4d4d4] dark:bg-[#1a1a1a] dark:text-[#fafafa] dark:[--ca-corner:var(--ca-green)] dark:hover:bg-[#262626] dark:aria-expanded:bg-[#262626]",
         ghost:
@@ -39,11 +39,18 @@ const buttonVariants = cva(
         true: "ca-handle flex justify-between gap-4 pr-3.5 pl-4",
         false: "",
       },
+      // Hover takes the full primary look: mint slab, ink text, corner ticks
+      // (ticks hidden at rest; dark theme drops them via `.dark .ca-corners`).
+      mint: {
+        true: "ca-corners [--ca-corner:transparent] hover:border-transparent hover:bg-(--ca-green) hover:text-[#050505] hover:[--ca-corner:#050505]",
+        false: "",
+      },
     },
     defaultVariants: {
       variant: "default",
       size: "default",
       bar: false,
+      mint: false,
     },
   }
 )
@@ -53,12 +60,13 @@ function Button({
   variant = "default",
   size = "default",
   bar = false,
+  mint = false,
   ...props
 }: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
   return (
     <ButtonPrimitive
       data-slot="button"
-      className={cn(buttonVariants({ variant, size, bar, className }))}
+      className={cn(buttonVariants({ variant, size, bar, mint, className }))}
       {...props}
     />
   )

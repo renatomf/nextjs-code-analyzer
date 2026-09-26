@@ -37,6 +37,7 @@ export function ThemeToggle({ className }: { className?: string }) {
       size="icon"
       onClick={toggle}
       aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
+      mint
       className={className}
     >
       {isDark ? <Sun /> : <Moon />}

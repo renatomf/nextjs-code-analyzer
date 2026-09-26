@@ -154,6 +154,7 @@
   --ca-line: #e0e0e0;
   --ca-green: #00ffc8;
   --ca-green-deep: #00b38c;
+  --ca-green-soft: #d2f8f0; /* solid light mint (hover fills) */
   --ca-night: #050505;
   --ca-night-2: #0f0f0f;
   --ca-night-3: #1a1a1a;
@@ -173,6 +174,7 @@
   --ca-card: var(--ca-night-2);
   --ca-line: #1f1f1f;
   --ca-green-deep: var(--ca-green);
+  --ca-green-soft: #0d332b;
 }
 
 /* Corner ticks of the bar buttons, as a layered class so shadcn variants
@@ -220,6 +222,11 @@
     background-origin: border-box;
   }
 
+  /* Dark theme: plain slabs, no corner ticks. */
+  .dark .ca-corners {
+    background-image: none;
+  }
+
   /* Dotted handle on the right of bar buttons (Button `bar`). */
   .ca-handle::after {
     content: "";
@@ -245,7 +252,7 @@
   -webkit-font-smoothing: antialiased;
 }
 
-html:has(.landing-shell) {
+html:has(.ca-home) {
   scroll-behavior: smooth;
 }
 
@@ -430,14 +437,6 @@ html:has(.ca-home)::-webkit-scrollbar-thumb:hover {
   border-bottom: 1px solid var(--ca-line);
   background: color-mix(in srgb, var(--ca-paper) 85%, transparent);
   backdrop-filter: blur(12px);
-}
-
-.ca-appbar .ca-nav-link {
-  color: var(--ca-muted);
-}
-
-.ca-appbar .ca-nav-link:hover {
-  color: var(--ca-ink);
 }
 
 /* Hero */
@@ -832,7 +831,7 @@ html:has(.ca-home)::-webkit-scrollbar-thumb:hover {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  html:has(.landing-shell) {
+  html:has(.ca-home) {
     scroll-behavior: auto;
   }
 
@@ -947,6 +946,66 @@ html:has(.ca-home)::-webkit-scrollbar-thumb:hover {
   .ca-status-running::before {
     animation: none;
   }
+}
+
+/* Severity ladder — the single source for every severity UI (filter diamonds,
+   badges, issue-card left rule, icons). Each class sets --ca-sev; utilities
+   read it (`text-(--ca-sev)`, `border-l-(--ca-sev)`, `bg-(--ca-sev)/5`).
+   Values are Tailwind's red-700/600, orange-500 (as lab)/400, yellow-300. */
+.ca-sev-critical {
+  --ca-sev: oklch(50.5% 0.213 27.518);
+}
+
+.ca-sev-high {
+  --ca-sev: lab(64.272% 57.1788 90.3583);
+}
+
+.ca-sev-medium {
+  --ca-sev: #d9a405;
+}
+
+.ca-sev-low {
+  --ca-sev: var(--ca-muted);
+}
+
+.dark .ca-sev-critical {
+  --ca-sev: oklch(57.7% 0.245 27.325);
+}
+
+.dark .ca-sev-high {
+  --ca-sev: oklch(75% 0.183 55.934);
+}
+
+.dark .ca-sev-medium {
+  --ca-sev: oklch(90.5% 0.182 98.111);
+}
+
+/* Score tones (health report) — same idea as the severity ladder: each class
+   sets --ca-tone and the number, progress bar and chip all read it
+   (`text-(--ca-tone)`, `bg-(--ca-tone)`). Red is Tailwind's red-600/400,
+   dark "ok" is yellow-400. */
+.ca-tone-good {
+  --ca-tone: var(--ca-green-deep);
+}
+
+.ca-tone-ok {
+  --ca-tone: #eb8a03;
+}
+
+.ca-tone-poor {
+  --ca-tone: oklch(57.7% 0.245 27.325);
+}
+
+.ca-tone-neutral {
+  --ca-tone: var(--ca-muted);
+}
+
+.dark .ca-tone-ok {
+  --ca-tone: oklch(85.2% 0.199 91.936);
+}
+
+.dark .ca-tone-poor {
+  --ca-tone: oklch(70.4% 0.191 22.216);
 }
 
 .ca-divider {

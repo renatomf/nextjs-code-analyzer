@@ -24,7 +24,13 @@ export function SignOutButton() {
 
   return (
     <>
-      <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(true)}>
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        onClick={() => setOpen(true)}
+        mint
+      >
         Sign out
       </Button>
 

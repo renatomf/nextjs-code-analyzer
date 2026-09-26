@@ -66,7 +66,12 @@ export function RetryFullAnalysisButton({ projectId }: { projectId: string }) {
           onDismiss={() => setDismissed(true)}
         />
       ) : null}
-      <Button type="submit" disabled={pending} variant="outline">
+      <Button
+        type="submit"
+        disabled={pending}
+        variant="outline"
+        mint
+      >
         {pending ? "Starting..." : "Analyze again"}
       </Button>
     </form>

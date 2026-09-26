@@ -74,6 +74,7 @@ export default async function ProjectExplorerPage({
               size="sm"
               nativeButton={false}
               render={<Link href={`/projects/${project.id}`} />}
+              mint
             >
               Overview
             </Button>
@@ -82,6 +83,7 @@ export default async function ProjectExplorerPage({
               size="sm"
               nativeButton={false}
               render={<Link href={`/projects/${project.id}/chat`} />}
+              mint
             >
               Chat
             </Button>
@@ -90,6 +92,7 @@ export default async function ProjectExplorerPage({
               size="sm"
               nativeButton={false}
               render={<Link href={`/projects/${project.id}/report`} />}
+              mint
             >
               Report
             </Button>
@@ -98,6 +101,7 @@ export default async function ProjectExplorerPage({
               size="sm"
               nativeButton={false}
               render={<Link href={`/projects/${project.id}/issues`} />}
+              mint
             >
               Issues
             </Button>

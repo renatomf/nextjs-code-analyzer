@@ -62,11 +62,7 @@ export default async function ProjectOverviewPage({ params }: PageProps) {
 
   const navLinks = [
     reportReady
-      ? {
-          href: `/projects/${project.id}/report`,
-          label: "Health Report",
-          primary: true,
-        }
+      ? { href: `/projects/${project.id}/report`, label: "Health Report" }
       : null,
     reportReady
       ? { href: `/projects/${project.id}/issues`, label: "Issues" }
@@ -75,11 +71,7 @@ export default async function ProjectOverviewPage({ params }: PageProps) {
       ? { href: `/projects/${project.id}/chat`, label: "AI Chat" }
       : null,
     { href: `/projects/${project.id}/explorer`, label: "Explorer" },
-  ].filter(Boolean) as Array<{
-    href: string;
-    label: string;
-    primary?: boolean;
-  }>;
+  ].filter(Boolean) as Array<{ href: string; label: string }>;
 
   return (
     <main className="landing-shell ca-guides flex-1">
@@ -108,10 +100,11 @@ export default async function ProjectOverviewPage({ params }: PageProps) {
               {navLinks.map((link) => (
                 <Button
                   key={link.href}
-                  variant={link.primary ? "default" : "outline"}
+                  variant="outline"
                   size="sm"
                   nativeButton={false}
                   render={<Link href={link.href} />}
+                  mint
                 >
                   {link.label}
                 </Button>

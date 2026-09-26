@@ -1,6 +1,5 @@
 import { and, eq } from "drizzle-orm";
 import {
-  AlertTriangle,
   Code2,
   FlaskConical,
   Gauge,
@@ -16,13 +15,12 @@ import {
   GenerateReportButton,
   RetryFullAnalysisButton,
 } from "@/components/projects/report-actions";
-import { Badge } from "@/components/ui/badge";
+import { IssueCard } from "@/components/projects/issue-card";
 import { Button } from "@/components/ui/button";
 import { codeChunks, projects } from "@/db/schema";
 import {
   CATEGORY_LABELS,
   SEVERITY_LABELS,
-  severityVariant,
   sortIssues,
 } from "@/lib/analysis/issue-utils";
 import type {
@@ -119,6 +117,7 @@ export default async function ProjectReportPage({ params }: PageProps) {
                 size="sm"
                 nativeButton={false}
                 render={<Link href={`/projects/${project.id}/issues`} />}
+                mint
               >
                 Issues
               </Button>
@@ -128,6 +127,7 @@ export default async function ProjectReportPage({ params }: PageProps) {
               size="sm"
               nativeButton={false}
               render={<Link href={`/projects/${project.id}/explorer`} />}
+              mint
             >
               Explore
             </Button>
@@ -136,6 +136,7 @@ export default async function ProjectReportPage({ params }: PageProps) {
               size="sm"
               nativeButton={false}
               render={<Link href={`/projects/${project.id}`} />}
+              mint
             >
               Overview
             </Button>
@@ -145,6 +146,7 @@ export default async function ProjectReportPage({ params }: PageProps) {
                 size="sm"
                 nativeButton={false}
                 render={<Link href={`/projects/${project.id}/chat`} />}
+                mint
               >
                 Chat
               </Button>
@@ -249,7 +251,7 @@ export default async function ProjectReportPage({ params }: PageProps) {
                           </p>
                           <div className="mt-2 h-1 overflow-hidden bg-(--ca-line)">
                             <div
-                              className={cn("h-full", CATEGORY_ACCENT[key].bar)}
+                              className={cn("h-full", scoreBarClass(tone))}
                               style={{
                                 width: `${Math.min(100, Math.max(0, score ?? 0))}%`,
                                 opacity: score == null ? 0.25 : 1,
@@ -373,6 +375,7 @@ export default async function ProjectReportPage({ params }: PageProps) {
                   size="sm"
                   nativeButton={false}
                   render={<Link href={`/projects/${project.id}/issues`} />}
+                  mint
                 >
                   View all
                 </Button>
@@ -385,50 +388,11 @@ export default async function ProjectReportPage({ params }: PageProps) {
                   </p>
                 ) : (
                   previewIssues.map((issue, index) => (
-                    <div
+                    <IssueCard
                       key={`${issue.title}-${index}`}
-                      className={cn(
-                        "border border-l-2 border-(--ca-line) p-4 text-sm",
-                        issue.severity === "critical" ||
-                          issue.severity === "high"
-                          ? "border-l-red-500 bg-red-500/4"
-                          : issue.severity === "medium"
-                            ? "border-l-amber-500 bg-amber-500/4"
-                            : "border-l-(--ca-soft)",
-                      )}
-                    >
-                      <div className="mb-2 flex flex-wrap items-center gap-2">
-                        <AlertTriangle
-                          className={cn(
-                            "size-3.5",
-                            issue.severity === "critical" ||
-                              issue.severity === "high"
-                              ? "text-red-500"
-                              : issue.severity === "medium"
-                                ? "text-amber-500"
-                                : "text-(--ca-soft)",
-                          )}
-                          aria-hidden
-                        />
-                        <p className="font-medium tracking-tight">
-                          {issue.title}
-                        </p>
-                        <Badge variant={severityVariant(issue.severity)}>
-                          {SEVERITY_LABELS[issue.severity]}
-                        </Badge>
-                        <Badge variant="outline">
-                          {CATEGORY_LABELS[issue.category]}
-                        </Badge>
-                      </div>
-                      <p className="leading-relaxed text-foreground/75">
-                        {issue.description}
-                      </p>
-                      {issue.filePath ? (
-                        <p className="mt-2 font-mono text-xs text-(--ca-muted)">
-                          {issue.filePath}
-                        </p>
-                      ) : null}
-                    </div>
+                      issue={issue}
+                      projectId={project.id}
+                    />
                   ))
                 )}
               </div>

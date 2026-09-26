@@ -73,6 +73,7 @@ export default async function ProjectIssuesPage({ params }: PageProps) {
               size="sm"
               nativeButton={false}
               render={<Link href={`/projects/${project.id}/report`} />}
+              mint
             >
               Health Report
             </Button>
@@ -81,6 +82,7 @@ export default async function ProjectIssuesPage({ params }: PageProps) {
               size="sm"
               nativeButton={false}
               render={<Link href={`/projects/${project.id}`} />}
+              mint
             >
               Overview
             </Button>

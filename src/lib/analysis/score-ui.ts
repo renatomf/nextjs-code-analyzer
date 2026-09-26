@@ -9,43 +9,18 @@ export function scoreTone(score: number | null | undefined): ScoreTone {
   return "poor";
 }
 
+// Colors live in one place: the `.ca-tone-*` classes in globals.css set
+// `--ca-tone` per tone (and per theme); number, bar and chip only read it.
 export function scoreTextClass(tone: ScoreTone): string {
-  switch (tone) {
-    case "good":
-      return "text-(--ca-green-deep)";
-    case "ok":
-      return "text-amber-600 dark:text-amber-400";
-    case "poor":
-      return "text-red-600 dark:text-red-400";
-    default:
-      return "text-(--ca-muted)";
-  }
+  return `ca-tone-${tone} text-(--ca-tone)`;
 }
 
 export function scoreBarClass(tone: ScoreTone): string {
-  switch (tone) {
-    case "good":
-      return "bg-(--ca-green-deep)";
-    case "ok":
-      return "bg-amber-500";
-    case "poor":
-      return "bg-red-500";
-    default:
-      return "bg-(--ca-line)";
-  }
+  return `ca-tone-${tone} bg-(--ca-tone)`;
 }
 
 export function scoreChipClass(tone: ScoreTone): string {
-  switch (tone) {
-    case "good":
-      return "border-(--ca-green-deep)/25 bg-(--ca-green-deep)/10 text-(--ca-green-deep)";
-    case "ok":
-      return "border-amber-500/25 bg-amber-500/10 text-amber-800 dark:text-amber-300";
-    case "poor":
-      return "border-red-500/25 bg-red-500/10 text-red-700 dark:text-red-300";
-    default:
-      return "border-(--ca-line) bg-(--ca-card) text-(--ca-muted)";
-  }
+  return `ca-tone-${tone} border-(--ca-tone)/25 bg-(--ca-tone)/10 text-(--ca-tone)`;
 }
 
 export function scoreLabel(tone: ScoreTone): string {

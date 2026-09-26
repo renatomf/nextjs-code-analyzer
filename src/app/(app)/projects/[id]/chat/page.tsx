@@ -54,6 +54,7 @@ export default async function ProjectChatPage({ params }: PageProps) {
               size="sm"
               nativeButton={false}
               render={<Link href={`/projects/${project.id}`} />}
+              mint
             >
               Overview
             </Button>
