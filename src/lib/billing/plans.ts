@@ -1,6 +1,6 @@
-import type { planEnum } from "@/db/schema";
+import type { users } from "@/db/schema";
 
-type Plan = (typeof planEnum.enumValues)[number];
+type Plan = (typeof users.$inferSelect)["plan"];
 
 export type PlanId = "free" | "premium";
 
@@ -25,7 +25,7 @@ function envText(name: string, fallback: string): string {
   return raw || fallback;
 }
 
-/** Paid plan id stored in the DB / Stripe metadata. */
+/** Paid plan id stored in the DB (plan enum) / Stripe metadata. */
 export const PAID_PLAN_ID: PlanId = "premium";
 
 /**
@@ -73,8 +73,25 @@ export function getPlans(): Record<PlanId, PlanLimits> {
   };
 }
 
-// TODO (Stripe step): getPlansWithStripePricing() from the original, once
-// `@/lib/billing/stripe` exists.
+/**
+ * Same as getPlans(), but premium.priceLabel comes from Stripe
+ * (STRIPE_PRICE_PREMIUM) unless NEXT_PUBLIC_PLAN_PREMIUM_PRICE_LABEL is set.
+ */
+export async function getPlansWithStripePricing(): Promise<
+  Record<PlanId, PlanLimits>
+> {
+  const plans = getPlans();
+  if (process.env.NEXT_PUBLIC_PLAN_PREMIUM_PRICE_LABEL?.trim()) {
+    return plans;
+  }
+
+  const { fetchPremiumPriceLabel } = await import("@/lib/billing/stripe");
+  const fromStripe = await fetchPremiumPriceLabel();
+  if (fromStripe) {
+    plans.premium.priceLabel = fromStripe;
+  }
+  return plans;
+}
 
 export const PLANS = getPlans();
 

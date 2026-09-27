@@ -1,11 +1,10 @@
 import "server-only";
 
-import { and, count, eq, gte } from "drizzle-orm";
+import { getPlanLimits, getPlans } from "@/lib/billing/plans";
+import { and, eq, gte } from "drizzle-orm";
 
 import { projects, usageEvents, users } from "@/db/schema";
-
 import { db, type Db } from "@/lib/db";
-import { getPlanLimits, getPlans } from "./plans";
 
 type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];
 type Executor = Db | Tx;
@@ -39,32 +38,6 @@ function startOfUtcDay(): Date {
   return d;
 }
 
-async function countAnalysesSince(
-  userId: string,
-  since: Date,
-  executor: Executor,
-) {
-  const [{ value }] = await executor
-    .select({ value: count() })
-    .from(usageEvents)
-    .where(
-      and(
-        eq(usageEvents.userId, userId),
-        eq(usageEvents.type, "analysis"),
-        gte(usageEvents.createdAt, since),
-      ),
-    );
-  return value;
-}
-
-async function countProjects(userId: string, executor: Executor) {
-  const [{ value }] = await executor
-    .select({ value: count() })
-    .from(projects)
-    .where(eq(projects.userId, userId));
-  return value;
-}
-
 /** Record one analysis attempt (new project or re-analyze). */
 export async function recordAnalysisUsage(
   userId: string,
@@ -80,7 +53,7 @@ export async function assertCanCreateProject(
   const user = await loadUserBilling(userId, executor);
   const limits = getPlanLimits(user.plan, user.planStatus);
 
-  const projectCount = await countProjects(userId, executor);
+  const projectCount = await executor.$count(projects, eq(projects.userId, userId));
   if (projectCount >= limits.maxProjects) {
     throw new BillingLimitError(
       "projects",
@@ -97,8 +70,16 @@ export async function assertCanRunAnalysis(
 ): Promise<void> {
   const user = await loadUserBilling(userId, executor);
   const limits = getPlanLimits(user.plan, user.planStatus);
+  const since = startOfUtcDay();
 
-  const used = await countAnalysesSince(userId, startOfUtcDay(), executor);
+  const used = await executor.$count(
+    usageEvents,
+    and(
+      eq(usageEvents.userId, userId),
+      eq(usageEvents.type, "analysis"),
+      gte(usageEvents.createdAt, since),
+    ),
+  );
 
   if (used >= limits.analysesPerDay) {
     const paid = getPlans().premium;
@@ -115,25 +96,28 @@ export async function assertCanRunAnalysis(
 
 /** `userId` must come from the server session. */
 export async function getBillingSnapshot(userId: string) {
-  const [user] = await db
-    .select({
-      plan: users.plan,
-      planStatus: users.planStatus,
-      stripeCustomerId: users.stripeCustomerId,
-      stripeSubscriptionId: users.stripeSubscriptionId,
-    })
-    .from(users)
-    .where(eq(users.id, userId))
-    .limit(1);
+  const user = await db.query.users.findFirst({
+    where: eq(users.id, userId),
+    columns: {
+      plan: true,
+      planStatus: true,
+      stripeCustomerId: true,
+      stripeSubscriptionId: true,
+    },
+  });
   if (!user) throw new Error("User not found.");
 
   const limits = getPlanLimits(user.plan, user.planStatus);
-  const analysesUsedToday = await countAnalysesSince(
-    userId,
-    startOfUtcDay(),
-    db,
+  const since = startOfUtcDay();
+  const analysesUsedToday = await db.$count(
+    usageEvents,
+    and(
+      eq(usageEvents.userId, userId),
+      eq(usageEvents.type, "analysis"),
+      gte(usageEvents.createdAt, since),
+    ),
   );
-  const projectCount = await countProjects(userId, db);
+  const projectCount = await db.$count(projects, eq(projects.userId, userId));
 
   return {
     plan: user.plan,

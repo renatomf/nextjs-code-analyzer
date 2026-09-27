@@ -29,7 +29,7 @@ export function SignOutButton() {
         variant="ghost"
         size="sm"
         onClick={() => setOpen(true)}
-        mint
+        className="hover:bg-transparent"
       >
         Sign out
       </Button>
@@ -62,7 +62,6 @@ export function SignOutButton() {
             </Button>
             <Button
               type="button"
-              variant="night"
               disabled={pending}
               onClick={confirmSignOut}
             >

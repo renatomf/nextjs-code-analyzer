@@ -1,9 +1,14 @@
+import { MainNav } from "@/components/app/main-nav";
 import { SignOutButton } from "@/components/auth/sign-out-button";
+import { NavPlanUsage } from "@/components/billing/nav-plan-usage";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
+import { auth } from "@/lib/auth";
 import Link from "next/link";
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+export async function AppShell({ children }: { children: React.ReactNode }) {
+  const session = await auth();
+
   return (
     <div className="landing-shell flex min-h-svh flex-col">
       <header className="ca-appbar sticky top-0 z-40">
@@ -21,30 +26,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </span>
           </Link>
 
-          <nav aria-label="Main" className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              nativeButton={false}
-              render={<Link href="/dashboard" />}
-              mint
-            >
-              Projects
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              nativeButton={false}
-              render={<Link href="/projects/new" />}
-              mint
-            >
-              Analyze
-            </Button>
-          </nav>
+          <MainNav />
 
-          <div className="flex shrink-0 items-center gap-2 justify-self-end">
+          {/* From md the actions fill the right column, so the plan badge can
+              sit centered between the nav and the account controls. */}
+          <div className="flex shrink-0 items-center gap-2 justify-self-stretch">
+            <div className="flex flex-1 justify-center">
+              {session?.user?.id ? (
+                <NavPlanUsage userId={session.user.id} />
+              ) : null}
+            </div>
             {/* Below 2xl there's no room outside the container, so it sits
-                first in the actions and New analysis keeps the right edge. */}
+                with the account controls and New analysis keeps the right edge. */}
             <ThemeToggle className="2xl:absolute 2xl:top-2.5 2xl:right-12" />
             <SignOutButton />
             <Button
