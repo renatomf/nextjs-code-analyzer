@@ -487,6 +487,19 @@ html:has(.ca-home)::-webkit-scrollbar-thumb:hover {
   mix-blend-mode: overlay;
 }
 
+/* Landing-wide paper grain: a fixed 1-bit noise tile (public/grain.png) over
+   the whole page at 3.5%, so it stays put while content scrolls under it. */
+.ca-paper-grain {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background-image: url("/grain.png");
+  background-repeat: repeat;
+  background-size: 90px;
+  opacity: 0.035;
+}
+
 /* Giant wordmark mask: the word is pinned to the bottom of the viewport but only
    shows inside the band that closes the hero, so the next section's edge wipes
    it away on scroll. */

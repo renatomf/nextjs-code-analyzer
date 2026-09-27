@@ -130,6 +130,7 @@ function SectionHeader({
 export default function HomePage() {
   return (
     <div className="landing-shell ca-home">
+      <div className="ca-paper-grain" aria-hidden />
       <section id="top" className="ca-hero ca-dark ca-grain ca-guides">
         <HeroSilk className="ca-hero-silk" />
         <div className="ca-container relative z-40 pt-5">
@@ -416,13 +417,13 @@ export default function HomePage() {
             }
             lead="Free to try with daily analysis limits. Upgrade to Premium in Settings when you need more runs, projects, and chat capacity."
           />
-          <div className="ca-grid ca-scroll-reveal mt-14 gap-y-2 md:mt-20">
+          <div className="ca-grid ca-scroll-reveal mt-14 gap-y-2 md:mt-20 md:gap-x-3">
             <Button
               variant="secondary"
               bar
               nativeButton={false}
               render={<Link href="/login" />}
-              className="md:col-span-2 md:col-start-2"
+              className="md:col-start-2"
             >
               Analyze My Repository
             </Button>
