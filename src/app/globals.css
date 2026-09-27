@@ -239,6 +239,14 @@
 html:has(.ca-home) {
   scroll-behavior: smooth;
 }
+/* App pages (`ca-app` is set by the app shell): always reserve the scrollbar
+   space, so the container keeps the same width whether a tab scrolls
+   (Explorer) or fits the screen (AI Chat). The html background paints that
+   gutter in the page color instead of the body's. */
+html:has(.ca-app) {
+  scrollbar-gutter: stable;
+  background: var(--ca-paper);
+}
 
 /* Landing-only scrollbar (`ca-home` is set only on the landing root): thin
    night track with a graphite thumb, matching the hero and footer. */
@@ -290,12 +298,68 @@ html:has(.ca-home)::-webkit-scrollbar-thumb:hover {
   inset: 0 var(--ca-gutter);
   z-index: -1;
   border-inline: 1px solid var(--ca-guide, rgba(5, 5, 5, 0.06));
+  /* Only the three inner lines: the edges come from border-inline. (A
+     repeating 25% tile also drew a line at 0%, doubling the left edge.) */
+  --ca-guide-line: var(--ca-guide, rgba(5, 5, 5, 0.06));
   background-image: linear-gradient(
     90deg,
-    var(--ca-guide, rgba(5, 5, 5, 0.06)) 1px,
-    transparent 1px
+    transparent 25%,
+    var(--ca-guide-line) 25%,
+    var(--ca-guide-line) calc(25% + 1px),
+    transparent calc(25% + 1px),
+    transparent 50%,
+    var(--ca-guide-line) 50%,
+    var(--ca-guide-line) calc(50% + 1px),
+    transparent calc(50% + 1px),
+    transparent 75%,
+    var(--ca-guide-line) 75%,
+    var(--ca-guide-line) calc(75% + 1px),
+    transparent calc(75% + 1px)
   );
-  background-size: 25% 100%;
+  background-repeat: no-repeat;
+}
+
+/* Same guides without the 25% line (dashboard). */
+.ca-guides-no-first::before {
+  background-image: linear-gradient(
+    90deg,
+    transparent 50%,
+    var(--ca-guide-line) 50%,
+    var(--ca-guide-line) calc(50% + 1px),
+    transparent calc(50% + 1px),
+    transparent 75%,
+    var(--ca-guide-line) 75%,
+    var(--ca-guide-line) calc(75% + 1px),
+    transparent calc(75% + 1px)
+  );
+}
+
+/* Only the 25% line: the border stays 1px (transparent) so the line lands
+   exactly where a full `.ca-guides` would draw it. */
+.ca-guides-first-only::before {
+  border-color: transparent;
+  background-image: linear-gradient(
+    90deg,
+    transparent 25%,
+    var(--ca-guide-line) 25%,
+    var(--ca-guide-line) calc(25% + 1px),
+    transparent calc(25% + 1px)
+  );
+}
+
+/* Same guides without the 50% line (analyze page). */
+.ca-guides-no-middle::before {
+  background-image: linear-gradient(
+    90deg,
+    transparent 25%,
+    var(--ca-guide-line) 25%,
+    var(--ca-guide-line) calc(25% + 1px),
+    transparent calc(25% + 1px),
+    transparent 75%,
+    var(--ca-guide-line) 75%,
+    var(--ca-guide-line) calc(75% + 1px),
+    transparent calc(75% + 1px)
+  );
 }
 
 .dark .ca-guides,

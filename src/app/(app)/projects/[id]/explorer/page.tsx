@@ -1,18 +1,14 @@
-import { and, eq } from "drizzle-orm";
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { z } from "zod";
 
 import { CodeExplorer } from "@/components/projects/code-explorer";
-import { Button } from "@/components/ui/button";
-import { projects } from "@/db/schema";
 import { auth } from "@/lib/auth";
-import { db } from "@/lib/db";
 import {
   buildFileTree,
   listProjectFilePaths,
   readProjectFile,
 } from "@/lib/files/explorer";
+import { getProjectSummary } from "@/lib/projects";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -33,11 +29,8 @@ export default async function ProjectExplorerPage({
   const parsedId = z.uuid().safeParse(id);
   if (!parsedId.success) notFound();
 
-  const [project] = await db
-    .select({ id: projects.id, name: projects.name })
-    .from(projects)
-    .where(and(eq(projects.id, parsedId.data), eq(projects.userId, session.user.id)))
-    .limit(1);
+  // Same cached, owner-scoped query as the layout.
+  const project = await getProjectSummary(session.user.id, parsedId.data);
   if (!project) notFound();
 
   let paths: string[] = [];
@@ -59,55 +52,8 @@ export default async function ProjectExplorerPage({
   }
 
   return (
-    <main className="landing-shell ca-guides flex-1">
-      <div className="ca-container py-[clamp(3rem,8vw,6rem)]">
-        <header className="mb-10 flex flex-wrap items-end justify-between gap-3">
-          <div className="min-w-0">
-            <p className="ca-kicker">Code Explorer</p>
-            <h1 className="ca-title mt-6 text-4xl wrap-break-word sm:text-5xl">
-              {project.name}
-            </h1>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              nativeButton={false}
-              render={<Link href={`/projects/${project.id}`} />}
-              mint
-            >
-              Overview
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              nativeButton={false}
-              render={<Link href={`/projects/${project.id}/chat`} />}
-              mint
-            >
-              Chat
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              nativeButton={false}
-              render={<Link href={`/projects/${project.id}/report`} />}
-              mint
-            >
-              Report
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              nativeButton={false}
-              render={<Link href={`/projects/${project.id}/issues`} />}
-              mint
-            >
-              Issues
-            </Button>
-          </div>
-        </header>
-
+    <main className="flex-1">
+      <div className="ca-container py-10">
         {paths.length === 0 ? (
           <div className="ca-panel p-8 text-center text-sm text-(--ca-muted)">
             No extracted files are available for this project yet.

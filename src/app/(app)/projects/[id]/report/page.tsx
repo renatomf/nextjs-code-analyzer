@@ -16,6 +16,7 @@ import {
   RetryFullAnalysisButton,
 } from "@/components/projects/report-actions";
 import { IssueCard } from "@/components/projects/issue-card";
+import { ActionAlert } from "@/components/shared/action-alert";
 import { Button } from "@/components/ui/button";
 import { codeChunks, projects } from "@/db/schema";
 import {
@@ -97,63 +98,8 @@ export default async function ProjectReportPage({ params }: PageProps) {
   const overallTone = scoreTone(report?.healthScore);
 
   return (
-    <main className="landing-shell ca-guides flex-1">
-      <div className="ca-container py-[clamp(3rem,8vw,6rem)]">
-        <header className="mb-10 flex flex-wrap items-end justify-between gap-4">
-          <div className="min-w-0">
-            <p className="ca-kicker">Health Report</p>
-            <h1 className="ca-title mt-6 text-4xl wrap-break-word sm:text-5xl">
-              {project.name}
-            </h1>
-            <p className="ca-lead mt-4 max-w-xl">
-              Potential findings to review — not certified security or
-              performance results.
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {report ? (
-              <Button
-                variant="outline"
-                size="sm"
-                nativeButton={false}
-                render={<Link href={`/projects/${project.id}/issues`} />}
-                mint
-              >
-                Issues
-              </Button>
-            ) : null}
-            <Button
-              variant="outline"
-              size="sm"
-              nativeButton={false}
-              render={<Link href={`/projects/${project.id}/explorer`} />}
-              mint
-            >
-              Explore
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              nativeButton={false}
-              render={<Link href={`/projects/${project.id}`} />}
-              mint
-            >
-              Overview
-            </Button>
-            {hasChunks ? (
-              <Button
-                variant="outline"
-                size="sm"
-                nativeButton={false}
-                render={<Link href={`/projects/${project.id}/chat`} />}
-                mint
-              >
-                Chat
-              </Button>
-            ) : null}
-          </div>
-        </header>
-
+    <main className="flex-1">
+      <div className="ca-container py-10">
         {!report ? (
           <section className="ca-panel flex flex-col items-start gap-4 p-8">
             <span className="ca-diamond text-(--ca-green-deep)" aria-hidden />
@@ -167,9 +113,11 @@ export default async function ProjectReportPage({ params }: PageProps) {
             </p>
             <div className="mt-2">
               {project.errorMessage ? (
-                <p className="mb-3 border border-destructive/30 border-l-2 border-l-destructive bg-destructive/5 px-3 py-2 text-sm text-destructive">
-                  {project.errorMessage}
-                </p>
+                <ActionAlert
+                  title="Last analysis reported"
+                  message={project.errorMessage}
+                  className="mb-3"
+                />
               ) : null}
               {hasChunks ? (
                 <GenerateReportButton projectId={project.id} />
@@ -337,7 +285,7 @@ export default async function ProjectReportPage({ params }: PageProps) {
                   {roadmap.map((issue, index) => (
                     <li
                       key={`${issue.title}-${index}`}
-                      className="flex gap-3 border border-(--ca-line) p-3.5"
+                      className="flex gap-3 rounded-[0.375rem] border border-(--ca-line) p-3.5"
                     >
                       <span className="flex size-7 shrink-0 items-center justify-center bg-(--ca-green) font-mono text-xs font-bold text-[#050505]">
                         {index + 1}

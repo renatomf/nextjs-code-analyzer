@@ -257,15 +257,19 @@ export default async function SettingsPage({ searchParams }: PageProps) {
                 </form>
               </>
             )}
-            <Button
-              variant="ghost"
-              size="sm"
-              nativeButton={false}
-              render={<Link href="/dashboard" />}
-              className="px-0"
-            >
-              ← Back to projects
-            </Button>
+            {/* Its own block: the Disconnect/Connect button above is inline,
+                so the link would otherwise sit beside it. */}
+            <div>
+              <Button
+                variant="ghost"
+                size="sm"
+                nativeButton={false}
+                render={<Link href="/dashboard" />}
+                className="px-0"
+              >
+                ← Back to projects
+              </Button>
+            </div>
           </section>
         </div>
       </div>

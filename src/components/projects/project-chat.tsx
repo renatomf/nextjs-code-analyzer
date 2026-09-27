@@ -1,11 +1,20 @@
 "use client";
 
+import { ActionAlert } from "@/components/shared/action-alert";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import type { ChatSource } from "@/lib/analysis/chat-rag";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
-import { FormEvent, useMemo, useState } from "react";
+import { ArrowUp, Square } from "lucide-react";
+import {
+  FormEvent,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 function getMessageText(message: UIMessage): string {
   return message.parts
@@ -43,6 +52,23 @@ export function ProjectChat({
 
   const busy = status === "submitted" || status === "streaming";
 
+  // Auto-grow: fit the box to its text (Shift+Enter adds lines) up to the CSS
+  // max-height, then it scrolls inside. Shrinks back when text is removed.
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  useLayoutEffect(() => {
+    const box = inputRef.current;
+    if (!box) return;
+    box.style.height = "auto";
+    box.style.height = `${box.scrollHeight}px`;
+  }, [input]);
+
+  // Keep the newest message in view (the messages area scrolls inside).
+  const messagesRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const area = messagesRef.current;
+    if (area) area.scrollTop = area.scrollHeight;
+  }, [messages]);
+
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const text = input.trim();
@@ -53,14 +79,24 @@ export function ProjectChat({
   }
 
   return (
-    <div className="flex min-h-[70vh] flex-col gap-4">
-      <div className="border border-(--ca-line) bg-(--ca-card) px-4 py-3 text-sm text-(--ca-muted)">
+    // Fills the rest of the screen (`data-chat-fill` makes the app shell
+    // exactly screen-high), like Claude: the input sits at the bottom edge and,
+    // as it grows, pushes up by shrinking the stretched messages area.
+    <div data-chat-fill className="flex min-h-0 flex-1 flex-col gap-4">
+      <div className="shrink-0 rounded-[0.375rem] border border-(--ca-line) bg-(--ca-card) px-4 py-3 text-sm text-(--ca-muted)">
         Ask questions about{" "}
         <span className="font-medium text-foreground">{projectName}</span>.
         Answers are grounded in retrieved code chunks from this project.
       </div>
 
-      <div className="flex flex-1 flex-col gap-4 overflow-y-auto border border-(--ca-line) p-4">
+      {/* Takes the remaining height and scrolls inside; follows the newest
+          message. */}
+      <div
+        ref={messagesRef}
+        // min-h-32: on very short screens the page scrolls instead of the
+        // conversation collapsing.
+        className="flex min-h-32 flex-1 flex-col gap-4 overflow-y-auto rounded-[0.375rem] border border-(--ca-line) bg-(--ca-card) p-4"
+      >
         {messages.length === 0 ? (
           <div className="space-y-2 text-sm text-(--ca-muted)">
             <p>Try asking:</p>
@@ -79,10 +115,10 @@ export function ProjectChat({
             return (
               <div
                 key={message.id}
-                className={`max-w-[90%] rounded-md px-4 py-3 text-sm ${
+                className={`max-w-[90%] rounded-[0.375rem] px-4 py-3 text-sm ${
                   isUser
                     ? "ms-auto bg-primary text-primary-foreground"
-                    : "me-auto bg-(--ca-card) shadow-[inset_0_0_0_1px_var(--ca-line)]"
+                    : "me-auto min-w-64 bg-(--ca-paper-2) shadow-[inset_0_0_0_1px_var(--ca-line)] dark:bg-(--ca-green-soft)"
                 }`}
               >
                 <p className="mb-1 text-xs opacity-70">
@@ -115,27 +151,67 @@ export function ProjectChat({
       </div>
 
       {error ? (
-        <p className="border border-destructive/30 border-l-2 border-l-destructive bg-destructive/5 px-3 py-2 text-sm text-destructive">{error.message}</p>
+        <ActionAlert
+          title="Chat error"
+          message={error.message}
+          onDismiss={clearError}
+          className="shrink-0"
+        />
       ) : null}
 
-      <form onSubmit={onSubmit} className="flex flex-col gap-3">
+      {/* Claude-style input: grows with the text up to a max, then scrolls,
+          stays editable while the answer streams (sending waits for it),
+          keeps focus. One icon button inside, bottom-right: send (arrow), or
+          stop (square) while answering. */}
+      <form onSubmit={onSubmit} className="relative shrink-0">
         <Textarea
+          ref={inputRef}
           value={input}
           onChange={(event) => setInput(event.target.value)}
+          onKeyDown={(event) => {
+            // Enter sends, Shift+Enter adds a new line. Ignored while an IME
+            // is composing (e.g. accents), so Enter only confirms the letter.
+            if (
+              event.key === "Enter" &&
+              !event.shiftKey &&
+              !event.nativeEvent.isComposing
+            ) {
+              event.preventDefault();
+              if (!busy) event.currentTarget.form?.requestSubmit();
+            }
+          }}
           placeholder="Ask about this codebase..."
-          rows={3}
+          rows={1}
           maxLength={4000}
-          disabled={busy}
+          autoFocus
+          // field-sizing-fixed: the height is set by the effect above.
+          // pr-14 keeps the text clear of the button.
+          className="field-sizing-fixed max-h-36 rounded-[0.375rem] min-h-20 resize-none overflow-y-auto pr-14"
         />
-        <div className="flex items-center gap-2">
-          <Button type="submit" disabled={busy || !input.trim()}>
-            {busy ? "Sending..." : "Send"}
-          </Button>
+        <div className="absolute right-2 bottom-2">
           {busy ? (
-            <Button type="button" variant="outline" onClick={() => stop()}>
-              Stop
+            <Button
+              type="button"
+              size="icon-sm"
+              className="[--ca-corner:transparent]!"
+              aria-label="Stop response"
+              title="Stop"
+              onClick={() => stop()}
+            >
+              <Square className="fill-current" />
             </Button>
-          ) : null}
+          ) : (
+            <Button
+              type="submit"
+              size="icon-sm"
+              className="[--ca-corner:transparent]!"
+              aria-label="Send message"
+              title="Send (Enter)"
+              disabled={!input.trim()}
+            >
+              <ArrowUp />
+            </Button>
+          )}
         </div>
       </form>
     </div>

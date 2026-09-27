@@ -1,5 +1,4 @@
 import { and, eq } from "drizzle-orm";
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { z } from "zod";
 
@@ -8,7 +7,6 @@ import {
   GenerateReportButton,
   RetryFullAnalysisButton,
 } from "@/components/projects/report-actions";
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -58,39 +56,10 @@ export default async function ProjectIssuesPage({ params }: PageProps) {
   const issues = (project.report?.issues ?? []) as ReportIssue[];
 
   return (
-    <main className="landing-shell ca-guides flex-1">
-      <div className="ca-container py-[clamp(3rem,8vw,6rem)]">
-        <header className="mb-10 flex flex-wrap items-end justify-between gap-3">
-          <div className="min-w-0">
-            <p className="ca-kicker">Issues</p>
-            <h1 className="ca-title mt-6 text-4xl wrap-break-word sm:text-5xl">
-              {project.name}
-            </h1>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              nativeButton={false}
-              render={<Link href={`/projects/${project.id}/report`} />}
-              mint
-            >
-              Health Report
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              nativeButton={false}
-              render={<Link href={`/projects/${project.id}`} />}
-              mint
-            >
-              Overview
-            </Button>
-          </div>
-        </header>
-
+    <main className="flex-1">
+      <div className="ca-container py-10">
         {!project.report ? (
-          <Card>
+          <Card className="rounded-[0.375rem] ring-inset">
             <CardHeader>
               <CardTitle>No issues yet</CardTitle>
               <CardDescription>
@@ -106,7 +75,7 @@ export default async function ProjectIssuesPage({ params }: PageProps) {
             </CardContent>
           </Card>
         ) : (
-          <Card>
+          <Card className="rounded-[0.375rem] ring-inset">
             <CardHeader>
               <CardTitle>Issues Dashboard</CardTitle>
               <CardDescription>

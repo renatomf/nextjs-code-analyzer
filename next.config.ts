@@ -14,6 +14,12 @@ const nextConfig: NextConfig = {
     serverActions: {
       bodySizeLimit: "110mb",
     },
+    // Reuse visited dynamic pages for 30s in the client cache, so switching
+    // back and forth between project tabs is instant. Server Actions that
+    // call revalidatePath still clear it right away.
+    staleTimes: {
+      dynamic: 30,
+    },
   },
   poweredByHeader: false,
   // Baseline security headers. A full Content-Security-Policy (scripts,

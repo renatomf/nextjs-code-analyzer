@@ -64,9 +64,11 @@ export function CodeExplorer({
   }
 
   return (
-    <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(240px,280px)_minmax(0,1fr)_minmax(0,300px)]">
-      <section className="ca-panel min-w-0">
-        <div className="flex items-center justify-between border-b border-(--ca-line) px-3.5 py-2.5">
+    <div className="grid min-w-0 gap-4 [--explorer-h:min(75vh,47rem)] lg:grid-cols-[minmax(240px,280px)_minmax(0,1fr)_minmax(0,300px)]">
+      {/* Files and code share one fixed height at every width (header fixed,
+          body scrolls inside), so the two panels always line up. */}
+      <section className="ca-panel flex min-w-0 flex-col h-(--explorer-h)">
+        <div className="flex shrink-0 items-center justify-between border-b border-(--ca-line) px-3.5 py-2.5">
           <p className="font-mono text-[0.68rem] tracking-[0.04em] text-(--ca-muted) uppercase">
             Files
           </p>
@@ -83,19 +85,19 @@ export function CodeExplorer({
         />
       </section>
 
-      <section className="min-w-0">
+      <section className="flex min-w-0 flex-col h-(--explorer-h)">
         {loading ? (
-          <div className="ca-panel flex min-h-72 items-center justify-center p-8 text-sm text-(--ca-muted)">
+          <div className="ca-panel flex min-h-72 flex-1 items-center justify-center p-8 text-sm text-(--ca-muted)">
             Loading file...
           </div>
         ) : error ? (
-          <div className="ca-panel flex min-h-72 items-center justify-center p-8 text-sm text-destructive">
+          <div className="ca-panel flex min-h-72 flex-1 items-center justify-center p-8 text-sm text-destructive">
             {error}
           </div>
         ) : selectedPath && content != null ? (
           <CodeViewer filePath={selectedPath} content={content} />
         ) : (
-          <div className="ca-panel flex min-h-72 items-center justify-center p-8 text-sm text-(--ca-muted)">
+          <div className="ca-panel flex min-h-72 flex-1 items-center justify-center p-8 text-sm text-(--ca-muted)">
             Select a file to view its code.
           </div>
         )}

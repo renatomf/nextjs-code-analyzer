@@ -29,7 +29,9 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="landing-shell flex min-h-svh flex-col">
+    // Pages grow with their content; a page that must fill the screen exactly
+    // (the chat marks itself with `data-chat-fill`) gets a fixed svh height.
+    <div className="landing-shell ca-app flex min-h-svh flex-col has-data-chat-fill:h-svh">
       <header className="ca-appbar sticky top-0 z-40">
         {/* Three columns so the nav sits in the true center, as on the landing. */}
         <div className="ca-container flex h-14 items-center justify-between gap-4 md:grid md:grid-cols-[1fr_auto_1fr]">
@@ -81,7 +83,7 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      <div className="flex flex-1 flex-col">{children}</div>
+      <div className="flex min-h-0 flex-1 flex-col">{children}</div>
     </div>
   );
 }

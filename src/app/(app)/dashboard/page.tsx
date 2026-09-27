@@ -3,20 +3,11 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { DeleteProjectButton } from "@/components/projects/delete-project-button";
+import { ProjectStatusBadge } from "@/components/shared/project-status-badge";
 import { Button } from "@/components/ui/button";
 import { codeChunks, projects, reports } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { cn } from "@/lib/utils";
-
-type ProjectStatus = (typeof projects.$inferSelect)["status"];
-
-const STATUS_CLASS: Record<ProjectStatus, string> = {
-  completed: "ca-status-completed",
-  failed: "ca-status-failed",
-  processing: "ca-status-running",
-  queued: "ca-status-running",
-};
 
 function getUserProjects(userId: string) {
   // Only the columns the list renders, always scoped to the signed-in user.
@@ -45,8 +36,8 @@ export default async function DashboardPage() {
   const firstName = session.user.name?.split(" ")[0] ?? "there";
 
   return (
-    <main className="landing-shell ca-guides flex-1">
-      <div className="ca-container py-[clamp(3rem,8vw,6rem)]">
+    <main className="landing-shell ca-guides ca-guides-no-first flex flex-1 flex-col">
+      <div className="ca-container pt-[clamp(3rem,8vw,6rem)]">
         <header className="ca-grid gap-y-8">
           <div className="md:col-span-3">
             <p className="ca-kicker">Workspace</p>
@@ -136,9 +127,7 @@ export default async function DashboardPage() {
                       </span>
 
                       <span className="justify-self-end">
-                        <span className={cn("ca-status", STATUS_CLASS[project.status])}>
-                          {project.status}
-                        </span>
+                        <ProjectStatusBadge status={project.status} />
                       </span>
                     </Link>
                     <DeleteProjectButton
@@ -152,6 +141,11 @@ export default async function DashboardPage() {
           </section>
         )}
       </div>
+      {/* The 25% guide line starts right after the list and runs to the bottom. */}
+      <div
+        aria-hidden
+        className="ca-guides ca-guides-first-only min-h-[clamp(3rem,8vw,6rem)] flex-1"
+      />
     </main>
   );
 }

@@ -46,8 +46,11 @@ function TreeNode({
   onSelect: (path: string) => void;
 }) {
   const containsSelected = isPathInsideFolder(node.path, selectedPath);
-  const [manualOpen, setManualOpen] = useState(() => depth < 2);
-  const open = containsSelected || manualOpen;
+  // null = not toggled yet: open when it holds the selected file or is one of
+  // the top two levels. Once clicked, the user's choice wins (before, the
+  // selected file's folders were forced open and could never collapse).
+  const [manualOpen, setManualOpen] = useState<boolean | null>(null);
+  const open = manualOpen ?? (containsSelected || depth < 2);
   const pad = 10 + depth * 14;
 
   if (node.type === "file") {
@@ -57,11 +60,11 @@ function TreeNode({
       <button
         type="button"
         onClick={() => onSelect(node.path)}
+        aria-current={selected ? "true" : undefined}
+        // The open file looks like the hovered row.
         className={cn(
-          "group flex w-full items-center gap-2 rounded-sm py-1.5 pr-2 text-left text-[13px] transition-colors",
-          selected
-            ? "bg-(--ca-green)/15 font-medium text-(--ca-ink) shadow-[inset_2px_0_0_var(--ca-green-deep)]"
-            : "text-(--ca-ink)/90 hover:bg-(--ca-paper)",
+          "group flex w-full items-center gap-2 rounded-sm py-1.5 pr-2 text-left text-[13px] text-(--ca-ink)/90 transition-colors hover:bg-(--ca-paper)",
+          selected && "bg-(--ca-paper)",
         )}
         style={{ paddingInlineStart: pad }}
         title={node.path}
@@ -80,34 +83,30 @@ function TreeNode({
       <button
         type="button"
         onClick={() => setManualOpen(!open)}
-        className={cn(
-          "flex w-full items-center gap-1.5 rounded-sm py-1.5 pr-2 text-left text-[13px] font-semibold transition-colors hover:bg-(--ca-paper)",
-          containsSelected
-            ? "text-(--ca-green-deep)"
-            : "text-(--ca-ink)/85",
-        )}
+        // Folders are all ink (name, chevron and icon), open or closed.
+        className="flex w-full items-center gap-1.5 rounded-sm py-1.5 pr-2 text-left text-[13px] font-semibold text-(--ca-ink) transition-colors hover:bg-(--ca-paper)"
         style={{ paddingInlineStart: pad }}
         aria-expanded={open}
       >
         {open ? (
           <ChevronDown
-            className="size-3.5 shrink-0 text-(--ca-muted)"
+            className="size-3.5 shrink-0 text-(--ca-ink)"
             aria-hidden
           />
         ) : (
           <ChevronRight
-            className="size-3.5 shrink-0 text-(--ca-muted)"
+            className="size-3.5 shrink-0 text-(--ca-ink)"
             aria-hidden
           />
         )}
         {open ? (
           <FolderOpen
-            className="size-3.5 shrink-0 text-(--ca-green-deep)"
+            className="size-3.5 shrink-0 text-(--ca-ink)"
             aria-hidden
           />
         ) : (
           <Folder
-            className="size-3.5 shrink-0 text-(--ca-muted)"
+            className="size-3.5 shrink-0 text-(--ca-ink)"
             aria-hidden
           />
         )}
@@ -148,7 +147,8 @@ export function FileTree({
   }
 
   return (
-    <div className="max-h-[min(70vh,44rem)] overflow-auto p-2">
+    // Fills the Files panel (fixed height) and scrolls inside.
+    <div className="min-h-0 flex-1 overflow-auto p-2">
       {tree.map((node) => (
         <TreeNode
           key={node.path}

@@ -177,7 +177,8 @@ export async function retryProjectKnowledge(
   try {
     await assertAiActionRateLimit("knowledge", project.userId);
     await buildProjectKnowledge(project.userId, project.id);
-    revalidatePath(`/projects/${project.id}`);
+    // "layout": the project header/tabs and every tab under it.
+    revalidatePath(`/projects/${project.id}`, "layout");
     revalidatePath("/dashboard");
     redirect(`/projects/${project.id}`);
   } catch (error) {
@@ -240,8 +241,8 @@ export async function retryFullAnalysis(
         errorMessage: null,
       })
       .where(and(eq(projects.id, project.id), eq(projects.userId, project.userId)));
-    revalidatePath(`/projects/${project.id}`);
-    revalidatePath(`/projects/${project.id}/progress`);
+    // "layout": the project header/tabs and every tab under it.
+    revalidatePath(`/projects/${project.id}`, "layout");
     revalidatePath("/dashboard");
     redirect(`/projects/${project.id}/progress`);
   } catch (error) {
@@ -277,8 +278,8 @@ export async function generateReportAction(
   try {
     await assertAiActionRateLimit("report", project.userId);
     await generateProjectReport(project.userId, project.id);
-    revalidatePath(`/projects/${project.id}`);
-    revalidatePath(`/projects/${project.id}/report`);
+    // "layout": the project header/tabs and every tab under it.
+    revalidatePath(`/projects/${project.id}`, "layout");
     revalidatePath("/dashboard");
     redirect(`/projects/${project.id}/report`);
   } catch (error) {

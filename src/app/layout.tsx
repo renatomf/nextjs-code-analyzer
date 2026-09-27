@@ -14,6 +14,10 @@ const intelOneMono = Intel_One_Mono({
   variable: "--font-intel-mono",
   subsets: ["latin"],
   weight: ["400", "500"],
+  // next/font has no metrics to build an adjusted fallback for this font
+  // (it warned on every build), so use plain system monospace instead.
+  adjustFontFallback: false,
+  fallback: ["ui-monospace", "SFMono-Regular", "Consolas", "monospace"],
 });
 
 const syne = Syne({

@@ -1,13 +1,11 @@
-import { and, eq } from "drizzle-orm";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { z } from "zod";
 
 import { ProjectChat } from "@/components/projects/project-chat";
 import { Button } from "@/components/ui/button";
-import { codeChunks, projects } from "@/db/schema";
 import { auth } from "@/lib/auth";
-import { db } from "@/lib/db";
+import { getProjectSummary } from "@/lib/projects";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -22,44 +20,17 @@ export default async function ProjectChatPage({ params }: PageProps) {
   const parsedId = z.uuid().safeParse(id);
   if (!parsedId.success) notFound();
 
-  const [project] = await db
-    .select({ id: projects.id, name: projects.name })
-    .from(projects)
-    .where(and(eq(projects.id, parsedId.data), eq(projects.userId, session.user.id)))
-    .limit(1);
-
+  // Same cached, owner-scoped query as the layout.
+  const project = await getProjectSummary(session.user.id, parsedId.data);
   if (!project) notFound();
 
-  const [chunk] = await db
-    .select({ id: codeChunks.id })
-    .from(codeChunks)
-    .where(eq(codeChunks.projectId, project.id))
-    .limit(1);
-
-  const ready = Boolean(chunk);
+  const ready = project.chunkCount > 0;
 
   return (
-    <main className="landing-shell ca-guides flex-1">
-      <div className="ca-container py-[clamp(3rem,8vw,6rem)]">
-        <div className="mx-auto max-w-3xl">
-          <header className="mb-10 flex flex-wrap items-end justify-between gap-3">
-            <div className="min-w-0">
-              <p className="ca-kicker">AI Chat</p>
-              <h1 className="ca-title mt-6 text-4xl wrap-break-word sm:text-5xl">
-                {project.name}
-              </h1>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              nativeButton={false}
-              render={<Link href={`/projects/${project.id}`} />}
-              mint
-            >
-              Overview
-            </Button>
-          </header>
-
+    // Flex all the way down so the chat can fill the rest of the screen.
+    <main className="flex min-h-0 flex-1 flex-col">
+      <div className="ca-container flex min-h-0 flex-1 flex-col pt-10 pb-6">
+        <div className="flex min-h-0 flex-1 flex-col">
           {ready ? (
             <ProjectChat projectId={project.id} projectName={project.name} />
           ) : (

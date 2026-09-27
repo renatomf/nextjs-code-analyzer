@@ -25,7 +25,7 @@ export function IssueCard({
   return (
     <div
       className={cn(
-        "border border-l-2 border-(--ca-line) p-4 text-sm",
+        "rounded-[0.375rem] border border-l-2 border-(--ca-line) p-4 text-sm",
         styles.accent,
       )}
     >

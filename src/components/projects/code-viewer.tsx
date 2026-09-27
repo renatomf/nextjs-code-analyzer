@@ -40,8 +40,10 @@ export function CodeViewer({
   const lineCount = content.length === 0 ? 1 : content.split("\n").length;
 
   return (
-    <div className="ca-panel">
-      <div className="flex items-center justify-between gap-3 border-b border-(--ca-night-line) bg-(--ca-night) px-4 py-2.5">
+    // Fills its column (same fixed height as Files): header fixed, code
+    // scrolls inside.
+    <div className="ca-panel flex min-h-0 flex-1 flex-col">
+      <div className="flex shrink-0 items-center justify-between gap-3 border-b border-(--ca-night-line) bg-(--ca-night) px-4 py-2.5 dark:bg-(--ca-night-3)">
         <div className="flex min-w-0 items-center gap-2.5">
           <span className="ca-dots" aria-hidden>
             <i />
@@ -103,5 +105,8 @@ export function CodeViewer({
 
 // `--ca-card` already switches with the theme, so no dark/light branch here.
 function cnScroll() {
-  return ["max-h-[min(70vh,44rem)] overflow-auto", "bg-(--ca-card)"].join(" ");
+  return [
+    "min-h-0 flex-1 overflow-auto",
+    "bg-(--ca-card)",
+  ].join(" ");
 }

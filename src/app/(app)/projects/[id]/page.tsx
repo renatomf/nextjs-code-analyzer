@@ -1,4 +1,3 @@
-import { and, eq, sql } from "drizzle-orm";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { z } from "zod";
@@ -8,24 +7,14 @@ import {
   RetryFullAnalysisButton,
 } from "@/components/projects/report-actions";
 import { RetryKnowledgeButton } from "@/components/projects/retry-knowledge-button";
+import { ActionAlert } from "@/components/shared/action-alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { codeChunks, projects, reports } from "@/db/schema";
 import { auth } from "@/lib/auth";
-import { db } from "@/lib/db";
-import { cn } from "@/lib/utils";
+import { getProjectSummary } from "@/lib/projects";
 
 type PageProps = {
   params: Promise<{ id: string }>;
-};
-
-type ProjectStatus = (typeof projects.$inferSelect)["status"];
-
-const STATUS_CLASS: Record<ProjectStatus, string> = {
-  completed: "ca-status-completed",
-  failed: "ca-status-failed",
-  processing: "ca-status-running",
-  queued: "ca-status-running",
 };
 
 export default async function ProjectOverviewPage({ params }: PageProps) {
@@ -37,82 +26,18 @@ export default async function ProjectOverviewPage({ params }: PageProps) {
   const parsedId = z.uuid().safeParse(id);
   if (!parsedId.success) notFound();
 
-  const [project] = await db
-    .select({
-      id: projects.id,
-      name: projects.name,
-      source: projects.source,
-      framework: projects.framework,
-      status: projects.status,
-      fileCount: projects.fileCount,
-      repositoryUrl: projects.repositoryUrl,
-      errorMessage: projects.errorMessage,
-      healthScore: reports.healthScore,
-      chunkCount: sql<number>`(select count(*) from ${codeChunks} where ${codeChunks.projectId} = ${projects.id})`.mapWith(Number),
-    })
-    .from(projects)
-    .leftJoin(reports, eq(reports.projectId, projects.id))
-    .where(and(eq(projects.id, parsedId.data), eq(projects.userId, session.user.id)))
-    .limit(1);
-
+  // Same cached query as the layout: no second round-trip for this page.
+  const project = await getProjectSummary(session.user.id, parsedId.data);
   if (!project) notFound();
 
   const chatReady = project.chunkCount > 0;
   const reportReady = project.healthScore !== null;
 
-  const navLinks = [
-    reportReady
-      ? { href: `/projects/${project.id}/report`, label: "Health Report" }
-      : null,
-    reportReady
-      ? { href: `/projects/${project.id}/issues`, label: "Issues" }
-      : null,
-    chatReady
-      ? { href: `/projects/${project.id}/chat`, label: "AI Chat" }
-      : null,
-    { href: `/projects/${project.id}/explorer`, label: "Explorer" },
-  ].filter(Boolean) as Array<{ href: string; label: string }>;
-
   return (
-    <main className="landing-shell ca-guides flex-1">
-      <div className="ca-container py-[clamp(3rem,8vw,6rem)]">
-        <div className="mx-auto max-w-3xl">
-          <header className="mb-10">
-            <p className="ca-kicker">Project</p>
-            <h1 className="ca-title mt-6 text-4xl wrap-break-word sm:text-5xl">
-              {project.name}
-            </h1>
-            <div className="mt-4 flex flex-wrap items-center gap-3">
-              <span className={cn("ca-status", STATUS_CLASS[project.status])}>
-                {project.status}
-              </span>
-              {project.status === "processing" ||
-              project.status === "queued" ? (
-                <Link
-                  href={`/projects/${project.id}/progress`}
-                  className="text-xs font-medium text-(--ca-ink) underline-offset-4 hover:underline"
-                >
-                  View progress
-                </Link>
-              ) : null}
-            </div>
-            <nav className="mt-6 flex flex-wrap gap-2">
-              {navLinks.map((link) => (
-                <Button
-                  key={link.href}
-                  variant="outline"
-                  size="sm"
-                  nativeButton={false}
-                  render={<Link href={link.href} />}
-                  mint
-                >
-                  {link.label}
-                </Button>
-              ))}
-            </nav>
-          </header>
-
-          <Card>
+    <main className="flex-1">
+      <div className="ca-container py-10">
+        <div>
+          <Card className="rounded-[0.375rem] ring-inset">
             <CardHeader>
               <CardTitle>Overview</CardTitle>
             </CardHeader>
@@ -162,9 +87,14 @@ export default async function ProjectOverviewPage({ params }: PageProps) {
               </dl>
 
               {project.errorMessage ? (
-                <p className="border border-destructive/30 border-l-2 border-l-destructive bg-destructive/5 px-3 py-2 text-destructive">
-                  {project.errorMessage}
-                </p>
+                // errorMessage also holds import notes (e.g. skipped large
+                // files) on projects that did not fail.
+                <ActionAlert
+                  title={
+                    project.status === "failed" ? "Analysis failed" : "Import note"
+                  }
+                  message={project.errorMessage}
+                />
               ) : null}
 
               {reportReady ? (

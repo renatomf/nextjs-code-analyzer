@@ -108,6 +108,9 @@ export function AnalysisProgress({
 
   useEffect(() => {
     if (state.status === "completed") {
+      // The project layout (status, unlocked tabs, issue count) is not
+      // re-fetched on navigation: refresh it once now that the report exists.
+      router.refresh();
       const timer = window.setTimeout(() => {
         router.push(`/projects/${projectId}/report`);
       }, 1200);
