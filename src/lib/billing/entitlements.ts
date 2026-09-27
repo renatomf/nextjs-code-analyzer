@@ -12,12 +12,37 @@ type Executor = Db | Tx;
 export class BillingLimitError extends Error {
   code: "analyses" | "projects" | "chat";
   upgradeRequired = true;
+  /** Short heading and body for UIs that lay the notice out (see `message`). */
+  title?: string;
+  detail?: string;
+  /** False when the user is already on the paid plan. */
+  canUpgrade = true;
 
-  constructor(code: BillingLimitError["code"], message: string) {
+  constructor(
+    code: BillingLimitError["code"],
+    message: string,
+    notice?: { title: string; detail: string; canUpgrade: boolean },
+  ) {
     super(message);
     this.name = "BillingLimitError";
     this.code = code;
+    if (notice) {
+      this.title = notice.title;
+      this.detail = notice.detail;
+      this.canUpgrade = notice.canUpgrade;
+    }
   }
+}
+
+function limitError(
+  code: BillingLimitError["code"],
+  notice: { title: string; detail: string; canUpgrade: boolean },
+) {
+  return new BillingLimitError(
+    code,
+    `${notice.title}. ${notice.detail}`,
+    notice,
+  );
 }
 
 // FOR UPDATE: when called inside a transaction, parallel requests of the same
@@ -55,10 +80,11 @@ export async function assertCanCreateProject(
 
   const projectCount = await executor.$count(projects, eq(projects.userId, userId));
   if (projectCount >= limits.maxProjects) {
-    throw new BillingLimitError(
-      "projects",
-      `Project limit reached (${limits.maxProjects} on ${limits.label}). Upgrade to ${getPlans().premium.label} for unlimited projects.`,
-    );
+    throw limitError("projects", {
+      title: "Project limit reached",
+      detail: `You have ${projectCount} of ${limits.maxProjects} projects on the ${limits.label} plan. Upgrade to ${getPlans().premium.label} for unlimited projects, or delete a project to free a slot.`,
+      canUpgrade: true,
+    });
   }
 
   await assertCanRunAnalysis(userId, executor);
@@ -83,14 +109,16 @@ export async function assertCanRunAnalysis(
 
   if (used >= limits.analysesPerDay) {
     const paid = getPlans().premium;
-    throw new BillingLimitError(
-      "analyses",
-      `Daily analysis limit reached (${limits.analysesPerDay}/day on ${limits.label}). ${
-        limits.label === getPlans().free.label
-          ? `Upgrade to ${paid.label} for a higher limit, or try again tomorrow.`
+    const canUpgrade = limits.label === getPlans().free.label;
+    throw limitError("analyses", {
+      title: "Daily analysis limit reached",
+      detail: `You've used all ${limits.analysesPerDay} analyses for today on the ${limits.label} plan. ${
+        canUpgrade
+          ? `Upgrade to ${paid.label} for up to ${paid.analysesPerDay} a day, or try again tomorrow.`
           : "Try again tomorrow."
       }`,
-    );
+      canUpgrade,
+    });
   }
 }
 

@@ -8,7 +8,7 @@ import type { Adapter } from "next-auth/adapters";
 import Credentials from "next-auth/providers/credentials";
 
 import { accounts, sessions, users, verificationTokens } from "@/db/schema";
-import { authConfig } from "@/lib/auth.config";
+import { authConfig, profileImage } from "@/lib/auth.config";
 import { db } from "@/lib/db";
 import { encryptToken } from "@/lib/encryption";
 import { loginSchema } from "@/lib/validations/auth";
@@ -158,15 +158,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         .set({ passwordHash: null, emailVerified: new Date() })
         .where(and(eq(users.id, user.id), isNull(users.emailVerified)));
     },
-    async signIn({ user, account }) {
+    async signIn({ user, account, profile }) {
       if (!user.id || !account) return;
 
       const data: {
         authProvider: string;
+        image?: string;
         githubAccessToken?: string;
         githubUsername?: string;
       } = {
         authProvider: account.provider === "credentials" ? "email" : account.provider,
+        image: profileImage(account.provider, profile),
       };
 
       if (account.provider === "github" && account.access_token) {

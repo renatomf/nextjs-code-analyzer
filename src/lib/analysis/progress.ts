@@ -8,7 +8,18 @@ export {
   type AnalysisStepId,
 } from "@/lib/analysis/progress-steps";
 
-/** `userId` must come from the server session; other users' projects are never touched. */
+/** Thrown by the pipeline when the project was canceled (deleted) mid-run. */
+export class AnalysisCanceledError extends Error {
+  constructor() {
+    super("Analysis canceled.");
+    this.name = "AnalysisCanceledError";
+  }
+}
+
+/**
+ * `userId` must come from the server session; other users' projects are never
+ * touched. Returns `false` when the project no longer exists (canceled).
+ */
 export async function setProjectProgress(
   userId: string,
   projectId: string,
@@ -21,7 +32,7 @@ export async function setProjectProgress(
     fileCount?: number;
   },
 ) {
-  await db
+  const updated = await db
     .update(projects)
     .set({
       progressStep: options.step,
@@ -37,5 +48,8 @@ export async function setProjectProgress(
         ? { fileCount: options.fileCount }
         : {}),
     })
-    .where(and(eq(projects.id, projectId), eq(projects.userId, userId)));
+    .where(and(eq(projects.id, projectId), eq(projects.userId, userId)))
+    .returning({ id: projects.id });
+
+  return updated.length > 0;
 }

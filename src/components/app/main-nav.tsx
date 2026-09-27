@@ -18,12 +18,7 @@ const LINKS = [
     href: "/projects/new",
     label: "Analyze",
     isActive: (path: string) => path === "/projects/new",
-  },
-  {
-    href: "/settings",
-    label: "Settings",
-    isActive: (path: string) => path === "/settings",
-  },
+  }
 ];
 
 export function MainNav() {

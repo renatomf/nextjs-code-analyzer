@@ -1,4 +1,4 @@
-import { HeroSilk } from "@/components/hero-silk";
+import { HeroSilk } from "@/components/shared/hero-silk";
 import { Button } from "@/components/ui/button";
 import {
   Boxes,
@@ -7,6 +7,7 @@ import {
   ShieldCheck,
   Sparkles,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 
 const CODE_LINES = [
@@ -137,9 +138,16 @@ export default function HomePage() {
           <header className="landing-reveal flex items-center justify-between gap-4 py-2">
             <a
               href="#top"
-              className="ca-display max-w-34 shrink-0 text-xs leading-[1.15] tracking-tight text-white sm:max-w-none sm:text-sm"
+              className="shrink-0"
             >
-              AI Codebase Auditor
+              <Image
+                src="/logo-transparent.png"
+                alt="codedriven"
+                width={906}
+                height={143}
+                priority
+                className="h-5 w-auto invert hue-rotate-180 sm:h-6"
+              />
             </a>
             <nav
               aria-label="Landing sections"
@@ -441,9 +449,13 @@ export default function HomePage() {
         <div className="ca-container relative pt-[clamp(6rem,14vw,13rem)] pb-8">
           <div className="ca-grid gap-y-12">
             <div className="md:col-span-2">
-              <p className="ca-display text-base text-white">
-                AI Codebase Auditor
-              </p>
+              <Image
+                src="/logo-transparent.png"
+                alt="codedriven"
+                width={906}
+                height={143}
+                className="h-7 w-auto invert hue-rotate-180"
+              />
               <p className="ca-mono mt-4 text-xs text-[#666]">
                 Connect a project, get a health report.
               </p>

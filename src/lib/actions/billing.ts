@@ -102,8 +102,13 @@ export async function startProCheckout() {
   return startPremiumCheckout();
 }
 
-/** Open Stripe Customer Portal for plan/payment management. */
-export async function openBillingPortal() {
+/**
+ * Create a Stripe Customer Portal session for plan/payment management. Returns
+ * the URL (instead of redirecting) so the client can open it in a new tab.
+ */
+export async function openBillingPortal(): Promise<
+  { url: string } | { error: string }
+> {
   const userId = await requireUserId();
   const user = await db.query.users.findFirst({
     where: eq(users.id, userId),
@@ -111,19 +116,23 @@ export async function openBillingPortal() {
   });
 
   if (!user?.stripeCustomerId) {
-    throw new Error(
-      `No Stripe customer on file. Upgrade to ${getPaidPlan().label} first.`,
-    );
+    return {
+      error: `No Stripe customer on file. Upgrade to ${getPaidPlan().label} first.`,
+    };
   }
 
-  const stripe = getStripe();
-  const appUrl = getAppUrl();
-  const session = await stripe.billingPortal.sessions.create({
-    customer: user.stripeCustomerId,
-    return_url: `${appUrl}/settings`,
-  });
-
-  redirect(session.url);
+  try {
+    const stripe = getStripe();
+    const appUrl = getAppUrl();
+    const session = await stripe.billingPortal.sessions.create({
+      customer: user.stripeCustomerId,
+      return_url: `${appUrl}/settings`,
+    });
+    return { url: session.url };
+  } catch {
+    console.error("Failed to create billing portal session");
+    return { error: "Could not open the billing portal. Try again." };
+  }
 }
 
 /** Pull latest subscription state from Stripe into our DB. */

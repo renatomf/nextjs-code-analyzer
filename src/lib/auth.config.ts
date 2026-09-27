@@ -2,6 +2,14 @@ import type { NextAuthConfig } from "next-auth";
 import Github from "next-auth/providers/github";
 import Google from "next-auth/providers/google";
 
+// The adapter only saves the avatar when it creates the user, so accounts
+// linked later (or avatars changed on the provider) are read from the profile.
+export function profileImage(provider: string, profile: unknown) {
+  const p = profile as { avatar_url?: unknown; picture?: unknown } | undefined;
+  const url = provider === "github" ? p?.avatar_url : p?.picture;
+  return typeof url === "string" && url.startsWith("https://") ? url : undefined;
+}
+
 export const authConfig = {
   providers: [
     Google({
@@ -37,12 +45,13 @@ export const authConfig = {
       if (isProtected) return !!auth;
       return true;
     },
-    async jwt({ token, user, account }) {
+    async jwt({ token, user, account, profile }) {
       if (user) {
         token.sub = user.id;
       }
       if (account) {
         token.authProvider = account.provider;
+        token.picture = profileImage(account.provider, profile) ?? token.picture;
       }
 
       return token;

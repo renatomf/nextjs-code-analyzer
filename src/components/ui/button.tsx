@@ -34,9 +34,10 @@ const buttonVariants = cva(
         "icon-sm": "size-8",
         "icon-lg": "size-11",
       },
-      // Landing-style bar: full width, label left, dotted handle right.
+      // Landing-style bar: full width, label left. (Three dots are reserved
+      // for buttons that open a menu or dialog.)
       bar: {
-        true: "ca-handle flex justify-between gap-4 pr-3.5 pl-4",
+        true: "flex justify-between gap-4 px-4",
         false: "",
       },
       // Hover takes the full primary look: mint slab, ink text, corner ticks

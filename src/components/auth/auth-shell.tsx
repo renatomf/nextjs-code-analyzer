@@ -1,6 +1,7 @@
+import Image from "next/image";
 import Link from "next/link";
 
-import { HeroSilk } from "@/components/hero-silk";import { cn } from "@/lib/utils";
+import { HeroSilk } from "@/components/shared/hero-silk";import { cn } from "@/lib/utils";
 
 type AuthShellProps = {
   children: React.ReactNode;
@@ -43,9 +44,16 @@ export function AuthShell({ children, mode }: AuthShellProps) {
         <div className="relative z-10 flex flex-1 flex-col px-(--ca-gutter) py-8">
           <Link
             href="/"
-            className="ca-display landing-reveal self-start text-sm tracking-tight text-white"
+            className="landing-reveal self-start"
           >
-            AI Codebase Auditor
+            <Image
+              src="/logo-transparent.png"
+              alt="codedriven"
+              width={906}
+              height={143}
+              priority
+              className="h-6 w-auto invert hue-rotate-180"
+            />
           </Link>
 
           <div className="mt-auto max-w-md pb-[clamp(4rem,12vh,8rem)]">
@@ -100,9 +108,15 @@ export function AuthShell({ children, mode }: AuthShellProps) {
         <header className="flex items-center justify-between gap-4">
           <Link
             href="/"
-            className="ca-display text-xs tracking-tight text-(--ca-ink) lg:invisible"
+            className="lg:invisible"
           >
-            AI Codebase Auditor
+            <Image
+              src="/logo-transparent.png"
+              alt="codedriven"
+              width={906}
+              height={143}
+              className="h-5 w-auto dark:invert dark:hue-rotate-180"
+            />
           </Link>
         </header>
 

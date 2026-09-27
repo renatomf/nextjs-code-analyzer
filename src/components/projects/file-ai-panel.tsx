@@ -1,6 +1,6 @@
 "use client";
 
-import { ActionAlert } from "@/components/ui/action-alert";
+import { ActionAlert } from "@/components/shared/action-alert";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { FormEvent, useState } from "react";

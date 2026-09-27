@@ -1,5 +1,7 @@
 "use client";
 
+import { LimitReachedNotice } from "@/components/billing/limit-reached-notice";
+import { ReanalyzeDialog } from "@/components/projects/reanalyze-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,7 +9,7 @@ import {
   createProjectFromZip,
   type ProjectActionState,
 } from "@/lib/actions/github";
-import { useActionState } from "react";
+import { useActionState, useRef } from "react";
 
 const initialState: ProjectActionState = {};
 
@@ -16,9 +18,11 @@ export function ZipUploadForm() {
     createProjectFromZip,
     initialState,
   );
+  const formRef = useRef<HTMLFormElement>(null);
 
   return (
-    <form action={formAction} className="space-y-4">
+    <form ref={formRef} action={formAction} className="space-y-4">
+      <ReanalyzeDialog state={state} formRef={formRef} />
       <div className="space-y-2">
         <Label htmlFor="file">ZIP file</Label>
         <Input
@@ -37,6 +41,7 @@ export function ZipUploadForm() {
           {state.error}
         </p>
       ) : null}
+      {state.limit ? <LimitReachedNotice limit={state.limit} /> : null}
       <Button type="submit" disabled={pending}>
         {pending ? "Uploading..." : "Upload and analyze"}
       </Button>

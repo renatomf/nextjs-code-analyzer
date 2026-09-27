@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { projects } from "@/db/schema";
 import { runFullProjectAnalysis } from "@/lib/analysis/pipeline";
+import { AnalysisCanceledError } from "@/lib/analysis/progress";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { assertRateLimit, RateLimitError } from "@/lib/rate-limit";
@@ -157,10 +158,15 @@ export async function POST(_request: Request, context: RouteContext) {
       progressStep: updated?.progressStep,
       progressPercent: updated?.progressPercent,
     });
-  } catch {
+  } catch (error) {
+    const updated = await readProgress(userId, project.id);
+    // Canceled = the project was deleted mid-run (its writes then fail).
+    if (error instanceof AnalysisCanceledError || !updated) {
+      return Response.json({ ok: false, canceled: true, status: "failed" });
+    }
+
     // The pipeline already stored a generic, user-facing errorMessage.
     console.error("Analyze API error");
-    const updated = await readProgress(userId, project.id);
     return Response.json(
       {
         ok: false,

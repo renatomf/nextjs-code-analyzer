@@ -226,22 +226,6 @@
   .dark .ca-corners {
     background-image: none;
   }
-
-  /* Dotted handle on the right of bar buttons (Button `bar`). */
-  .ca-handle::after {
-    content: "";
-    flex: none;
-    width: 2px;
-    height: 14px;
-    background: radial-gradient(circle, currentColor 1px, transparent 1.3px) 0
-      0 / 2px 5px repeat-y;
-    opacity: 0.8;
-    transition: transform 200ms ease;
-  }
-
-  .ca-handle:hover::after {
-    transform: translateX(-3px);
-  }
 }
 
 .landing-shell {

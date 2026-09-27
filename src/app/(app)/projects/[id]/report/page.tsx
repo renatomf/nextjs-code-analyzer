@@ -399,8 +399,7 @@ export default async function ProjectReportPage({ params }: PageProps) {
             </section>
 
             <div className="ca-panel flex flex-wrap items-center gap-3 p-4">
-              <GenerateReportButton projectId={project.id} />
-              <RetryFullAnalysisButton projectId={project.id} />
+              <RetryFullAnalysisButton projectId={project.id} primary />
             </div>
           </div>
         )}

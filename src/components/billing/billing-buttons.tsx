@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -123,10 +124,25 @@ export function ManageBillingButton() {
     <Button
       type="button"
       variant="outline"
+      mint
       disabled={pending}
       onClick={() => {
-        startTransition(() => {
-          void openBillingPortal();
+        // Opened during the click so popup blockers allow it; the Stripe URL
+        // is set once the server action returns it.
+        const tab = window.open("", "_blank");
+        startTransition(async () => {
+          const result = await openBillingPortal().catch(() => ({
+            error: "Could not open the billing portal. Try again.",
+          }));
+          if ("url" in result && tab) {
+            tab.opener = null;
+            tab.location.href = result.url;
+            return;
+          }
+          tab?.close();
+          toast.error(
+            "error" in result ? result.error : "Could not open a new tab.",
+          );
         });
       }}
     >

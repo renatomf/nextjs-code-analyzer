@@ -7,9 +7,14 @@ import {
   RefreshBillingButton,
   UpgradeToPremiumButton,
 } from "@/components/billing/billing-buttons";
-import { Button } from "@/components/ui/button";
+import { DisconnectGitHubButton } from "@/components/settings/disconnect-github-button";
+import {
+  SettingsToast,
+  type SettingsNotice,
+} from "@/components/settings/settings-toast";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { users } from "@/db/schema";
-import { connectGitHubAccount, disconnectGitHub } from "@/lib/actions/github";
+import { connectGitHubAccount } from "@/lib/actions/github";
 import { auth } from "@/lib/auth";
 import { getBillingSnapshot } from "@/lib/billing/entitlements";
 import {
@@ -17,7 +22,6 @@ import {
   getPlansWithStripePricing,
 } from "@/lib/billing/plans";
 import { db } from "@/lib/db";
-import { cn } from "@/lib/utils";
 
 type PageProps = {
   searchParams: Promise<{
@@ -31,11 +35,6 @@ type PageProps = {
 function formatLimit(n: number) {
   return Number.isFinite(n) ? String(n) : "∞";
 }
-
-const SUCCESS_NOTICE =
-  "border border-(--ca-line) border-l-2 border-l-(--ca-green-deep) bg-(--ca-green-soft) px-3 py-2 text-sm text-(--ca-ink)";
-const ERROR_NOTICE =
-  "border border-destructive/30 border-l-2 border-l-destructive bg-destructive/5 px-3 py-2 text-sm text-destructive";
 
 export default async function SettingsPage({ searchParams }: PageProps) {
   const session = await auth();
@@ -77,6 +76,39 @@ export default async function SettingsPage({ searchParams }: PageProps) {
   // Only a boolean reaches the markup, never the (encrypted) token.
   const githubConnected = Boolean(user?.githubAccessToken);
 
+  // Fixed messages only: the query values are user-controlled and never echoed.
+  const notices: SettingsNotice[] = [];
+  if (params.github === "connected") {
+    notices.push({ type: "success", message: "GitHub connected successfully." });
+  }
+  if (params.github_error) {
+    notices.push({ type: "error", message: "GitHub connection failed. Try again." });
+  }
+  if (params.billing === "success") {
+    notices.push({
+      type: "success",
+      message: isPaid
+        ? `Payment received. Your ${paid.label} plan is active.`
+        : `Payment received. If the plan still shows ${plans.free.label}, click “Refresh plan from Stripe”.`,
+    });
+  }
+  if (params.billing === "synced") {
+    notices.push({ type: "success", message: "Plan synced from Stripe successfully." });
+  }
+  if (params.billing === "sync_failed") {
+    notices.push({
+      type: "error",
+      message:
+        "No active Stripe subscription found for this account yet. Wait a moment and try Refresh again, or confirm payment in the Stripe Dashboard.",
+    });
+  }
+  if (params.billing === "canceled") {
+    notices.push({
+      type: "info",
+      message: "Checkout was canceled. You can upgrade anytime.",
+    });
+  }
+
   return (
     <main className="landing-shell ca-guides flex-1">
       <div className="ca-container py-[clamp(3rem,8vw,6rem)]">
@@ -89,42 +121,7 @@ export default async function SettingsPage({ searchParams }: PageProps) {
             </p>
           </header>
 
-          <div className="mb-6 space-y-3 empty:hidden">
-            {params.github === "connected" ? (
-              <p className={SUCCESS_NOTICE}>GitHub connected successfully.</p>
-            ) : null}
-            {/* The query value is not echoed: it is user-controlled text. */}
-            {params.github_error ? (
-              <p role="alert" className={ERROR_NOTICE}>
-                GitHub connection failed. Try again.
-              </p>
-            ) : null}
-            {params.billing === "success" ? (
-              <p className={SUCCESS_NOTICE}>
-                Payment received
-                {isPaid
-                  ? `. Your ${paid.label} plan is active.`
-                  : `. If the plan still shows ${plans.free.label}, click “Refresh plan from Stripe”.`}
-              </p>
-            ) : null}
-            {params.billing === "synced" ? (
-              <p className={SUCCESS_NOTICE}>
-                Plan synced from Stripe successfully.
-              </p>
-            ) : null}
-            {params.billing === "sync_failed" ? (
-              <p role="alert" className={ERROR_NOTICE}>
-                No active Stripe subscription found for this account yet. Wait
-                a moment and try Refresh again, or confirm payment in the
-                Stripe Dashboard.
-              </p>
-            ) : null}
-            {params.billing === "canceled" ? (
-              <p className="border border-(--ca-line) bg-(--ca-paper-2) px-3 py-2 text-sm text-(--ca-muted)">
-                Checkout was canceled. You can upgrade anytime.
-              </p>
-            ) : null}
-          </div>
+          <SettingsToast notices={notices} />
 
           <section className="ca-panel mb-5 space-y-4 p-6">
             <div className="flex flex-wrap items-start justify-between gap-3">
@@ -136,12 +133,14 @@ export default async function SettingsPage({ searchParams }: PageProps) {
                 </p>
               </div>
               <span
-                className={cn(
-                  "ca-mono inline-flex border px-2.5 py-1 text-xs font-semibold uppercase",
-                  isPaid
-                    ? "border-(--ca-green-deep) bg-(--ca-green-soft) text-(--ca-ink)"
-                    : "border-(--ca-line) bg-(--ca-paper-2) text-(--ca-muted)",
-                )}
+                // Looks like the primary (Premium) / secondary (Free) buttons,
+                // but it is only a label, so it gets no hover. The min width
+                // keeps Free as wide as Premium.
+                className={buttonVariants({
+                  variant: isPaid ? "default" : "secondary",
+                  size: "sm",
+                  className: "pointer-events-none min-w-24",
+                })}
               >
                 {current.label}
                 {billing.planStatus === "past_due" ? " · past due" : ""}
@@ -241,16 +240,12 @@ export default async function SettingsPage({ searchParams }: PageProps) {
             {githubConnected ? (
               <>
                 <p className="text-sm">
-                  Connected as{" "}
+                  Connected as:{" "}
                   <span className="font-semibold text-(--ca-green-deep)">
                     {user?.githubUsername ?? "GitHub"}
                   </span>
                 </p>
-                <form action={disconnectGitHub}>
-                  <Button type="submit" variant="outline">
-                    Disconnect GitHub
-                  </Button>
-                </form>
+                <DisconnectGitHubButton />
               </>
             ) : (
               <>

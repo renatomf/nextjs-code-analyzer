@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, ne } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { redirect } from "next/navigation";
@@ -25,11 +25,60 @@ import {
   GitHubError,
   refSchema,
 } from "@/lib/github";
+import { getPlansWithStripePricing } from "@/lib/billing/plans";
 import { MAX_REPO_SIZE_BYTES } from "@/lib/limits";
 
 export type ProjectActionState = {
   error?: string;
+  /** Set when this project was already imported; the form asks to confirm. */
+  duplicate?: { name: string };
+  /** Plan limit reached: shown as a notice with the upgrade button. */
+  limit?: LimitNotice;
 };
+
+export type LimitNotice = {
+  title: string;
+  detail: string;
+  upgrade: { label: string; priceLabel: string; features: string[] } | null;
+};
+
+async function limitNotice(error: BillingLimitError): Promise<LimitNotice> {
+  const paid = error.canUpgrade
+    ? (await getPlansWithStripePricing()).premium
+    : null;
+  return {
+    title: error.title ?? "Plan limit reached",
+    detail: error.detail ?? error.message,
+    upgrade: paid
+      ? { label: paid.label, priceLabel: paid.priceLabel, features: paid.features }
+      : null,
+  };
+}
+
+/**
+ * An earlier import of the same repository / ZIP that did not fail. Re-importing
+ * it needs an explicit confirmation (`confirmReanalyze` form field).
+ */
+async function findExistingProject(
+  userId: string,
+  match: { source: "github"; repositoryUrl: string } | { source: "upload"; name: string },
+) {
+  const [existing] = await db
+    .select({ id: projects.id })
+    .from(projects)
+    .where(
+      and(
+        eq(projects.userId, userId),
+        eq(projects.source, match.source),
+        match.source === "github"
+          ? eq(projects.repositoryUrl, match.repositoryUrl)
+          : eq(projects.name, match.name),
+        ne(projects.status, "failed"),
+      ),
+    )
+    .limit(1);
+  return existing;
+}
 
 const MAX_PROJECT_NAME_LENGTH = 100;
 
@@ -208,6 +257,14 @@ export async function createProjectFromGitHub(
     };
   }
 
+  const repositoryUrl = `https://github.com/${fullName}`;
+  if (
+    formData.get("confirmReanalyze") !== "1" &&
+    (await findExistingProject(user.id, { source: "github", repositoryUrl }))
+  ) {
+    return { duplicate: { name: fullName } };
+  }
+
   try {
     const zipBuffer = await downloadGitHubZipball(
       { userId: user.id, encryptedToken: dbUser.githubAccessToken },
@@ -225,7 +282,7 @@ export async function createProjectFromGitHub(
       userId: user.id,
       name: fullName,
       source: "github",
-      repositoryUrl: `https://github.com/${fullName}`,
+      repositoryUrl,
       zipBuffer,
     });
 
@@ -233,6 +290,9 @@ export async function createProjectFromGitHub(
     redirect(`/projects/${result.projectId}/progress`);
   } catch (error) {
     if (isRedirectError(error)) throw error;
+    if (error instanceof BillingLimitError) {
+      return { limit: await limitNotice(error) };
+    }
     return {
       error: publicErrorMessage(error, "Failed to import repository."),
     };
@@ -264,13 +324,21 @@ export async function createProjectFromZip(
     return { error: "The uploaded ZIP is empty." };
   }
 
+  const name =
+    file.name
+      .replace(/\.zip$/i, "")
+      .trim()
+      .slice(0, MAX_PROJECT_NAME_LENGTH) || "Uploaded project";
+
+  if (
+    formData.get("confirmReanalyze") !== "1" &&
+    (await findExistingProject(user.id, { source: "upload", name }))
+  ) {
+    return { duplicate: { name } };
+  }
+
   try {
     const zipBuffer = Buffer.from(await file.arrayBuffer());
-    const name =
-      file.name
-        .replace(/\.zip$/i, "")
-        .trim()
-        .slice(0, MAX_PROJECT_NAME_LENGTH) || "Uploaded project";
 
     const result = await finalizeProjectFromZip({
       userId: user.id,
@@ -283,6 +351,9 @@ export async function createProjectFromZip(
     redirect(`/projects/${result.projectId}/progress`);
   } catch (error) {
     if (isRedirectError(error)) throw error;
+    if (error instanceof BillingLimitError) {
+      return { limit: await limitNotice(error) };
+    }
     return {
       error: publicErrorMessage(error, "Failed to upload project."),
     };

@@ -1,6 +1,6 @@
 "use client";
 
-import { ActionAlert } from "@/components/ui/action-alert";
+import { ActionAlert } from "@/components/shared/action-alert";
 import { Button } from "@/components/ui/button";
 import {
   generateReportAction,
@@ -42,7 +42,14 @@ export function GenerateReportButton({ projectId }: { projectId: string }) {
   );
 }
 
-export function RetryFullAnalysisButton({ projectId }: { projectId: string }) {
+export function RetryFullAnalysisButton({
+  projectId,
+  primary = false,
+}: {
+  projectId: string;
+  /** Primary (mint) look, for when it is the page's only action. */
+  primary?: boolean;
+}) {
   const [state, formAction, pending] = useActionState(
     retryFullAnalysis,
     initialState,
@@ -69,8 +76,8 @@ export function RetryFullAnalysisButton({ projectId }: { projectId: string }) {
       <Button
         type="submit"
         disabled={pending}
-        variant="outline"
-        mint
+        variant={primary ? "default" : "outline"}
+        mint={!primary}
       >
         {pending ? "Starting..." : "Analyze again"}
       </Button>

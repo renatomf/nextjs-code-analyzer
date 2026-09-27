@@ -1,11 +1,14 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/shared/confirm-dialog";
+import { cancelAnalysis } from "@/lib/actions/projects";
 import { ANALYSIS_STEPS } from "@/lib/analysis/progress-steps";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 
 type ProgressState = {
   id: string;
@@ -30,6 +33,9 @@ export function AnalysisProgress({
   const [state, setState] = useState(initial);
   const startedRef = useRef(false);
   const [startError, setStartError] = useState<string | null>(null);
+  const [cancelOpen, setCancelOpen] = useState(false);
+  // Leaving for the dashboard: never flash the failed card meanwhile.
+  const [canceled, setCanceled] = useState(false);
   // Nothing changes after these states, so polling stops (a retry resumes it).
   const finished = state.status === "completed" || state.status === "failed";
 
@@ -211,7 +217,45 @@ export function AnalysisProgress({
             );
           })}
         </ul>
+
+        {!finished && !startError && !canceled ? (
+          <div className="mt-7 flex justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              mint
+              onClick={() => setCancelOpen(true)}
+            >
+              Cancel analysis
+            </Button>
+          </div>
+        ) : null}
       </div>
+
+      <ConfirmDialog
+        open={cancelOpen}
+        onOpenChange={setCancelOpen}
+        kicker="Analysis"
+        titleDim="Cancel"
+        title="this analysis?"
+        description="The analysis stops and this project is deleted, with its files and everything analyzed so far. You can import it again later."
+        confirmLabel="Cancel analysis"
+        pendingLabel="Canceling…"
+        onConfirm={async () => {
+          const result = await cancelAnalysis(projectId).catch(() => ({
+            error: "Could not cancel the analysis. Try again.",
+          }));
+          setCancelOpen(false);
+          if ("error" in result) {
+            toast.error(result.error);
+            return;
+          }
+          setCanceled(true);
+          toast.error("Analysis canceled.");
+          router.push("/dashboard");
+        }}
+      />
 
       <div className="ca-panel space-y-1.5 p-5 text-sm text-(--ca-muted)">
         <p>
@@ -234,7 +278,7 @@ export function AnalysisProgress({
         ) : null}
       </div>
 
-      {state.status === "failed" || startError ? (
+      {(state.status === "failed" || startError) && !canceled ? (
         <div className="ca-panel space-y-3 border-l-2 border-l-destructive bg-destructive/5 p-5">
           <p className="text-sm text-destructive">
             {startError ?? state.errorMessage ?? "Analysis failed."}

@@ -2,6 +2,7 @@ import { desc, eq, sql } from "drizzle-orm";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { DeleteProjectButton } from "@/components/projects/delete-project-button";
 import { Button } from "@/components/ui/button";
 import { codeChunks, projects, reports } from "@/db/schema";
 import { auth } from "@/lib/auth";
@@ -99,10 +100,13 @@ export default async function DashboardPage() {
                   : `/projects/${project.id}`;
 
                 return (
-                  <li key={project.id} className="ca-list-row">
+                  <li
+                    key={project.id}
+                    className="ca-list-row flex items-center pr-2 sm:pr-4"
+                  >
                     <Link
                       href={href}
-                      className="grid grid-cols-[2.5rem_1fr_auto] items-center gap-4 px-4 py-5 sm:grid-cols-[3.5rem_1fr_7rem_8rem] sm:px-6"
+                      className="grid min-w-0 flex-1 grid-cols-[2.5rem_1fr_auto] items-center gap-4 px-4 py-5 sm:grid-cols-[3.5rem_1fr_7rem_8rem] sm:px-6"
                     >
                       <span className="ca-mono text-xs text-(--ca-soft)">
                         {String(index + 1).padStart(2, "0")}
@@ -137,6 +141,10 @@ export default async function DashboardPage() {
                         </span>
                       </span>
                     </Link>
+                    <DeleteProjectButton
+                      projectId={project.id}
+                      projectName={project.name}
+                    />
                   </li>
                 );
               })}
