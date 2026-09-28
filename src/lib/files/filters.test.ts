@@ -1,5 +1,6 @@
 import {
   createGitignoreFilter,
+  isSafeRelativePath,
   isSourceFile,
   shouldSkipPath,
 } from "@/lib/files/filters";
@@ -13,6 +14,29 @@ describe("isSourceFile", () => {
     expect(isSourceFile("src/app.jsx")).toBe(true);
     expect(isSourceFile("README.md")).toBe(false);
     expect(isSourceFile("styles.css")).toBe(false);
+  });
+});
+
+describe("isSafeRelativePath", () => {
+  it("accepts normal relative paths", () => {
+    for (const value of ["src/app.ts", "./src/app.ts", "src\\lib\\app.ts", "..config/app.ts"]) {
+      expect(isSafeRelativePath(value)).toBe(true);
+    }
+  });
+
+  it("rejects paths that could escape the extraction root", () => {
+    for (const value of [
+      "../evil.ts",
+      "src/../../evil.ts",
+      "src\\..\\..\\evil.ts",
+      "/etc/passwd",
+      "\\\\server\\share\\x.ts",
+      "C:/Windows/x.ts",
+      "c:\\x.ts",
+      "src/app.ts\0.png",
+    ]) {
+      expect(isSafeRelativePath(value)).toBe(false);
+    }
   });
 });
 
@@ -31,6 +55,25 @@ describe("shouldSkipPath", () => {
 
   it("keeps normal source paths", () => {
     expect(shouldSkipPath("src/lib/utils.ts")).toBe(false);
+  });
+
+  it("skips secret-bearing files in any folder and casing", () => {
+    for (const value of [
+      ".env",
+      ".env.local",
+      "apps/web/.ENV.production",
+      "config/.npmrc",
+      "keys/id_rsa",
+      "certs/server.pem",
+      "gcp/service-account.json",
+    ]) {
+      expect(shouldSkipPath(value)).toBe(true);
+    }
+  });
+
+  it("skips unsafe paths and excluded dirs regardless of casing", () => {
+    expect(shouldSkipPath("../src/app.ts")).toBe(true);
+    expect(shouldSkipPath("Node_Modules/pkg/index.js")).toBe(true);
   });
 
   it("respects gitignore filter", () => {
