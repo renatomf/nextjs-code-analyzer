@@ -130,12 +130,22 @@ maintainability) · **Low** (cleanup).
 - **Where:** [metrics.ts:66-108](../src/lib/analysis/metrics.ts#L66-L108)
 - **Problem:** function length is measured by counting `{`/`}` line by line
   (braces in strings, comments and template literals skew it; arrow functions
-  without `const x = (` and class methods are missed). Test coverage is
-  guessed by file-name matching. Tree-sitter already parses every file in
-  `chunking.ts`.
-- **Direction:** compute metrics from the same AST (real function bounds,
-  cyclomatic complexity); calibrate the heuristics against evals.
-- **Phase:** Code Intelligence.
+  without `const x = (` and class methods are missed). The start regex also
+  matches any `const x = (` expression: `const categoryScores = (report?... )`
+  in [report/page.tsx:92](../src/app/(app)/projects/[id]/report/page.tsx#L92)
+  is reported as a 262-line "complex function", because the scan runs to the
+  next `{` and counts the whole JSX. React components are judged by line
+  count only. Test coverage is guessed by file-name matching, and any path
+  containing `auth`/`billing`/`token` is "critical" (e.g. `oauth-icons.tsx`).
+  Tree-sitter already parses every file in `chunking.ts`.
+- **Impact:** on this repo the deterministic part alone gives Code Quality
+  72 − 96 = 0 and Testing 40 − 108 = 0 (with the uncapped penalty in
+  `scoreFromIssues`).
+- **Direction:** short term, fix the regex, stop sizing React components by
+  lines and tighten the "critical" rule (roadmap Phase 7); then compute
+  metrics from the same AST (real function bounds, cyclomatic complexity);
+  calibrate the heuristics against evals.
+- **Phase:** Evals + analysis quality (fix) → Code Intelligence (AST).
 
 ---
 
@@ -328,10 +338,13 @@ maintainability) · **Low** (cleanup).
   `Content-Security-Policy-Report-Only` first and test every page.
 - **Phase:** Security.
 
-### TD-27 — No tests, no CI · High
-- **Problem:** the most test-worthy code is pure and easy to test: `chunking`,
-  `filters` (zip-slip, sensitive files), `extract` (zip bombs), `encryption`,
-  `verifyGitHubOAuthState`, plan limits.
+### TD-27 — Thin test net, no CI · High
+- **Status:** 7 unit test files (`issue-utils`, `metrics`, `score-ui`,
+  `entitlements`, `plans`, `webhook-handlers`, `filters`) and 1 E2E
+  (landing only). No CI, no integration tests, no component tests.
+- **Problem:** still untested, and pure and easy to test: `chunking`,
+  `extract` (zip bombs), `encryption`, `verifyGitHubOAuthState`,
+  `rate-limit`. Nothing proves tenant isolation (IDOR) against a real DB.
 - **Direction:** characterization tests for these first; CI running lint,
   typecheck and tests on every PR.
 - **Phase:** Test safety net.
