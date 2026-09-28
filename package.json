@@ -61,7 +61,7 @@
   "devDependencies": {
     "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
+    "@types/node": "^24",
     "@types/pg": "^8.23.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
@@ -75,5 +75,10 @@
     "typescript": "^5",
     "vite": "^8.3.1",
     "vitest": "^5.0.2"
+  },
+  "overrides": {
+    "tree-sitter-typescript": {
+      "tree-sitter": "$tree-sitter"
+    }
   }
 }
