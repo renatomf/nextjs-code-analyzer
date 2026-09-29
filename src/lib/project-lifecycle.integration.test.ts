@@ -1,0 +1,331 @@
+import { and, eq } from "drizzle-orm";
+import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
+
+import { projects, usageEvents } from "@/db/schema";
+import { db } from "@/lib/db";
+import { getPlanCatalog } from "@/modules/billing";
+import { createUser, deleteUsers } from "@/test/integration/factories";
+
+// Characterization of the project lifecycle (queued → processing →
+// completed/failed) before it moves into the projects module: the analyze
+// claim, cancel and re-analyze, against a real Postgres. Only the session,
+// Next's cache and the analysis pipeline (ONNX + LLM) are mocked.
+
+const mocks = vi.hoisted(() => ({
+  auth: vi.fn(),
+  runFullProjectAnalysis: vi.fn(),
+  assertRateLimit: vi.fn(),
+}));
+
+vi.mock("@/lib/auth", () => ({ auth: mocks.auth }));
+// The limiter itself is covered elsewhere; here it is the step between the
+// route's read and its claim, where the concurrency test holds requests.
+vi.mock("@/lib/rate-limit", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/rate-limit")>()),
+  assertRateLimit: mocks.assertRateLimit,
+}));
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+vi.mock("@/lib/analysis/pipeline", () => ({
+  runFullProjectAnalysis: mocks.runFullProjectAnalysis,
+}));
+
+import { POST as analyze } from "@/app/api/projects/[id]/analyze/route";
+import { AnalysisCanceledError } from "@/lib/analysis/progress";
+import { retryFullAnalysis } from "@/lib/actions/analysis";
+import { cancelAnalysis } from "@/lib/actions/projects";
+
+type Status = "queued" | "processing" | "completed" | "failed";
+
+const created: string[] = [];
+
+afterAll(async () => {
+  await deleteUsers(created);
+});
+
+beforeEach(() => {
+  mocks.auth.mockReset();
+  mocks.runFullProjectAnalysis.mockReset();
+  mocks.assertRateLimit.mockReset().mockResolvedValue(undefined);
+  vi.spyOn(console, "error").mockImplementation(() => {});
+});
+
+async function signedInUser() {
+  const id = await createUser();
+  created.push(id);
+  mocks.auth.mockResolvedValue({ user: { id } });
+  return id;
+}
+
+async function createProject(
+  userId: string,
+  values: { status: Status; fileCount?: number; updatedAt?: Date },
+) {
+  const [project] = await db
+    .insert(projects)
+    .values({
+      userId,
+      name: "p",
+      source: "upload",
+      progressStep: "Seeded",
+      progressPercent: 25,
+      fileCount: 3,
+      ...values,
+    })
+    .returning({ id: projects.id });
+  return project.id;
+}
+
+async function readProject(projectId: string) {
+  const [project] = await db
+    .select({
+      status: projects.status,
+      progressStep: projects.progressStep,
+      progressPercent: projects.progressPercent,
+    })
+    .from(projects)
+    .where(eq(projects.id, projectId));
+  return project;
+}
+
+const usageCount = (userId: string) =>
+  db.$count(usageEvents, and(eq(usageEvents.userId, userId), eq(usageEvents.type, "analysis")));
+
+function analyzeRequest(projectId: string) {
+  return analyze(new Request("http://localhost/api", { method: "POST" }), {
+    params: Promise.resolve({ id: projectId }),
+  });
+}
+
+function projectForm(projectId: string) {
+  const form = new FormData();
+  form.set("projectId", projectId);
+  return form;
+}
+
+const secondsAgo = (s: number) => new Date(Date.now() - s * 1000);
+
+describe("POST /api/projects/[id]/analyze — claim", () => {
+  it("claims a queued project and runs the analysis once", async () => {
+    const userId = await signedInUser();
+    const projectId = await createProject(userId, { status: "queued" });
+
+    const response = await analyzeRequest(projectId);
+
+    expect(response.status).toBe(200);
+    expect(mocks.runFullProjectAnalysis).toHaveBeenCalledExactlyOnceWith(userId, projectId);
+    expect(await readProject(projectId)).toMatchObject({
+      status: "processing",
+      progressStep: "Starting analysis",
+      progressPercent: 30,
+    });
+  });
+
+  it("does not run a completed project again", async () => {
+    const userId = await signedInUser();
+    const projectId = await createProject(userId, { status: "completed" });
+
+    expect(await (await analyzeRequest(projectId)).json()).toMatchObject({
+      alreadyCompleted: true,
+    });
+    expect(mocks.runFullProjectAnalysis).not.toHaveBeenCalled();
+  });
+
+  it("does not start a second run while one is in flight", async () => {
+    const userId = await signedInUser();
+    const projectId = await createProject(userId, {
+      status: "processing",
+      updatedAt: secondsAgo(60),
+    });
+
+    expect(await (await analyzeRequest(projectId)).json()).toMatchObject({
+      alreadyRunning: true,
+    });
+    expect(mocks.runFullProjectAnalysis).not.toHaveBeenCalled();
+  });
+
+  it("restarts a stale run (no update for more than 360 s)", async () => {
+    const userId = await signedInUser();
+    const projectId = await createProject(userId, {
+      status: "processing",
+      updatedAt: secondsAgo(400),
+    });
+
+    await analyzeRequest(projectId);
+
+    expect(mocks.runFullProjectAnalysis).toHaveBeenCalledOnce();
+  });
+
+  it("retries a failed project that has files", async () => {
+    const userId = await signedInUser();
+    const projectId = await createProject(userId, { status: "failed", fileCount: 3 });
+
+    await analyzeRequest(projectId);
+
+    expect(mocks.runFullProjectAnalysis).toHaveBeenCalledOnce();
+  });
+
+  it("refuses a project whose import failed before any file was stored", async () => {
+    const userId = await signedInUser();
+    const projectId = await createProject(userId, { status: "failed", fileCount: 0 });
+
+    const response = await analyzeRequest(projectId);
+
+    expect(response.status).toBe(400);
+    expect(mocks.runFullProjectAnalysis).not.toHaveBeenCalled();
+    expect((await readProject(projectId)).status).toBe("failed");
+  });
+
+  it("answers 404 for another user's project and leaves it untouched", async () => {
+    const owner = await signedInUser();
+    const projectId = await createProject(owner, { status: "queued" });
+    await signedInUser();
+
+    const response = await analyzeRequest(projectId);
+
+    expect(response.status).toBe(404);
+    expect(mocks.runFullProjectAnalysis).not.toHaveBeenCalled();
+    expect((await readProject(projectId)).status).toBe("queued");
+  });
+
+  it("lets only one of two parallel requests run the analysis", async () => {
+    const userId = await signedInUser();
+    const projectId = await createProject(userId, { status: "queued" });
+    // Both requests read "queued" before either claims: only the atomic,
+    // conditional UPDATE can stop the second one.
+    let arrived = 0;
+    let releaseBoth!: () => void;
+    const bothRead = new Promise<void>((resolve) => (releaseBoth = resolve));
+    mocks.assertRateLimit.mockImplementation(async () => {
+      arrived += 1;
+      if (arrived === 2) releaseBoth();
+      await bothRead;
+    });
+
+    const bodies = await Promise.all(
+      [analyzeRequest(projectId), analyzeRequest(projectId)].map(async (r) => (await r).json()),
+    );
+
+    expect(mocks.runFullProjectAnalysis).toHaveBeenCalledOnce();
+    expect(bodies.filter((b) => b.alreadyRunning)).toHaveLength(1);
+  });
+
+  it("reports a project deleted mid-run as canceled", async () => {
+    const userId = await signedInUser();
+    const projectId = await createProject(userId, { status: "queued" });
+    mocks.runFullProjectAnalysis.mockImplementation(async () => {
+      await db.delete(projects).where(eq(projects.id, projectId));
+      throw new AnalysisCanceledError();
+    });
+
+    expect(await (await analyzeRequest(projectId)).json()).toEqual({
+      ok: false,
+      canceled: true,
+      status: "failed",
+    });
+  });
+
+  it("hides a pipeline failure behind a generic 500", async () => {
+    const userId = await signedInUser();
+    const projectId = await createProject(userId, { status: "queued" });
+    mocks.runFullProjectAnalysis.mockRejectedValue(new Error("password=hunter2"));
+
+    const response = await analyzeRequest(projectId);
+
+    expect(response.status).toBe(500);
+    const body = await response.text();
+    expect(body).toContain("Analysis failed.");
+    expect(body).not.toContain("hunter2");
+  });
+});
+
+describe("cancelAnalysis", () => {
+  it.each(["queued", "processing"] as const)(
+    "deletes a %s project (nothing is kept)",
+    async (status) => {
+      const userId = await signedInUser();
+      const projectId = await createProject(userId, { status });
+
+      expect(await cancelAnalysis(projectId)).toEqual({ ok: true });
+      expect(await readProject(projectId)).toBeUndefined();
+    },
+  );
+
+  it.each(["completed", "failed"] as const)("does not delete a %s project", async (status) => {
+    const userId = await signedInUser();
+    const projectId = await createProject(userId, { status });
+
+    expect(await cancelAnalysis(projectId)).toEqual({
+      error: "This analysis is no longer running.",
+    });
+    expect((await readProject(projectId)).status).toBe(status);
+  });
+
+  it("does not delete another user's running project", async () => {
+    const owner = await signedInUser();
+    const projectId = await createProject(owner, { status: "processing" });
+    await signedInUser();
+
+    expect(await cancelAnalysis(projectId)).toEqual({
+      error: "This analysis is no longer running.",
+    });
+    expect((await readProject(projectId)).status).toBe("processing");
+  });
+});
+
+describe("retryFullAnalysis (uploaded project)", () => {
+  it("queues a finished project again and consumes one analysis", async () => {
+    const userId = await signedInUser();
+    const projectId = await createProject(userId, { status: "completed" });
+
+    // Success ends with a redirect to the progress page (thrown by Next).
+    await expect(retryFullAnalysis({}, projectForm(projectId))).rejects.toMatchObject({
+      digest: expect.stringContaining(`/projects/${projectId}/progress`),
+    });
+
+    expect(await readProject(projectId)).toMatchObject({
+      status: "queued",
+      progressStep: "Waiting to restart analysis",
+    });
+    expect(await usageCount(userId)).toBe(1);
+  });
+
+  it.each(["queued", "processing"] as const)(
+    "refuses a %s project without consuming quota",
+    async (status) => {
+      const userId = await signedInUser();
+      const projectId = await createProject(userId, { status });
+
+      expect(await retryFullAnalysis({}, projectForm(projectId))).toEqual({
+        error: "Analysis is already running for this project.",
+      });
+      expect((await readProject(projectId)).status).toBe(status);
+      expect(await usageCount(userId)).toBe(0);
+    },
+  );
+
+  it("refuses when the daily quota is used up, leaving the project as is", async () => {
+    const userId = await signedInUser();
+    const projectId = await createProject(userId, { status: "completed" });
+    const { analysesPerDay } = getPlanCatalog().free;
+    for (let i = 0; i < analysesPerDay; i += 1) {
+      await db.insert(usageEvents).values({ userId, type: "analysis" });
+    }
+
+    const result = await retryFullAnalysis({}, projectForm(projectId));
+
+    expect(result.error).toContain("Daily analysis limit reached");
+    expect((await readProject(projectId)).status).toBe("completed");
+    expect(await usageCount(userId)).toBe(analysesPerDay);
+  });
+
+  it("does not touch another user's project", async () => {
+    const owner = await signedInUser();
+    const projectId = await createProject(owner, { status: "completed" });
+    await signedInUser();
+
+    expect(await retryFullAnalysis({}, projectForm(projectId))).toEqual({
+      error: "Project not found.",
+    });
+    expect((await readProject(projectId)).status).toBe("completed");
+  });
+});

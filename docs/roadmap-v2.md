@@ -306,7 +306,9 @@ medido antes e depois.
       Progresso: **billing concluído** — planos e cota (`withQuota`),
       Stripe atrás de uma camada anticorrupção, chamadores migrados e
       `src/lib/billing` removido; TD-24 resolvido; regras da cota na
-      [ADR-003](decisions/003-quota.md). Convenção
+      [ADR-003](decisions/003-quota.md). **projects** — rede de testes do
+      ciclo de vida (claim da análise, cancelamento, reanálise) em Postgres
+      real, verificada com mutações; próximo: aggregate `Project`. Convenção
       provisória em [`docs/modules.md`](modules.md).
 - [ ] identity: acesso a dados atrás do módulo.
 - [ ] Queries por módulo para todas as pages (sai o Drizzle de `src/app`).
