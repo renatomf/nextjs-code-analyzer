@@ -8,6 +8,8 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["src/**/*.test.ts"],
+    // Need a real Postgres: run with `npm run test:integration`.
+    exclude: ["src/**/*.integration.test.ts", "node_modules/**"],
     clearMocks: true,
   },
   resolve: {

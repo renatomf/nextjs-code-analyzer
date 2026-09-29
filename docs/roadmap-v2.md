@@ -129,8 +129,15 @@ de qualquer achado do LLM):
 - [ ] **Migrations só via `drizzle-kit migrate`** no CI e em produção
       (`db:push` apenas local). Mudanças incompatíveis no padrão
       expand/contract.
-- [ ] **Branch do Neon + preview da Vercel por PR:** cada PR roda migrations e
-      testes de integração num branch isolado, apagado ao fechar o PR.
+- [x] **Banco isolado para os testes de integração:** Postgres + pgvector
+      (pg18) como service container do GitHub Actions, com as migrations
+      reais do Drizzle a cada execução. Troca da ideia original ("branch do
+      Neon por PR"): custo zero, sem dados de produção, sem segredos no CI, e
+      sem esbarrar no limite de branches do plano gratuito.
+- [ ] **Previews sem dados nem segredos de produção (TD-36):** um único
+      branch **schema-only** do Neon (`preview`) para todos os previews, e
+      variáveis só de preview na Vercel (sem `AUTH_URL`, `AUTH_SECRET` e
+      `ENCRYPTION_KEY` próprios, chaves de teste do Stripe).
 - [ ] **Testes de caracterização**, por prioridade de risco:
   1. Segurança (código puro): `extract` (zip-slip, zip bomb, symlink, limite
      de entradas, arquivo sensível), `encryption` (ida e volta, adulteração,
@@ -144,8 +151,9 @@ de qualquer achado do LLM):
 - [ ] **Fronteira HTTP** (handler chamado direto, `auth()` mockado): sem
       sessão → 401, input inválido → 400 sem detalhes internos, rate limit →
       429, webhook do Stripe com assinatura inválida → 400.
-- [ ] **Testes de integração de IDOR:** o usuário B nunca lê, altera ou apaga
-      um projeto, arquivo, relatório ou chat do usuário A.
+- [x] **Testes de integração de IDOR:** o usuário B nunca lê, altera ou apaga
+      um projeto, arquivo, relatório ou chat do usuário A. Também cobrem o
+      limite de projetos sob concorrência e a exclusão em cascata.
 - [ ] **E2E do fluxo principal (Playwright):** registrar → upload de um ZIP
       fixture → analisar → relatório → chat. LLM e embeddings via fake
       (`MockLanguageModel` do AI SDK, só no ambiente de teste).
