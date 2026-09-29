@@ -154,6 +154,20 @@ describe("webhook-handlers", () => {
     );
   });
 
+  // TD-25: product rule pinned by tests. A failed renewal keeps premium as a
+  // grace period — including Stripe's "unpaid" (retries exhausted), which is
+  // mapped to past_due. Changing this is a product decision, not a refactor.
+  it.each(["past_due", "unpaid"] as const)(
+    "syncSubscriptionFromStripe keeps premium while %s (grace period)",
+    async (status) => {
+      await syncSubscriptionFromStripe(fakeSubscription({ status }));
+
+      expect(set).toHaveBeenCalledWith(
+        expect.objectContaining({ plan: "premium", planStatus: "past_due" }),
+      );
+    },
+  );
+
   it("syncSubscriptionFromStripe never grants premium for an unknown price", async () => {
     await syncSubscriptionFromStripe(
       fakeSubscription({ priceId: "price_other" }),

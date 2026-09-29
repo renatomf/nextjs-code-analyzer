@@ -68,4 +68,15 @@ describe("getPlanLimits", () => {
     expect(limits.analysesPerDay).toBe(50);
     expect(limits.maxProjects).toBe(Number.POSITIVE_INFINITY);
   });
+
+  // TD-25: a failed renewal (past_due) keeps premium limits as a grace
+  // period; only canceled/none fall back to free.
+  it("keeps premium limits while past_due", () => {
+    expect(getPlanLimits("premium", "past_due")).toEqual(
+      getPlanLimits("premium", "active"),
+    );
+    expect(getPlanLimits("premium", "canceled")).toEqual(
+      getPlanLimits("free", "none"),
+    );
+  });
 });
