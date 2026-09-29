@@ -40,8 +40,22 @@ export function createBillingRepository(executor: Executor): BillingRepository {
       );
     },
 
-    async recordAnalysisUsage(userId) {
-      await executor.insert(usageEvents).values({ userId, type: "analysis" });
+    async recordAnalysisUsage(userId, usageId) {
+      await executor
+        .insert(usageEvents)
+        .values({ userId, type: "analysis", ...(usageId ? { id: usageId } : {}) });
+    },
+
+    async deleteAnalysisUsage(userId, usageId) {
+      await executor
+        .delete(usageEvents)
+        .where(
+          and(
+            eq(usageEvents.id, usageId),
+            eq(usageEvents.userId, userId),
+            eq(usageEvents.type, "analysis"),
+          ),
+        );
     },
 
     async loadBillingProfile(userId) {

@@ -37,6 +37,15 @@ janela móvel de 24 h.
 
 - **Uso = eventos em `usage_events`** (opção 2). Um projeto novo consome uma
   análise; uma reanálise consome uma; tentativa recusada não consome.
+- **Reembolso só para falha nossa (TD-12).** Se a importação falha por erro
+  do usuário (ZIP inválido, grande demais, sem código JS/TS), a análise
+  continua cobrada: senão enviar arquivos ruins seria de graça. Se falha do
+  nosso lado (banco, gravação dos arquivos), a análise é devolvida
+  (`refundAnalysisUsage`, pelo id do registro que o `withQuota` criou). A
+  extração devolve os erros do usuário como resultado (`{ ok: false }`) e
+  nunca lança exceção, então o critério é objetivo: resultado = usuário,
+  exceção = sistema. Falha no download do GitHub acontece antes da cota e
+  não cobra nada.
 - **O dia da cota começa às 00:00 UTC** (`quotaDayStart`). É igual para todos,
   fácil de explicar ("renova à meia-noite UTC") e não depende do fuso do
   usuário, que o servidor não conhece de forma confiável.

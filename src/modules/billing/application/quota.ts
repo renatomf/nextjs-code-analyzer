@@ -36,7 +36,11 @@ export function createQuota({ repo, catalog, now }: QuotaDeps) {
   return {
     assertCanRunAnalysis,
     assertCanCreateProject,
-    recordAnalysisUsage: (userId: string) => repo.recordAnalysisUsage(userId),
+    recordAnalysisUsage: (userId: string, usageId?: string) =>
+      repo.recordAnalysisUsage(userId, usageId),
+    /** ADR-003: only for failures on our side, never for user errors. */
+    refundAnalysisUsage: (userId: string, usageId: string) =>
+      repo.deleteAnalysisUsage(userId, usageId),
   };
 }
 

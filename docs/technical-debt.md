@@ -271,6 +271,12 @@ maintainability) · **Low** (cleanup).
 - **Direction:** product decision (ADR): refund on system failure, keep
   charging on user error (bad ZIP) to avoid abuse.
 - **Phase:** Clean Architecture (use case).
+- **Done:** [ADR-003](decisions/003-quota.md). A failure on our side
+  (exception while storing files) refunds the exact usage record
+  (`withQuota` hands out its id; `refundAnalysisUsage` is scoped by user);
+  an invalid archive stays charged. Pinned by
+  `project-import.integration.test.ts` (real ZIPs, real Postgres). Re-analysis
+  failures are not refunded yet.
 
 ### TD-13 — Source code stored twice in Postgres · Medium
 - **Where:** [schema.ts:147-178](../src/db/schema.ts#L147-L178)
@@ -285,6 +291,8 @@ maintainability) · **Low** (cleanup).
 - **Where:** [actions/github.ts:213-218](../src/lib/actions/github.ts#L213-L218)
 - **Problem:** `downloadGitHubZipball` already aborts past the limit.
 - **Phase:** Clean Architecture.
+- **Done:** removed; the download's own limit is covered by the import
+  tests (a download error charges nothing).
 
 ---
 
