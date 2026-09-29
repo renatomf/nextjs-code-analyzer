@@ -181,6 +181,21 @@ de qualquer achado do LLM):
 
 ## Fase 3 — Monólito modular + Clean Architecture
 
+Decisão registrada na **ADR-001** (escrita pelo autor). Critério para tudo
+que entra: resolve um problema real deste código e é defensável numa
+entrevista — sem camadas especulativas.
+
+**Princípios**
+
+1. **Regra de dependência:** `app` → `application` → `domain`;
+   `infrastructure` implementa as portas de `application`. O domínio não
+   conhece Next, Drizzle, Groq nem Stripe.
+2. **Porta só com 2+ implementações reais** (o fake de teste conta).
+3. **DI por funções factory** no `index.ts` de cada módulo, sem container.
+4. **Strangler:** um módulo por PR; teste de caracterização no nível do use
+   case antes de mover; o código antigo é apagado no mesmo PR.
+5. **Regras verificadas pelo CI** (`dependency-cruiser`), não só combinadas.
+
 **Estrutura alvo**
 
 ```
@@ -188,17 +203,12 @@ src/
 ├── app/                  # entrega: pages, route handlers e server actions finos
 ├── components/           # UI por feature (mesmos nomes dos módulos), shared/, ui/
 ├── modules/
-│   ├── identity/         # usuários, credenciais, conexão GitHub
-│   ├── projects/         # ciclo de vida do projeto, fontes (GitHub, ZIP)
-│   ├── ingestion/        # extração, filtros, chunking, embeddings, indexação
-│   ├── analysis/         # métricas, relatório, issues, score
-│   ├── chat/             # RAG conversacional
-│   └── billing/          # planos, cota, Stripe, webhooks
-│       ├── domain/          # entidades, value objects, regras (TS puro)
-│       ├── application/     # commands, queries e as portas que usam
-│       ├── infrastructure/  # Drizzle, Stripe, Groq, GitHub...
-│       └── index.ts         # API pública do módulo + composition root
-└── shared/               # erros, logger, db, crypto, rate-limit, env
+│   ├── billing/  projects/  ingestion/  analysis/  chat/  identity/
+│   │   ├── domain/          # entidades, value objects, regras (TS puro)
+│   │   ├── application/     # use cases, queries e as portas que usam
+│   │   ├── infrastructure/  # Drizzle, Stripe, Groq, GitHub, ONNX...
+│   │   └── index.ts         # API pública do módulo + composition root
+└── shared/               # logger ✅, env, errors, db, crypto, rate-limit
 ```
 
 **Regras de dependência** (no CI com `dependency-cruiser`):
@@ -210,24 +220,90 @@ src/
 - `src/app` e `src/components` nunca importam `db` ou `@/db/schema`.
 - React nunca entra em `src/modules`.
 
-**Ordem de migração**
+**Mapa dos módulos**
 
-1. **billing** — piloto: já tem testes, regras claras, pouco acoplamento.
-   Define as convenções. Resolve TD-24.
-2. **projects + ingestion** — aggregate `Project`, cota consumida no use case
-   (TD-12, ADR), TD-14, TD-04.
-3. **analysis** — relatório, métricas e score atrás das portas de LLM e
-   embeddings.
-4. **chat** — RAG atrás de `VectorStore` e `LlmProvider`.
-5. **identity** — um único fluxo de conexão com o GitHub (TD-16), lista única
-   de rotas protegidas (TD-20), `publicErrorMessage` em `shared` (TD-32).
+| Módulo | Domínio (regra pura) | Application | Infrastructure |
+|---|---|---|---|
+| **billing** (piloto) | `Plan`, mapeamento de status do Stripe, política de cota (reset 00:00 UTC, carência do `past_due`) | `startCheckout`, `handleStripeEvent`, `syncSubscription`, `getBillingSnapshot` | `StripeGateway`, repositório Drizzle |
+| **projects** | **Aggregate `Project`** (máquina de estados, claim, detecção de travado); VOs `RepoRef`, `SafeFilePath` | `importFromGitHub`, `importFromZip`, `startAnalysis`, `deleteProject`, `cancelAnalysis`, queries das pages, **link público** | repositório Drizzle, `GitHubSource`, `ZipSource`, `ProjectFilesStore` |
+| **ingestion** | regras de chunking | `buildKnowledge` | `Embedder` (ONNX), `VectorStore` (pgvector), Tree-sitter |
+| **analysis** | **`Finding`** (severidade, categoria, evidência), **`Rule`** (cada heurística), **`ScoringPolicy`** | `runAnalysis`, `generateReport` | `LlmReviewer` via `LlmProvider` |
+| **chat** | política do prompt (código tratado como dado) | `answerQuestion` (RAG) | reaproveita `VectorStore` e `LlmProvider` |
+| **identity** | — (CRUD e integração) | `register`, `connectGitHub` | NextAuth, criptografia de tokens |
+
+**Portas e a 2ª implementação que justifica cada uma**
+
+| Porta | Implementações |
+|---|---|
+| `LlmProvider` | Groq · fake (E2E, já existe) · Ollama (modo local, v2.2) |
+| `Embedder` | ONNX local · fake (testes de use case) |
+| `VectorStore` | pgvector · em memória (testes de use case) |
+| `SourceProvider` | GitHub · ZIP · pasta local (v2.2) |
+| Repositórios | Drizzle · em memória (use cases; o Drizzle é coberto pela integração) |
+| `PaymentGateway` | Stripe · fake |
+| `AnalysisRunner` | síncrono, dentro da request (hoje) · job em fila (Fase 5) |
+
+**Não criar:** repositório genérico ou "base repository", container de DI,
+barramento de CQRS ou de eventos, DTOs e mappers para tudo, entidades
+anêmicas por formalidade. Sem regra de negócio (settings, perfil,
+dashboard), fica uma query simples. Eventos de domínio (`AnalysisCompleted`)
+só em processo (retorno/callback); viram gatilho de job na Fase 5.
+
+**Fidelidade da análise: bug objetivo agora, calibragem com eval depois**
+
+- **Na Fase 3** (verificável sem eval, com teste): falso positivo da regex
+  `const x = (expr)` (o `it.fails` do TD-31 vira `it`); `src/test/` não
+  reconhecido como testes; detector de segredos rodando em fixtures de
+  teste; `Finding` com **evidência** (arquivo, linhas, trecho) no modelo.
+- **Refatoração que prepara a Fase 7:** cada heurística vira uma `Rule` e o
+  score vira uma `ScoringPolicy`, **preservando o comportamento atual**
+  (garantido pelos testes de caracterização).
+- **Na Fase 7** (muda números, exige eval): teto/penalidade decrescente,
+  agrupar achados repetidos, amostragem de chunks, prompt e evidência
+  obrigatória para high/critical, métricas pela AST.
+
+**Escalabilidade (o que é honesto dizer)**
+
+A Fase 3 não escala o app sozinha: cria os pontos de troca. O gargalo
+medido é ~0,11 s por chunk de embeddings em CPU **dentro da request**
+(`maxDuration` 300 s ⇒ teto de ~2.700 chunks). Fase 3: `AnalysisRunner` como
+porta, handlers sem estado, módulos com fronteira clara (a ingestão pode
+virar worker). Fase 5: fila com retry e idempotência. Fase 7: índice HNSW,
+medido antes e depois.
+
+**Ordem dos PRs**
+
+1. **ADR-001** (autor) e `docs/glossary.md` (linguagem ubíqua).
+2. **Fundação:** `src/modules/`, `shared/env` (zod, falha no boot),
+   `shared/errors` (TD-33), `dependency-cruiser` no CI.
+3. **billing** (piloto, define as convenções; TD-24; ADR-003 da cota).
+4. **projects:** aggregate, repositório, queries (as pages deixam de importar
+   o Drizzle), **link público do relatório**; TD-12, TD-14, TD-04.
+5. **ingestion:** `Embedder`, `VectorStore`, `SourceProvider`.
+6. **analysis:** `Rule`, `Finding`, `ScoringPolicy`, `LlmReviewer`,
+   `AnalysisRunner` e as correções objetivas.
+7. **chat:** use case de RAG.
+8. **identity:** acesso a dados atrás do módulo.
+9. **Front** (ver [Front e estado](#front-e-estado)).
+10. **Fechamento:** `architecture.md` do "depois", comparação com o
+    baseline, retro.
+
+**Metas medidas (mesmo script do baseline)**
+
+| Métrica | Antes (2026-09-29) | Meta |
+|---|---|---|
+| Arquivos em `src/app` importando o banco | 12 | **0** |
+| Arquivos importando o Drizzle | 27 | só `infrastructure/` e `shared/` |
+| Lugares que mudam o status do projeto | 3+ | **1** (o aggregate) |
+| Violações de camada no CI | não verificado | **0**, bloqueando o merge |
 
 **Obrigatório**
 
-- [ ] Módulos billing, projects/ingestion e analysis migrados.
+- [ ] ADR-001 (autor) e `docs/glossary.md`.
+- [ ] Módulos billing, projects, ingestion, analysis e chat migrados.
+- [ ] identity: acesso a dados atrás do módulo.
 - [ ] Queries por módulo para todas as pages (sai o Drizzle de `src/app`).
 - [ ] `dependency-cruiser` no CI.
-- [ ] `docs/glossary.md` (linguagem ubíqua).
 - [ ] Erro de domínio seguro para o usuário (TD-33).
 - [ ] Env vars validadas por um schema zod único em `shared/env`, falhando no
       boot (hoje: 36 leituras de `process.env` espalhadas).
@@ -237,6 +313,13 @@ src/
       (`x-vercel-id`), redação de segredos por nome de campo e por padrão no
       texto. Substituiu as 26 chamadas `console.*`, a maioria das quais
       descartava o erro.
+- [ ] Correções objetivas da análise (TD-31, `src/test/`, segredos em
+      fixtures) e `Rule`/`Finding`/`ScoringPolicy` preservando o
+      comportamento.
+- [ ] **Link público de um relatório** (somente leitura): token aleatório com
+      expiração, revogável, com rate limit; expõe só o relatório, nunca
+      código-fonte nem chat. Substitui a "conta de demonstração" do
+      encerramento: quem avalia abre um relatório real sem criar conta.
 - [ ] **Front** (ver [Front e estado](#front-e-estado)): hook
       `useAnalysisProgress`, `report/page.tsx` dividido em seções server
       component, filtros do issues dashboard na URL, fetch do explorer com
@@ -245,10 +328,14 @@ src/
 
 **Se sobrar**
 
-- [ ] Módulos chat e identity.
+- [ ] identity: um único fluxo de conexão com o GitHub (TD-16), lista única
+      de rotas protegidas (TD-20), `publicErrorMessage` em `shared` (TD-32).
+- [ ] **Log de auditoria** a partir dos eventos de domínio (exclusão de
+      projeto, conexão/desconexão do GitHub, mudança de plano), em tabela só
+      de inserção.
 - [ ] Mutation testing (Stryker) só em `modules/*/domain`.
-- [ ] Orçamento de bundle: garantir que `@xenova/transformers` e `tree-sitter`
-      nunca entrem no bundle do cliente.
+- [ ] Orçamento de bundle: garantir que `@huggingface/transformers`,
+      `onnxruntime-node` e `tree-sitter` nunca entrem no bundle do cliente.
 
 ## Fase 4 — Observabilidade e custo
 
@@ -340,9 +427,10 @@ Vem antes da ingestão assíncrona: job em segundo plano sem log é caixa preta.
      (`scoreFromIssues`).
   5. Achados high/critical exigem arquivo + trecho como evidência; prompt mais
      restritivo; código tratado como dado, não como instrução (TD-28).
-  6. Heurísticas determinísticas: corrigir a regex de funções (TD-31), não
-     medir componentes React só por linhas, critério melhor para "área
-     crítica".
+  6. Heurísticas determinísticas: não medir componentes React só por
+     linhas, critério melhor para "área crítica". (As correções objetivas —
+     regex do TD-31, `src/test/`, segredos em fixtures — foram antecipadas
+     para a Fase 3.)
   7. Timeout e limites aplicados no servidor (TD-29); migrar para
      `generateText` + `Output.object` (TD-30).
 
@@ -358,8 +446,14 @@ Vem antes da ingestão assíncrona: job em segundo plano sem log é caixa preta.
 - [ ] Remover as classes `ca-*` sem uso do `globals.css`.
 - [ ] README como estudo de caso: problema, arquitetura (C4), antes × depois
       medido, gráfico do dogfooding, links para as ADRs.
-- [ ] Conta ou projeto de demonstração já analisado (quem avalia não precisa
-      conectar o GitHub nem esperar uma análise).
+- [ ] Relatório de demonstração publicado pelo **link público** (Fase 3) e
+      linkado no README: quem avalia não precisa criar conta, conectar o
+      GitHub nem esperar uma análise.
+- [ ] **Postmortems** dos incidentes reais, escritos pelo autor, em
+      `docs/postmortems/` (linha do tempo, causa raiz, impacto, correção, o
+      que mudou para não repetir): análise quebrada em produção desde o
+      primeiro deploy (ONNX na Vercel), variáveis de produção apagadas ao
+      separar ambientes (TD-36), cancelamento que mantinha o premium (TD-37).
 - [ ] Vídeo de 2 a 3 minutos do fluxo principal.
 - [ ] Artigo técnico (ex.: "por que o meu analisador deu 0 para o próprio
       código").
@@ -479,6 +573,9 @@ os evals.
   (`search_code`, `get_file`, `find_symbol`, `find_dependencies`,
   `inspect_call_graph`), chat como agente, servidor MCP, gateway de LLM só
   com 2+ providers reais, regras de arquitetura do time verificadas por PR.
+- **Reanálise por push (depois das Fases 5 e 6):** webhook assinado do GitHub
+  App → job → reanálise incremental só dos arquivos alterados (usa o
+  `content_hash` da Fase 5).
 - **v3+ — Produção e produto:** teste de carga, pool de conexões, lote de
   embeddings, arquivos em object storage (TD-06, TD-13, TD-23), SLOs,
   postmortems, validação do nicho.
