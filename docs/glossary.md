@@ -51,10 +51,11 @@ estes termos; ao precisar de um conceito novo, acrescente-o aqui no mesmo PR.
 | Termo | Significado | No código |
 |---|---|---|
 | **Plan** | `free` ou `premium`. Define os limites. | `users.plan`, `getPlanLimits` |
-| **Plan status** | `none`, `active`, `past_due`, `canceled` — modelo próprio, traduzido dos status do Stripe. | `statusFromStripe` |
+| **Plan status** | `none`, `active`, `past_due`, `canceled` — modelo próprio, traduzido dos status do Stripe na camada anticorrupção. | `planStatusFromStripe` |
 | **Quota** | Análises por dia e projetos simultâneos permitidos pelo plano. | `assertCanRunAnalysis`, `assertCanCreateProject` |
-| **Quota day** | O dia da cota começa às **00:00 UTC**. | `startOfUtcDay` |
+| **Quota day** | O dia da cota começa às **00:00 UTC**. | `quotaDayStart` |
 | **Grace period** | Enquanto `past_due` (renovação falhou), o usuário mantém os limites do premium. | `isPaidPlan` |
+| **Entitlement** | O que uma assinatura dá ao usuário: só o preço premium configurado concede premium, e só enquanto `active` ou `past_due`. | `entitlementFor` |
 | **Usage event** | Registro de uma análise consumida, usado para contar a cota. | `usage_events` |
 
 ## identity

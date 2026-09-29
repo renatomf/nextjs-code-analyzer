@@ -1,7 +1,6 @@
 import {
   getPlanCatalog,
   limitsFor,
-  type PlanCatalog,
   type PlanId,
   type PlanLimits,
 } from "@/modules/billing";
@@ -9,7 +8,8 @@ import {
 /**
  * Legacy entry point kept while callers migrate to `@/modules/billing`
  * (strangler, ADR-001). Same exports and behavior; plans and limits now live
- * in the module. The Stripe price label moves with the Stripe PR.
+ * in the module. The Stripe price label is `getPlanCatalogWithPricing` in
+ * `@/modules/billing/server`.
  */
 
 export {
@@ -27,24 +27,6 @@ export {
  */
 export function getPlans(): Record<PlanId, PlanLimits> {
   return getPlanCatalog();
-}
-
-/**
- * Same as getPlans(), but premium.priceLabel comes from Stripe
- * (STRIPE_PRICE_PREMIUM) unless NEXT_PUBLIC_PLAN_PREMIUM_PRICE_LABEL is set.
- */
-export async function getPlansWithStripePricing(): Promise<PlanCatalog> {
-  const plans = getPlans();
-  if (process.env.NEXT_PUBLIC_PLAN_PREMIUM_PRICE_LABEL?.trim()) {
-    return plans;
-  }
-
-  const { fetchPremiumPriceLabel } = await import("@/lib/billing/stripe");
-  const fromStripe = await fetchPremiumPriceLabel();
-  if (fromStripe) {
-    plans.premium.priceLabel = fromStripe;
-  }
-  return plans;
 }
 
 export const PLANS = getPlans();

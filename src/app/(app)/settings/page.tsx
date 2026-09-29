@@ -17,11 +17,13 @@ import { users } from "@/db/schema";
 import { connectGitHubAccount } from "@/lib/actions/github";
 import { auth } from "@/lib/auth";
 import { getBillingSnapshot } from "@/lib/billing/entitlements";
-import {
-  effectivePlanId,
-  getPlansWithStripePricing,
-} from "@/lib/billing/plans";
+import { effectivePlanId } from "@/lib/billing/plans";
 import { db } from "@/lib/db";
+import {
+  getPlanCatalogWithPricing,
+  syncCheckoutSessionForUser,
+  syncCustomerSubscriptionsForUser,
+} from "@/modules/billing/server";
 
 type PageProps = {
   searchParams: Promise<{
@@ -41,15 +43,12 @@ export default async function SettingsPage({ searchParams }: PageProps) {
   if (!session?.user?.id) redirect("/login");
 
   const params = await searchParams;
-  const plans = await getPlansWithStripePricing();
+  const plans = await getPlanCatalogWithPricing();
   const paid = plans.premium;
 
   // Activate plan after Checkout even if the webhook was missed (local/dev).
   // The session id is validated and must belong to the signed-in user.
   if (params.billing === "success") {
-    const { syncCheckoutSessionForUser, syncCustomerSubscriptionsForUser } =
-      await import("@/lib/billing/sync-checkout");
-
     if (params.session_id) {
       await syncCheckoutSessionForUser(session.user.id, params.session_id);
     } else {

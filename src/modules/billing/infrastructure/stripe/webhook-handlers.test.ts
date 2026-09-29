@@ -25,7 +25,7 @@ vi.mock("@/lib/db", () => ({
   },
 }));
 
-vi.mock("@/lib/billing/stripe", () => ({
+vi.mock("./client", () => ({
   getPremiumPriceId: () => "price_premium_test",
 }));
 
@@ -34,7 +34,7 @@ import {
   handleCheckoutSessionCompleted,
   markUserSubscriptionCanceled,
   syncSubscriptionFromStripe,
-} from "@/lib/billing/webhook-handlers";
+} from "./webhook-handlers";
 
 const USER_ID = "11111111-1111-4111-8111-111111111111";
 const CUSTOMER_USER_ID = "22222222-2222-4222-8222-222222222222";

@@ -10,7 +10,7 @@ vi.mock("@/lib/db", () => ({
   db: { query: { users: { findFirst } } },
 }));
 
-vi.mock("@/lib/billing/stripe", () => ({
+vi.mock("./client", () => ({
   getStripe: () => ({ subscriptions: { list: listSubscriptions } }),
 }));
 
@@ -19,7 +19,7 @@ vi.mock("./webhook-handlers", () => ({
   syncSubscriptionFromStripe: syncSubscription,
 }));
 
-import { syncCustomerSubscriptionsForUser } from "@/lib/billing/sync-checkout";
+import { syncCustomerSubscriptionsForUser } from "./sync-checkout";
 
 const USER_ID = "11111111-1111-4111-8111-111111111111";
 
