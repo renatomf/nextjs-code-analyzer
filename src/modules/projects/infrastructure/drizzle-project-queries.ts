@@ -1,4 +1,4 @@
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, ne, sql } from "drizzle-orm";
 
 import { codeChunks, projects, reports } from "@/db/schema";
 import { db } from "@/lib/db";
@@ -11,6 +11,31 @@ import { db } from "@/lib/db";
 
 const owned = (userId: string, projectId: string) =>
   and(eq(projects.id, projectId), eq(projects.userId, userId));
+
+/**
+ * An earlier import of the same repository / ZIP that did not fail.
+ * Re-importing it needs an explicit confirmation.
+ */
+export async function findExistingImport(
+  userId: string,
+  match: { source: "github"; repositoryUrl: string } | { source: "upload"; name: string },
+) {
+  const [existing] = await db
+    .select({ id: projects.id })
+    .from(projects)
+    .where(
+      and(
+        eq(projects.userId, userId),
+        eq(projects.source, match.source),
+        match.source === "github"
+          ? eq(projects.repositoryUrl, match.repositoryUrl)
+          : eq(projects.name, match.name),
+        ne(projects.status, "failed"),
+      ),
+    )
+    .limit(1);
+  return existing;
+}
 
 /** The dashboard list: only the columns it renders, newest first. */
 export function listUserProjects(userId: string) {

@@ -17,7 +17,9 @@ export {
   setProjectStatus,
   startReanalysis,
 } from "./infrastructure/drizzle-project-lifecycle";
+export { importArchive } from "./infrastructure/import-archive";
 export {
+  findExistingImport,
   getProjectIssues,
   getProjectProgress,
   getProjectReport,
