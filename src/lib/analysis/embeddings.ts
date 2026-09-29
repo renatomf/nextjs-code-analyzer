@@ -1,4 +1,4 @@
-import { env, pipeline } from "@xenova/transformers";
+import { env, pipeline } from "@huggingface/transformers";
 
 // Run fully from the Hugging Face hub cache; no local model path required.
 env.allowLocalModels = false;
@@ -6,6 +6,11 @@ env.allowLocalModels = false;
 export const EMBEDDING_DIMENSIONS = 384;
 const BATCH_SIZE = 16;
 const MODEL_ID = "Xenova/all-MiniLM-L6-v2";
+// Pinned hub commit: the model cannot change under us (TD-05).
+export const MODEL_REVISION = "751bff37182d3f1213fa05d7196b954e230abad9";
+// q8 = onnx/model_quantized.onnx, the file @xenova/transformers loaded by
+// default. Changing it changes the vectors already stored in code_chunks.
+const MODEL_DTYPE = "q8";
 
 type EmbeddingOutput = {
   data: Float32Array | number[];
@@ -20,10 +25,10 @@ let extractorPromise: Promise<FeatureExtractor> | null = null;
 
 async function getExtractor(): Promise<FeatureExtractor> {
   if (!extractorPromise) {
-    extractorPromise = pipeline(
-      "feature-extraction",
-      MODEL_ID,
-    ) as Promise<FeatureExtractor>;
+    extractorPromise = pipeline("feature-extraction", MODEL_ID, {
+      revision: MODEL_REVISION,
+      dtype: MODEL_DTYPE,
+    }) as unknown as Promise<FeatureExtractor>;
   }
   return extractorPromise;
 }

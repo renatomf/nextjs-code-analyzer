@@ -155,7 +155,7 @@ de qualquer achado do LLM):
       mantenedores oficiais); `@shadcn/react` e `@neon/env` removidos (sem
       uso), `@neon/config` movido para dev. `shadcn` fica em `dependencies`
       (o `globals.css` importa `shadcn/tailwind.css`).
-- [ ] **Migrar `@xenova/transformers` → `@huggingface/transformers`**
+- [x] **Migrar `@xenova/transformers` → `@huggingface/transformers`**
       (TD-35), com teste de equivalência dos embeddings e revisão do modelo
       fixada (TD-05).
 
