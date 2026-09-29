@@ -37,6 +37,18 @@ jobs:
 
       - run: npm run lint
 
+      # schema.ts and drizzle/ must agree: a schema change without its
+      # generated migration fails here (no database needed).
+      - name: Migrations match the schema
+        run: |
+          npx drizzle-kit check
+          npx drizzle-kit generate
+          if [ -n "$(git status --porcelain -- drizzle)" ]; then
+            git status --short -- drizzle
+            echo "::error::src/db/schema.ts changed without a migration. Run 'npm run db:generate' and commit drizzle/."
+            exit 1
+          fi
+
       - run: npm run typecheck
 
       - run: npm test
