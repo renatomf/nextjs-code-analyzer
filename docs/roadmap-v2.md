@@ -313,7 +313,8 @@ medido antes e depois.
       das pages do projeto no módulo (dashboard, issues, progress, report e
       rota de status sem Drizzle; baseline 24 → 12); rede de testes da
       importação + reembolso da cota em falha nossa (TD-12) e TD-14;
-      próximo: importação no módulo. Convenção
+      importação no módulo (`importArchive`, criação do projeto e busca de
+      duplicado); próximo: link público do relatório. Convenção
       provisória em [`docs/modules.md`](modules.md).
 - [ ] identity: acesso a dados atrás do módulo.
 - [ ] Queries por módulo para todas as pages (sai o Drizzle de `src/app`).
