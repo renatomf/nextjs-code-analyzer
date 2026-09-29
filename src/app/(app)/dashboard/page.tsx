@@ -1,38 +1,17 @@
-import { desc, eq, sql } from "drizzle-orm";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { DeleteProjectButton } from "@/components/projects/delete-project-button";
 import { ProjectStatusBadge } from "@/components/shared/project-status-badge";
 import { Button } from "@/components/ui/button";
-import { codeChunks, projects, reports } from "@/db/schema";
 import { auth } from "@/lib/auth";
-import { db } from "@/lib/db";
-
-function getUserProjects(userId: string) {
-  // Only the columns the list renders, always scoped to the signed-in user.
-  return db
-    .select({
-      id: projects.id,
-      name: projects.name,
-      source: projects.source,
-      framework: projects.framework,
-      status: projects.status,
-      fileCount: projects.fileCount,
-      healthScore: reports.healthScore,
-      chunkCount: sql<number>`(select count(*) from ${codeChunks} where ${codeChunks.projectId} = ${projects.id})`.mapWith(Number),
-    })
-    .from(projects)
-    .leftJoin(reports, eq(reports.projectId, projects.id))
-    .where(eq(projects.userId, userId))
-    .orderBy(desc(projects.createdAt));
-}
+import { listUserProjects } from "@/modules/projects/server";
 
 export default async function DashboardPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
 
-  const userProjects = await getUserProjects(session.user.id);
+  const userProjects = await listUserProjects(session.user.id);
   const firstName = session.user.name?.split(" ")[0] ?? "there";
 
   return (

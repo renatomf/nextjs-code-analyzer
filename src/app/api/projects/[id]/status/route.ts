@@ -1,10 +1,8 @@
 import { logger, requestIdFrom } from "@/shared/logger";
-import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
-import { projects } from "@/db/schema";
 import { auth } from "@/lib/auth";
-import { db } from "@/lib/db";
+import { getProjectProgress } from "@/modules/projects/server";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -24,20 +22,7 @@ export async function GET(_request: Request, context: RouteContext) {
       return Response.json({ error: "Project not found" }, { status: 404 });
     }
 
-    const project = await db.query.projects.findFirst({
-      where: and(eq(projects.id, parsedId.data), eq(projects.userId, session.user.id)),
-      columns: {
-        id: true,
-        name: true,
-        status: true,
-        progressStep: true,
-        progressPercent: true,
-        errorMessage: true,
-        framework: true,
-        fileCount: true,
-      },
-      with: { report: { columns: { healthScore: true } } },
-    });
+    const project = await getProjectProgress(session.user.id, parsedId.data);
 
     if (!project) {
       return Response.json({ error: "Project not found" }, { status: 404 });

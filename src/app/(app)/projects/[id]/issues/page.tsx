@@ -1,4 +1,3 @@
-import { and, eq } from "drizzle-orm";
 import { notFound, redirect } from "next/navigation";
 import { z } from "zod";
 
@@ -14,10 +13,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { codeChunks, projects } from "@/db/schema";
 import type { ReportIssue } from "@/lib/analysis/report-types";
 import { auth } from "@/lib/auth";
-import { db } from "@/lib/db";
+import { getProjectIssues } from "@/modules/projects/server";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -32,26 +30,10 @@ export default async function ProjectIssuesPage({ params }: PageProps) {
   const parsedId = z.uuid().safeParse(id);
   if (!parsedId.success) notFound();
 
-  const project = await db.query.projects.findFirst({
-    where: and(eq(projects.id, parsedId.data), eq(projects.userId, session.user.id)),
-    columns: { id: true, name: true },
-    with: {
-      report: {
-        columns: {
-          issues: true,
-          healthScore: true,
-        },
-      },
-    },
-  });
+  const project = await getProjectIssues(session.user.id, parsedId.data);
 
   if (!project) notFound();
 
-  const [chunk] = await db
-    .select({ id: codeChunks.id })
-    .from(codeChunks)
-    .where(eq(codeChunks.projectId, project.id))
-    .limit(1);
 
   const issues = (project.report?.issues ?? []) as ReportIssue[];
 
@@ -67,7 +49,7 @@ export default async function ProjectIssuesPage({ params }: PageProps) {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              {chunk ? (
+              {project.hasChunks ? (
                 <GenerateReportButton projectId={project.id} />
               ) : (
                 <RetryFullAnalysisButton projectId={project.id} />

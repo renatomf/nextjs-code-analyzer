@@ -1,11 +1,9 @@
-import { and, eq } from "drizzle-orm";
 import { notFound, redirect } from "next/navigation";
 import { z } from "zod";
 
 import { AnalysisProgress } from "@/components/projects/analysis-progress";
-import { projects } from "@/db/schema";
 import { auth } from "@/lib/auth";
-import { db } from "@/lib/db";
+import { getProjectProgress } from "@/modules/projects/server";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -20,20 +18,7 @@ export default async function ProjectProgressPage({ params }: PageProps) {
   const parsedId = z.uuid().safeParse(id);
   if (!parsedId.success) notFound();
 
-  const project = await db.query.projects.findFirst({
-    where: and(eq(projects.id, parsedId.data), eq(projects.userId, session.user.id)),
-    columns: {
-      id: true,
-      name: true,
-      status: true,
-      progressStep: true,
-      progressPercent: true,
-      errorMessage: true,
-      framework: true,
-      fileCount: true,
-    },
-    with: { report: { columns: { healthScore: true } } },
-  });
+  const project = await getProjectProgress(session.user.id, parsedId.data);
 
   if (!project) notFound();
 
