@@ -1,0 +1,83 @@
+# Known vulnerabilities accepted temporarily. Every entry needs a reason and
+# an expiry date: after `ignoreUntil` the scan fails again, forcing a decision.
+# New vulnerabilities are never covered by this file.
+
+# --- @xenova/transformers 2.17.2 (runtime) -> onnxruntime-web -> onnx-proto
+# -> protobufjs 6.11.6. Exploiting it requires a tampered model/proto file;
+# fix: migrate to @huggingface/transformers (TD-35, next PR).
+
+[[IgnoredVulns]]
+id = "GHSA-xq3m-2v4x-88gg"
+ignoreUntil = 2026-10-31
+reason = "protobufjs via @xenova/transformers; migration tracked in TD-35"
+
+[[IgnoredVulns]]
+id = "GHSA-66ff-xgx4-vchm"
+ignoreUntil = 2026-10-31
+reason = "protobufjs via @xenova/transformers; migration tracked in TD-35"
+
+[[IgnoredVulns]]
+id = "GHSA-2pr8-phx7-x9h3"
+ignoreUntil = 2026-10-31
+reason = "protobufjs via @xenova/transformers; migration tracked in TD-35"
+
+[[IgnoredVulns]]
+id = "GHSA-fx83-v9x8-x52w"
+ignoreUntil = 2026-10-31
+reason = "protobufjs via @xenova/transformers; migration tracked in TD-35"
+
+[[IgnoredVulns]]
+id = "GHSA-75px-5xx7-5xc7"
+ignoreUntil = 2026-10-31
+reason = "protobufjs via @xenova/transformers; migration tracked in TD-35"
+
+[[IgnoredVulns]]
+id = "GHSA-jvwf-75h9-cwgg"
+ignoreUntil = 2026-10-31
+reason = "protobufjs via @xenova/transformers; migration tracked in TD-35"
+
+[[IgnoredVulns]]
+id = "GHSA-685m-2w69-288q"
+ignoreUntil = 2026-10-31
+reason = "protobufjs via @xenova/transformers; migration tracked in TD-35"
+
+[[IgnoredVulns]]
+id = "GHSA-q6x5-8v7m-xcrf"
+ignoreUntil = 2026-10-31
+reason = "protobufjs via @xenova/transformers; migration tracked in TD-35"
+
+[[IgnoredVulns]]
+id = "GHSA-jggg-4jg4-v7c6"
+ignoreUntil = 2026-10-31
+reason = "protobufjs via @xenova/transformers; migration tracked in TD-35"
+
+[[IgnoredVulns]]
+id = "GHSA-wcpc-wj8m-hjx6"
+ignoreUntil = 2026-10-31
+reason = "protobufjs via @xenova/transformers; migration tracked in TD-35"
+
+[[IgnoredVulns]]
+id = "GHSA-f38q-mgvj-vph7"
+ignoreUntil = 2026-10-31
+reason = "protobufjs via @xenova/transformers; migration tracked in TD-35"
+
+# sharp 0.32.6 via @xenova/transformers (image decoding, unused for text
+# embeddings). Next's own sharp is already 0.35.4.
+
+[[IgnoredVulns]]
+id = "GHSA-f88m-g3jw-g9cj"
+ignoreUntil = 2026-10-31
+reason = "sharp 0.32 via @xenova/transformers, image path unused; TD-35"
+
+[[IgnoredVulns]]
+id = "GHSA-rgj7-g3m4-5g8c"
+ignoreUntil = 2026-10-31
+reason = "sharp 0.32 via @xenova/transformers, image path unused; TD-35"
+
+# --- drizzle-kit (dev tooling only) -> @esbuild-kit -> esbuild 0.18.20.
+# Affects esbuild's dev server, which this project never runs; not shipped.
+
+[[IgnoredVulns]]
+id = "GHSA-67mh-4wv8-2f99"
+ignoreUntil = 2027-03-31
+reason = "esbuild dev server via drizzle-kit; dev-only, not deployed"

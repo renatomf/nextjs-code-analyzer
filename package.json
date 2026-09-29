@@ -22,9 +22,6 @@
     "@ai-sdk/react": "^4.0.119",
     "@auth/drizzle-adapter": "^1.11.3",
     "@base-ui/react": "^1.8.0",
-    "@neon/config": "^1.7.3",
-    "@neon/env": "^1.4.4",
-    "@shadcn/react": "^0.3.1",
     "@vercel/functions": "^3.9.9",
     "@xenova/transformers": "^2.17.2",
     "ai": "^7.0.114",
@@ -59,6 +56,7 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@neon/config": "^1.8.2",
     "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^24",
