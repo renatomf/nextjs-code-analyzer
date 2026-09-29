@@ -114,6 +114,16 @@ maintainability) · **Low** (cleanup).
   are public values (the latter is not read by the app).
 - **Follow-up:** schema changes must also be migrated on the `preview`
   branch (`drizzle-kit migrate` with its connection string).
+- **Incident while splitting the variables:** editing a variable shared by
+  Production and Preview changes it for *both*; switching it to Preview with
+  a new value silently removed the Production value (`DATABASE_URL`,
+  `AUTH_SECRET`, `ENCRYPTION_KEY`, `GROQ_API_KEY`). Production stayed up
+  because Vercel freezes variables per deployment; the next production
+  build failed (`DATABASE_URL is not set`). Values were restored from
+  `.env.local` and verified (GitHub import proves the original
+  `ENCRYPTION_KEY`). Rule: to give an environment its own value, uncheck it
+  on the shared variable and create a **new** one with *Add New*; after any
+  change, check `vercel env ls` before deploying.
 
 ### TD-37 — Stripe subscription changes are never synced (no webhook) · High
 - **Where:** [sync-checkout.ts](../src/lib/billing/sync-checkout.ts),
@@ -361,6 +371,13 @@ maintainability) · **Low** (cleanup).
 - **Problem:** the daily quota resets at UTC midnight and `past_due` keeps
   premium limits. Both are product decisions hidden in code.
 - **Direction:** ADR + unit tests that pin these rules.
+- **Done (tests):** pinned by `plans.test.ts`, `webhook-handlers.test.ts`
+  and `entitlements.integration.test.ts` (real Postgres: usage from
+  23:59 UTC yesterday does not count today). Found while pinning: Stripe's
+  `unpaid` (renewal retries exhausted) is also mapped to `past_due`, so such
+  users keep premium indefinitely until Stripe cancels the subscription.
+- **Still open:** ADR for the grace-period rule (how long a failed renewal
+  keeps premium) — a product decision, moved to the billing module (Phase 3).
 - **Phase:** Test safety net.
 
 ---

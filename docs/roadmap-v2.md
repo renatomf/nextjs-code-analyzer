@@ -149,9 +149,9 @@ de qualquer achado do LLM):
   2. [x] Núcleo da análise: `chunking` (tipos de nó, profundidade, tamanho),
      regressão do falso positivo `const x = (expr)` em `metrics` (TD-31),
      `scoreFromIssues` fixando o comportamento atual.
-  3. [ ] Regras de billing do TD-25 (reset à meia-noite UTC, `past_due`
+  3. [x] Regras de billing do TD-25 (reset à meia-noite UTC, `past_due`
      mantendo premium).
-- [ ] **Fronteira HTTP** (handler chamado direto, `auth()` mockado): sem
+- [x] **Fronteira HTTP** (handler chamado direto, `auth()` mockado): sem
       sessão → 401, input inválido → 400 sem detalhes internos, rate limit →
       429.
 - [ ] **Webhook do Stripe (TD-37):** rota com verificação de assinatura
