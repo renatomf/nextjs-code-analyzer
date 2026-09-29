@@ -49,3 +49,6 @@ next-env.d.ts
 /playwright-report/
 /blob-report/
 /playwright/.cache
+
+# Local debug script (not part of the app)
+.dbcheck.mjs
