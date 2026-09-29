@@ -17,3 +17,10 @@ export {
   setProjectStatus,
   startReanalysis,
 } from "./infrastructure/drizzle-project-lifecycle";
+export {
+  getProjectIssues,
+  getProjectProgress,
+  getProjectReport,
+  getProjectSummary,
+  listUserProjects,
+} from "./infrastructure/drizzle-project-queries";

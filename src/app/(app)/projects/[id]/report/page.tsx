@@ -1,4 +1,3 @@
-import { and, eq } from "drizzle-orm";
 import {
   Code2,
   FlaskConical,
@@ -18,7 +17,6 @@ import {
 import { IssueCard } from "@/components/projects/issue-card";
 import { ActionAlert } from "@/components/shared/action-alert";
 import { Button } from "@/components/ui/button";
-import { codeChunks, projects } from "@/db/schema";
 import {
   CATEGORY_LABELS,
   SEVERITY_LABELS,
@@ -39,8 +37,8 @@ import {
   scoreTone,
 } from "@/lib/analysis/score-ui";
 import { auth } from "@/lib/auth";
-import { db } from "@/lib/db";
 import { cn } from "@/lib/utils";
+import { getProjectReport } from "@/modules/projects/server";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -70,23 +68,11 @@ export default async function ProjectReportPage({ params }: PageProps) {
   const parsedId = z.uuid().safeParse(id);
   if (!parsedId.success) notFound();
 
-  const project = await db.query.projects.findFirst({
-    where: and(
-      eq(projects.id, parsedId.data),
-      eq(projects.userId, session.user.id),
-    ),
-    columns: { id: true, name: true, errorMessage: true },
-    with: { report: true },
-  });
+  const project = await getProjectReport(session.user.id, parsedId.data);
 
   if (!project) notFound();
 
-  const [chunk] = await db
-    .select({ id: codeChunks.id })
-    .from(codeChunks)
-    .where(eq(codeChunks.projectId, project.id))
-    .limit(1);
-  const hasChunks = Boolean(chunk);
+  const hasChunks = project.hasChunks;
 
   const report = project.report;
   const categoryScores = (report?.categoryScores ??

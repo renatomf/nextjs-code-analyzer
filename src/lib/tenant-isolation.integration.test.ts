@@ -15,6 +15,12 @@ import {
 } from "@/lib/files/storage";
 import { getProjectSummary } from "@/lib/projects";
 import {
+  getProjectIssues,
+  getProjectProgress,
+  getProjectReport,
+  listUserProjects,
+} from "@/modules/projects/server";
+import {
   axisEmbedding,
   createProjectWithData,
   createUser,
@@ -46,12 +52,24 @@ describe("owner access (sanity check: the data is really there)", () => {
     expect(await listProjectFilePaths(alice, aliceProject)).toEqual(["src/alice.ts"]);
     expect(await readProjectFile(alice, aliceProject, "src/alice.ts")).not.toBeNull();
     expect(await searchProjectChunks(alice, aliceProject, axisEmbedding(0))).toHaveLength(1);
+    expect((await getProjectReport(alice, aliceProject))?.hasChunks).toBe(true);
+    expect((await listUserProjects(alice)).map((p) => p.id)).toContain(aliceProject);
   });
 });
 
 describe("another user with the owner's project id", () => {
   it("cannot see the project summary", async () => {
     expect(await getProjectSummary(bob, aliceProject)).toBeUndefined();
+  });
+
+  it("cannot see the project's progress, issues or report", async () => {
+    expect(await getProjectProgress(bob, aliceProject)).toBeUndefined();
+    expect(await getProjectIssues(bob, aliceProject)).toBeUndefined();
+    expect(await getProjectReport(bob, aliceProject)).toBeUndefined();
+  });
+
+  it("does not get the project in their dashboard list", async () => {
+    expect((await listUserProjects(bob)).map((p) => p.id)).not.toContain(aliceProject);
   });
 
   it("cannot list, read or load the project's files", async () => {
