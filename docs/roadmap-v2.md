@@ -303,6 +303,9 @@ medido antes e depois.
       Clean Architecture seletiva.
 - [x] [`docs/glossary.md`](glossary.md) (linguagem ubíqua).
 - [ ] Módulos billing, projects, ingestion, analysis e chat migrados.
+      Progresso: **billing** — planos e cota no módulo, com `withQuota`
+      (PR 1); Stripe e troca dos chamadores nos próximos PRs. Convenção
+      provisória em [`docs/modules.md`](modules.md).
 - [ ] identity: acesso a dados atrás do módulo.
 - [ ] Queries por módulo para todas as pages (sai o Drizzle de `src/app`).
 - [x] `dependency-cruiser` no CI (`npm run lint:arch`): regras da ADR-001;
