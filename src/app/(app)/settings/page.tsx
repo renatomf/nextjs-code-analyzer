@@ -16,10 +16,10 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { users } from "@/db/schema";
 import { connectGitHubAccount } from "@/lib/actions/github";
 import { auth } from "@/lib/auth";
-import { getBillingSnapshot } from "@/lib/billing/entitlements";
-import { effectivePlanId } from "@/lib/billing/plans";
 import { db } from "@/lib/db";
+import { effectivePlanId } from "@/modules/billing";
 import {
+  getBillingSnapshot,
   getPlanCatalogWithPricing,
   syncCheckoutSessionForUser,
   syncCustomerSubscriptionsForUser,

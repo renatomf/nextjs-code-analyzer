@@ -31,15 +31,12 @@ vi.mock("@/lib/db", async () => {
 });
 
 import { usageEvents } from "@/db/schema";
-import {
-  assertCanCreateProject,
-  assertCanRunAnalysis,
-  BillingLimitError,
-  getBillingSnapshot,
-  recordAnalysisUsage,
-} from "@/lib/billing/entitlements";
+import { BillingLimitError } from "@/modules/billing";
+import { billingFor, getBillingSnapshot } from "@/modules/billing/server";
 
-describe("entitlements", () => {
+const { assertCanCreateProject, assertCanRunAnalysis, recordAnalysisUsage } = billingFor();
+
+describe("quota", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     delete process.env.PLAN_FREE_ANALYSES_PER_DAY;

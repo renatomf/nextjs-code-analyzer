@@ -4,8 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/lib/auth";
-import { getPaidPlan } from "@/lib/billing/plans";
 import { assertRateLimit } from "@/lib/rate-limit";
+import { getPlanCatalog } from "@/modules/billing";
 import {
   createBillingPortalSession,
   createPremiumCheckout,
@@ -39,10 +39,6 @@ export async function startPremiumCheckout() {
   redirect(checkout.url);
 }
 
-export async function startProCheckout() {
-  return startPremiumCheckout();
-}
-
 /**
  * Create a Stripe Customer Portal session for plan/payment management. Returns
  * the URL (instead of redirecting) so the client can open it in a new tab.
@@ -56,7 +52,7 @@ export async function openBillingPortal(): Promise<
   if ("url" in portal) return { url: portal.url };
   if (portal.error === "no_customer") {
     return {
-      error: `No Stripe customer on file. Upgrade to ${getPaidPlan().label} first.`,
+      error: `No Stripe customer on file. Upgrade to ${getPlanCatalog().premium.label} first.`,
     };
   }
   return { error: "Could not open the billing portal. Try again." };

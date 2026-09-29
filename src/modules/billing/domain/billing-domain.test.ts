@@ -41,7 +41,7 @@ describe("entitlement", () => {
     ["premium", "canceled", false],
     ["premium", "none", false],
     ["free", "active", false],
-    ["pro", "active", true], // legacy rows
+    ["pro", "active", false], // TD-24: never a valid plan (enum is free | premium)
   ] as const)("%s + %s is paid: %s", (plan, status, paid) => {
     expect(isPaidPlan(plan, status)).toBe(paid);
     expect(effectivePlanId(plan, status)).toBe(paid ? "premium" : "free");

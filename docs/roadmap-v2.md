@@ -303,8 +303,10 @@ medido antes e depois.
       Clean Architecture seletiva.
 - [x] [`docs/glossary.md`](glossary.md) (linguagem ubíqua).
 - [ ] Módulos billing, projects, ingestion, analysis e chat migrados.
-      Progresso: **billing** — planos e cota no módulo, com `withQuota`
-      (PR 1); Stripe e troca dos chamadores nos próximos PRs. Convenção
+      Progresso: **billing concluído** — planos e cota (`withQuota`),
+      Stripe atrás de uma camada anticorrupção, chamadores migrados e
+      `src/lib/billing` removido; TD-24 resolvido; regras da cota na
+      [ADR-003](decisions/003-quota.md). Convenção
       provisória em [`docs/modules.md`](modules.md).
 - [ ] identity: acesso a dados atrás do módulo.
 - [ ] Queries por módulo para todas as pages (sai o Drizzle de `src/app`).

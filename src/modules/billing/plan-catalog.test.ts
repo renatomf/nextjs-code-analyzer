@@ -1,12 +1,12 @@
 import {
   effectivePlanId,
-  getPlanLimits,
-  getPlans,
+  getPlanCatalog,
   isPaidPlan,
-} from "@/lib/billing/plans";
+  limitsFor,
+} from "@/modules/billing";
 import { afterEach, describe, expect, it } from "vitest";
 
-describe("getPlans", () => {
+describe("getPlanCatalog", () => {
   afterEach(() => {
     delete process.env.PLAN_FREE_ANALYSES_PER_DAY;
     delete process.env.PLAN_PREMIUM_ANALYSES_PER_DAY;
@@ -15,7 +15,7 @@ describe("getPlans", () => {
   });
 
   it("returns Free and Premium defaults", () => {
-    const plans = getPlans();
+    const plans = getPlanCatalog();
     expect(plans.free.analysesPerDay).toBe(5);
     expect(plans.free.maxProjects).toBe(5);
     expect(plans.premium.analysesPerDay).toBe(50);
@@ -29,7 +29,7 @@ describe("getPlans", () => {
     process.env.PLAN_FREE_MAX_PROJECTS = "2";
     process.env.NEXT_PUBLIC_PLAN_PREMIUM_LABEL = "Pro Plus";
 
-    const plans = getPlans();
+    const plans = getPlanCatalog();
     expect(plans.free.analysesPerDay).toBe(3);
     expect(plans.premium.analysesPerDay).toBe(100);
     expect(plans.free.maxProjects).toBe(2);
@@ -51,20 +51,21 @@ describe("isPaidPlan / effectivePlanId", () => {
     expect(effectivePlanId("free", null)).toBe("free");
   });
 
-  it("accepts legacy pro plan id", () => {
-    expect(isPaidPlan("pro", "active")).toBe(true);
-    expect(effectivePlanId("pro", "active")).toBe("premium");
+  // TD-24: "pro" was never a valid plan (the enum is free | premium).
+  it("does not treat the tutorial's legacy pro id as paid", () => {
+    expect(isPaidPlan("pro", "active")).toBe(false);
+    expect(effectivePlanId("pro", "active")).toBe("free");
   });
 });
 
-describe("getPlanLimits", () => {
+describe("limitsFor", () => {
   it("returns free limits for unpaid users", () => {
-    const limits = getPlanLimits("free", "none");
+    const limits = limitsFor(getPlanCatalog(), "free", "none");
     expect(limits.analysesPerDay).toBe(5);
   });
 
   it("returns premium limits for active paid users", () => {
-    const limits = getPlanLimits("premium", "active");
+    const limits = limitsFor(getPlanCatalog(), "premium", "active");
     expect(limits.analysesPerDay).toBe(50);
     expect(limits.maxProjects).toBe(Number.POSITIVE_INFINITY);
   });
@@ -72,11 +73,11 @@ describe("getPlanLimits", () => {
   // TD-25: a failed renewal (past_due) keeps premium limits as a grace
   // period; only canceled/none fall back to free.
   it("keeps premium limits while past_due", () => {
-    expect(getPlanLimits("premium", "past_due")).toEqual(
-      getPlanLimits("premium", "active"),
+    expect(limitsFor(getPlanCatalog(), "premium", "past_due")).toEqual(
+      limitsFor(getPlanCatalog(), "premium", "active"),
     );
-    expect(getPlanLimits("premium", "canceled")).toEqual(
-      getPlanLimits("free", "none"),
+    expect(limitsFor(getPlanCatalog(), "premium", "canceled")).toEqual(
+      limitsFor(getPlanCatalog(), "free", "none"),
     );
   });
 });

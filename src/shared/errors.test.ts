@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
-import { BillingLimitError } from "@/lib/billing/entitlements";
+import { BillingLimitError } from "@/modules/billing";
 import { GitHubError } from "@/lib/github";
 import { RateLimitError } from "@/lib/rate-limit";
 import { DomainError } from "@/shared/errors";

@@ -2,8 +2,8 @@ import { MainNav } from "@/components/app/main-nav";
 import { UserMenu, type UserMenuPlan } from "@/components/app/user-menu";
 import { Button } from "@/components/ui/button";
 import { auth } from "@/lib/auth";
-import { getBillingSnapshot } from "@/lib/billing/entitlements";
-import { effectivePlanId, getPlans } from "@/lib/billing/plans";
+import { effectivePlanId, getPlanCatalog } from "@/modules/billing";
+import { getBillingSnapshot } from "@/modules/billing/server";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -15,7 +15,7 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
   if (session?.user?.id) {
     const billing = await getBillingSnapshot(session.user.id);
     const planId = effectivePlanId(billing.plan, billing.planStatus);
-    const plans = getPlans();
+    const plans = getPlanCatalog();
     const used = billing.analysesUsedToday;
     const max = billing.limits.analysesPerDay;
 
