@@ -1,3 +1,4 @@
+import { logger, requestIdFrom } from "@/shared/logger";
 import { and, eq } from "drizzle-orm";
 import { NextRequest } from "next/server";
 import { z } from "zod";
@@ -50,8 +51,8 @@ export async function GET(request: NextRequest) {
 
     // Private source code: never cache it in shared caches or the browser.
     return Response.json(file, { headers: { "Cache-Control": "no-store" } });
-  } catch {
-    console.error("Explorer file API error");
+  } catch (error) {
+    logger.error("explorer.file_failed", { err: error, requestId: requestIdFrom(request.headers) });
     return Response.json({ error: "Failed to load the file." }, { status: 500 });
   }
 }

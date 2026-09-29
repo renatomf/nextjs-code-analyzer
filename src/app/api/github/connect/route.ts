@@ -1,3 +1,4 @@
+import { logger } from "@/shared/logger";
 import { NextResponse } from "next/server";
 
 import { auth } from "@/lib/auth";
@@ -30,8 +31,8 @@ export async function GET() {
     });
     response.headers.set("Cache-Control", "no-store");
     return response;
-  } catch {
-    console.error("Failed to start GitHub OAuth flow");
+  } catch (error) {
+    logger.error("github.connect_failed", { err: error });
     const url = new URL("/settings", getAppUrl());
     url.searchParams.set("github_error", "oauth_error");
     return NextResponse.redirect(url);

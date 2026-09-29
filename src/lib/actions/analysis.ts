@@ -1,4 +1,5 @@
 "use server";
+import { logger } from "@/shared/logger";
 
 import { and, eq, notInArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
@@ -53,7 +54,7 @@ function publicErrorMessage(error: unknown, fallback: string): string {
   ) {
     return error.message;
   }
-  console.error(fallback);
+  logger.error("action.failed", { err: error, message: fallback });
   return fallback;
 }
 

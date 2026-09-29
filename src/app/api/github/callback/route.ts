@@ -1,3 +1,4 @@
+import { logger, requestIdFrom } from "@/shared/logger";
 import { eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
@@ -93,8 +94,8 @@ export async function GET(request: NextRequest) {
     }
 
     return redirectToSettings("connected");
-  } catch {
-    console.error("GitHub OAuth callback failed");
+  } catch (error) {
+    logger.error("github.callback_failed", { err: error, requestId: requestIdFrom(request.headers) });
     return redirectToSettings("exchange_failed");
   }
 }

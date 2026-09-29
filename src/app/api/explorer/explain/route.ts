@@ -1,3 +1,4 @@
+import { logger, requestIdFrom } from "@/shared/logger";
 import { and, eq } from "drizzle-orm";
 import { generateText } from "ai";
 import { z } from "zod";
@@ -86,7 +87,7 @@ export async function POST(request: Request) {
       return Response.json({ error: error.message }, { status: 429 });
     }
     // Details stay in the server log, never in the response.
-    console.error("Explorer explain API error");
+    logger.error("explorer.explain_failed", { err: error, requestId: requestIdFrom(request.headers) });
     return Response.json(
       { error: "Failed to explain the selected file." },
       { status: 500 },

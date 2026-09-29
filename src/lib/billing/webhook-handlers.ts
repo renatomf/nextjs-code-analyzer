@@ -1,3 +1,4 @@
+import { logger } from "@/shared/logger";
 import { eq } from "drizzle-orm";
 import type Stripe from "stripe";
 import { z } from "zod";
@@ -59,7 +60,7 @@ export async function syncSubscriptionFromStripe(
 ): Promise<void> {
   const userId = await findUserIdForSubscription(subscription);
   if (!userId) {
-    console.warn("[stripe] No user for subscription", subscription.id);
+    logger.warn("stripe.subscription_without_user", { subscriptionId: subscription.id });
     return;
   }
 
@@ -106,7 +107,7 @@ export async function handleCheckoutSessionCompleted(
   );
 
   if (!parsedUserId.success) {
-    console.warn("[stripe] checkout.session.completed missing userId");
+    logger.warn("stripe.checkout_missing_user");
     return;
   }
   const userId = parsedUserId.data;
@@ -114,7 +115,7 @@ export async function handleCheckoutSessionCompleted(
   // Async payment methods complete the session before the money arrives:
   // premium is granted later by syncSubscriptionFromStripe once it is active.
   if (session.payment_status === "unpaid") {
-    console.warn("[stripe] checkout.session.completed not paid yet", session.id);
+    logger.warn("stripe.checkout_not_paid", { sessionId: session.id });
     return;
   }
 

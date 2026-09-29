@@ -1,3 +1,4 @@
+import { logger } from "@/shared/logger";
 import Stripe from "stripe";
 
 let stripeClient: Stripe | null = null;
@@ -62,7 +63,7 @@ export async function fetchPremiumPriceLabel(): Promise<string | null> {
     if (interval === "week") return `${formatted}/wk`;
     return formatted;
   } catch (error) {
-    console.warn("[stripe] could not load premium price label", error);
+    logger.warn("stripe.price_label_failed", { err: error });
     return null;
   }
 }

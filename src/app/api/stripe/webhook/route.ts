@@ -1,3 +1,4 @@
+import { logger, requestIdFrom } from "@/shared/logger";
 import type Stripe from "stripe";
 
 import { getStripe } from "@/lib/billing/stripe";
@@ -26,7 +27,7 @@ const SUBSCRIPTION_EVENTS = new Set<Stripe.Event.Type>([
 export async function POST(request: Request) {
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
   if (!secret) {
-    console.error("[stripe] STRIPE_WEBHOOK_SECRET is not set");
+    logger.error("stripe.webhook_not_configured");
     return Response.json({ error: "Webhook not configured" }, { status: 500 });
   }
 
@@ -56,10 +57,11 @@ export async function POST(request: Request) {
     }
   } catch (error) {
     // Non-2xx makes Stripe retry the delivery later.
-    console.error("[stripe] webhook handler failed", {
+    logger.error("stripe.webhook_failed", {
+      err: error,
       eventId: event.id,
       type: event.type,
-      error: error instanceof Error ? error.message : "unknown",
+      requestId: requestIdFrom(request.headers),
     });
     return Response.json({ error: "Webhook handler failed" }, { status: 500 });
   }

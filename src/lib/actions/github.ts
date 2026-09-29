@@ -1,4 +1,5 @@
 "use server";
+import { logger } from "@/shared/logger";
 
 import { and, eq, ne } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
@@ -103,7 +104,7 @@ function publicErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof BillingLimitError || error instanceof GitHubError) {
     return error.message;
   }
-  console.error(fallback);
+  logger.error("action.failed", { err: error, message: fallback });
   return fallback;
 }
 
@@ -205,8 +206,8 @@ async function finalizeProjectFromZip(options: {
       errorMessage: publicErrorMessage(error, "Project ingestion failed."),
     });
     // Best effort: persistProjectFiles is atomic, so there is rarely anything left.
-    await deleteProjectFiles(options.userId, project.id).catch(() => {
-      console.error("Failed to clean up project files");
+    await deleteProjectFiles(options.userId, project.id).catch((cleanupError) => {
+      logger.error("project.cleanup_failed", { err: cleanupError, projectId: project.id });
     });
     return { projectId: project.id, failed: true as const };
   }

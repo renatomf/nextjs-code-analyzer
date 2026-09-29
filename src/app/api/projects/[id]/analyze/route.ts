@@ -1,3 +1,4 @@
+import { logger, requestIdFrom } from "@/shared/logger";
 import { and, eq, gt, lt, or, sql } from "drizzle-orm";
 import { z } from "zod";
 
@@ -112,7 +113,7 @@ export async function POST(_request: Request, context: RouteContext) {
     if (error instanceof RateLimitError) {
       return Response.json({ error: error.message }, { status: 429 });
     }
-    console.error("Analyze API error");
+    logger.error("analysis.request_failed", { err: error, projectId: project.id, requestId: requestIdFrom(_request.headers) });
     return Response.json({ error: "Analysis failed." }, { status: 500 });
   }
 
@@ -166,7 +167,7 @@ export async function POST(_request: Request, context: RouteContext) {
     }
 
     // The pipeline already stored a generic, user-facing errorMessage.
-    console.error("Analyze API error");
+    logger.error("analysis.request_failed", { err: error, projectId: project.id, requestId: requestIdFrom(_request.headers) });
     return Response.json(
       {
         ok: false,

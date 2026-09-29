@@ -408,7 +408,13 @@ maintainability) · **Low** (cleanup).
   fixed string and drop the error. Production failures cannot be diagnosed.
 - **Direction:** structured server-side logger (error + correlation id,
   secrets redacted), while the client keeps getting the generic message.
-- **Phase:** Observability.
+- **Done:** [src/shared/logger.ts](../src/shared/logger.ts) — JSON lines with
+  the real error, `x-vercel-id` as correlation id in route handlers, and
+  redaction of sensitive keys and of credentials inside free text
+  (connection strings, Stripe/GitHub/Groq keys, Bearer tokens). All 26
+  `console.*` calls replaced. Server actions do not carry a request id yet
+  (would need `headers()`); tracing and error tracking stay in Phase 4.
+- **Phase:** Clean Architecture (moved up from Observability).
 
 ### TD-32 — `publicErrorMessage` duplicated · Low
 - **Where:** [actions/github.ts:53](../src/lib/actions/github.ts#L53),

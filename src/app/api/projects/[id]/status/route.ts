@@ -1,3 +1,4 @@
+import { logger, requestIdFrom } from "@/shared/logger";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
@@ -44,8 +45,8 @@ export async function GET(_request: Request, context: RouteContext) {
 
     // Polled while the analysis runs: always return the live status.
     return Response.json(project, { headers: { "Cache-Control": "no-store" } });
-  } catch {
-    console.error("Project status API error");
+  } catch (error) {
+    logger.error("project.status_failed", { err: error, requestId: requestIdFrom(_request.headers) });
     return Response.json({ error: "Failed to load the project status." }, { status: 500 });
   }
 }
