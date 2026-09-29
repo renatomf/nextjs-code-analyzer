@@ -1,3 +1,4 @@
+import { DomainError } from "@/shared/errors";
 import { logger } from "@/shared/logger";
 import { and, asc, eq } from "drizzle-orm";
 
@@ -88,7 +89,7 @@ export async function generateProjectReport(
       .limit(80);
 
     if (chunks.length === 0) {
-      throw new Error(
+      throw new DomainError(
         "No code chunks available. Build project knowledge before generating a report.",
       );
     }
@@ -169,14 +170,20 @@ export async function generateProjectReport(
       roadmap,
     };
   } catch (error) {
-    // errorMessage is shown to the user: raw errors (LLM provider, DB) may
-    // carry internals, so only a generic message is stored.
-    logger.error("analysis.report_failed", { err: error, userId, projectId });
+    // errorMessage is shown to the user: a DomainError explains the problem;
+    // raw errors (LLM provider, DB) may carry internals, so they become a
+    // generic message (TD-33).
+    const isDomain = error instanceof DomainError;
+    if (isDomain) {
+      logger.warn("analysis.report_rejected", { err: error, userId, projectId });
+    } else {
+      logger.error("analysis.report_failed", { err: error, userId, projectId });
+    }
     await db
       .update(projects)
       .set({
         status: "failed",
-        errorMessage: "Failed to generate health report.",
+        errorMessage: isDomain ? error.message : "Failed to generate health report.",
       })
       .where(ownedProject);
     throw error;

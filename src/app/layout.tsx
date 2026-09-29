@@ -1,29 +1,39 @@
 import type { Metadata } from "next";
-import { Inter, Intel_One_Mono, Syne } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 
-const inter = Inter({
+// Self-hosted (latin subset, from Fontsource 5.3.0; OFL licenses in
+// ./fonts). next/font/google downloaded them at build time, and a failed
+// download broke CI builds; now the build needs no network for fonts and
+// visitors' browsers never call Google.
+
+const inter = localFont({
+  src: "./fonts/inter-latin-opsz-wght.woff2", // variable: opsz + wght
   variable: "--font-inter",
-  subsets: ["latin"],
-  axes: ["opsz"],
+  weight: "100 900",
+  display: "swap",
 });
 
-const intelOneMono = Intel_One_Mono({
+const intelOneMono = localFont({
+  src: [
+    { path: "./fonts/intel-one-mono-latin-400-normal.woff2", weight: "400" },
+    { path: "./fonts/intel-one-mono-latin-500-normal.woff2", weight: "500" },
+  ],
   variable: "--font-intel-mono",
-  subsets: ["latin"],
-  weight: ["400", "500"],
-  // next/font has no metrics to build an adjusted fallback for this font
-  // (it warned on every build), so use plain system monospace instead.
+  display: "swap",
+  // next/font has no metrics to build an adjusted fallback for this font,
+  // so use plain system monospace instead.
   adjustFontFallback: false,
   fallback: ["ui-monospace", "SFMono-Regular", "Consolas", "monospace"],
 });
 
-const syne = Syne({
+const syne = localFont({
+  src: "./fonts/syne-latin-800-normal.woff2",
   variable: "--font-syne",
-  subsets: ["latin"],
-  weight: ["800"],
+  weight: "800",
+  display: "swap",
 });
 
 export const metadata: Metadata = {

@@ -1,3 +1,4 @@
+import { DomainError } from "@/shared/errors";
 import { logger } from "@/shared/logger";
 import { chunkProjectFiles } from "@/lib/analysis/chunking";
 import {
@@ -39,7 +40,7 @@ export async function buildProjectKnowledge(
   try {
     const files = await loadProjectSourceFiles(userId, projectId);
     if (files.length === 0) {
-      throw new Error(
+      throw new DomainError(
         "No JavaScript/TypeScript source files found to analyze.",
       );
     }
@@ -69,18 +70,24 @@ export async function buildProjectKnowledge(
   } catch (error) {
     if (error instanceof AnalysisCanceledError) throw error;
 
-    // errorMessage is shown to the user: raw errors (DB, model download) may
-    // carry internals, so only a generic message is stored.
+    // errorMessage is shown to the user: a DomainError explains the problem
+    // (e.g. no JS/TS files); raw errors (DB, model download) may carry
+    // internals, so they become a generic message (TD-33).
+    const isDomain = error instanceof DomainError;
     const stillExists = await setProjectProgress(userId, projectId, {
       step: "Knowledge build failed",
       percent: 65,
       status: "failed",
-      errorMessage: "Failed to build code knowledge base.",
+      errorMessage: isDomain ? error.message : "Failed to build code knowledge base.",
     });
     // Deleted mid-step (canceled): the failed write was the FK, not a bug.
     if (!stillExists) throw new AnalysisCanceledError();
 
-    logger.error("analysis.knowledge_failed", { err: error, userId, projectId });
+    if (isDomain) {
+      logger.warn("analysis.knowledge_rejected", { err: error, userId, projectId });
+    } else {
+      logger.error("analysis.knowledge_failed", { err: error, userId, projectId });
+    }
     throw error;
   }
 }

@@ -301,14 +301,20 @@ medido antes e depois.
 
 - [x] [ADR-001](decisions/001-modular-monolith.md) — monólito modular com
       Clean Architecture seletiva.
-- [ ] `docs/glossary.md` (linguagem ubíqua).
+- [x] [`docs/glossary.md`](glossary.md) (linguagem ubíqua).
 - [ ] Módulos billing, projects, ingestion, analysis e chat migrados.
 - [ ] identity: acesso a dados atrás do módulo.
 - [ ] Queries por módulo para todas as pages (sai o Drizzle de `src/app`).
-- [ ] `dependency-cruiser` no CI.
-- [ ] Erro de domínio seguro para o usuário (TD-33).
-- [ ] Env vars validadas por um schema zod único em `shared/env`, falhando no
-      boot (hoje: 36 leituras de `process.env` espalhadas).
+- [x] `dependency-cruiser` no CI (`npm run lint:arch`): regras da ADR-001;
+      as 24 violações atuais (12 arquivos de `src/app` × banco e schema) ficam
+      num baseline e só as **novas** falham. O baseline só pode diminuir.
+- [x] Erro de domínio seguro para o usuário (TD-33): `DomainError` em
+      `shared/errors`; `publicErrorMessage` único (TD-32).
+- [x] Env vars validadas no boot (`src/instrumentation.ts` + `shared/env`):
+      obrigatórias param o servidor; opcionais inválidas geram aviso e
+      desligam só a integração. Erros não tratados de render/action/rota vão
+      para o logger (`onRequestError`). As leituras de `process.env` migram
+      junto com cada módulo.
 - [x] **Logger estruturado** em `src/shared/logger.ts` (TD-26), antecipado da
       Fase 4 para ajudar a própria refatoração: uma linha JSON por evento,
       erro real (nome, mensagem, stack, causa) só no servidor, correlation id

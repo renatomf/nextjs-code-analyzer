@@ -5,11 +5,12 @@ import { and, eq, gte } from "drizzle-orm";
 
 import { projects, usageEvents, users } from "@/db/schema";
 import { db, type Db } from "@/lib/db";
+import { DomainError } from "@/shared/errors";
 
 type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];
 type Executor = Db | Tx;
 
-export class BillingLimitError extends Error {
+export class BillingLimitError extends DomainError {
   code: "analyses" | "projects" | "chat";
   upgradeRequired = true;
   /** Short heading and body for UIs that lay the notice out (see `message`). */

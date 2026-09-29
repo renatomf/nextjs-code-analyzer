@@ -37,6 +37,11 @@ jobs:
 
       - run: npm run lint
 
+      # ADR-001 layer and module rules. Known violations (the legacy code
+      # being migrated) are tolerated; any new one fails the build.
+      - name: Architecture rules
+        run: npm run lint:arch
+
       # schema.ts and drizzle/ must agree: a schema change without its
       # generated migration fails here (no database needed).
       - name: Migrations match the schema

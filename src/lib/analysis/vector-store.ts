@@ -4,6 +4,7 @@ import { codeChunks, projects } from "@/db/schema";
 import type { CodeChunkDraft } from "@/lib/analysis/chunking";
 import { embedTexts } from "@/lib/analysis/embeddings";
 import { db } from "@/lib/db";
+import { DomainError } from "@/shared/errors";
 
 export type StoredChunk = {
   id: string;
@@ -24,7 +25,7 @@ export async function storeProjectChunks(
   drafts: CodeChunkDraft[],
 ): Promise<number> {
   if (drafts.length === 0) {
-    throw new Error("No code chunks were produced from the source files.");
+    throw new DomainError("No code chunks were produced from the source files.");
   }
 
   // Embedding is slow: done before the transaction so it is not held open.

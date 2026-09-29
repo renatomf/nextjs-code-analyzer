@@ -1,5 +1,6 @@
 "use server";
 import { logger } from "@/shared/logger";
+import { publicErrorMessage } from "@/shared/public-error-message";
 
 import { and, eq, ne } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
@@ -23,7 +24,6 @@ import { deleteProjectFiles, persistProjectFiles } from "@/lib/files/storage";
 import {
   downloadGitHubZipball,
   fullNameSchema,
-  GitHubError,
   refSchema,
 } from "@/lib/github";
 import { getPlansWithStripePricing } from "@/lib/billing/plans";
@@ -94,18 +94,6 @@ async function requireUser() {
     redirect("/login");
   }
   return session.user;
-}
-
-/**
- * Only our own error types carry user-facing messages; anything else (DB,
- * network, bugs) may contain internals and becomes a generic message.
- */
-function publicErrorMessage(error: unknown, fallback: string): string {
-  if (error instanceof BillingLimitError || error instanceof GitHubError) {
-    return error.message;
-  }
-  logger.error("action.failed", { err: error, message: fallback });
-  return fallback;
 }
 
 /** Link GitHub via Auth.js (same callback URL as login). */
