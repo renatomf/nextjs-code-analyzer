@@ -23,7 +23,8 @@ export default defineConfig({
   webServer: process.env.PLAYWRIGHT_BASE_URL
     ? undefined
     : {
-        command: "npm run dev",
+        // CI tests the production build (`npm run build` runs before).
+        command: process.env.CI ? "npm run start" : "npm run dev",
         url: baseURL,
         reuseExistingServer: !process.env.CI,
         timeout: 120_000,

@@ -142,6 +142,19 @@ maintainability) · **Low** (cleanup).
   Settings sync should also downgrade when no active subscription is found.
 - **Phase:** Test safety net (billing correctness).
 
+### TD-38 — Database TLS verification depends on `sslmode` in the URL · Medium
+- **Where:** [db.ts](../src/lib/db.ts), production `DATABASE_URL` (Vercel)
+- **Problem:** `pg` lets the URL's `sslmode` override the `ssl: true` passed
+  in code (checked: `?sslmode=disable` → `ssl: false`). Neon URLs use
+  `sslmode=require`, which `pg` 8 still treats as `verify-full`, but the next
+  major (`pg` 9 / `pg-connection-string` 3) switches to libpq semantics:
+  encrypted *without* certificate verification, opening the door to
+  man-in-the-middle.
+- **Direction:** use `sslmode=verify-full` in the production and preview
+  `DATABASE_URL` before upgrading `pg`; optionally reject weaker modes at
+  startup outside tests.
+- **Phase:** Security.
+
 ### TD-06 — Batch concurrency is assumed, not measured · Low
 - **Where:** [embeddings.ts:55-73](../src/lib/analysis/embeddings.ts#L55-L73)
 - **Problem:** `Promise.all` over 16 texts may not run in parallel on CPU
