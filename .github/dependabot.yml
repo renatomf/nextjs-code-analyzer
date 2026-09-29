@@ -14,6 +14,12 @@ updates:
       # Vercel); bump the major together with the runtime.
       - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
+      # TD-39: TypeScript 7 and ESLint 10 failed the lint/typecheck check;
+      # bump them when eslint-config-next and typescript-eslint support them.
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
     groups:
       # One PR for all minor/patch bumps; majors come one by one.
       minor-and-patch:
