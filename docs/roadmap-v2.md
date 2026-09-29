@@ -299,7 +299,9 @@ medido antes e depois.
 
 **Obrigatório**
 
-- [ ] ADR-001 (autor) e `docs/glossary.md`.
+- [x] [ADR-001](decisions/001-modular-monolith.md) — monólito modular com
+      Clean Architecture seletiva.
+- [ ] `docs/glossary.md` (linguagem ubíqua).
 - [ ] Módulos billing, projects, ingestion, analysis e chat migrados.
 - [ ] identity: acesso a dados atrás do módulo.
 - [ ] Queries por módulo para todas as pages (sai o Drizzle de `src/app`).
