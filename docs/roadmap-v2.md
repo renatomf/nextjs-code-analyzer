@@ -160,9 +160,11 @@ de qualquer achado do LLM):
 - [x] **Testes de integração de IDOR:** o usuário B nunca lê, altera ou apaga
       um projeto, arquivo, relatório ou chat do usuário A. Também cobrem o
       limite de projetos sob concorrência e a exclusão em cascata.
-- [ ] **E2E do fluxo principal (Playwright):** registrar → upload de um ZIP
-      fixture → analisar → relatório → chat. LLM e embeddings via fake
-      (`MockLanguageModel` do AI SDK, só no ambiente de teste).
+- [x] **E2E do fluxo principal (Playwright):** registrar → upload de um ZIP
+      gerado no teste → análise → relatório → chat, contra a build de
+      produção (`next start`) e o Postgres descartável do CI. LLM falso
+      (`MockLanguageModelV4`, só com `E2E_FAKE_LLM=1`, recusado na Vercel);
+      embeddings **reais**, para cobrir a busca vetorial de verdade.
 - [x] **Dependências:** Dependabot (npm + Actions) e `osv-scanner` no CI,
       com exceções com prazo em `osv-scanner.toml`; origem dos pacotes menos
       conhecidos verificada no npm (`cn`, `shadcn`, `@neon/*` são dos
