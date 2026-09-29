@@ -8,11 +8,12 @@ estes termos; ao precisar de um conceito novo, acrescente-o aqui no mesmo PR.
 
 | Termo | Significado | No código |
 |---|---|---|
-| **Project** | Um repositório importado por um usuário para ser analisado. Pertence a exatamente um usuário. | `projects`, aggregate `Project` (Fase 3) |
+| **Project** | Um repositório importado por um usuário para ser analisado. Pertence a exatamente um usuário. | `projects`, `src/modules/projects` |
 | **Source** | De onde vêm os arquivos: `github` (repositório conectado) ou `upload` (ZIP). | `projects.source`, `SourceProvider` |
 | **Import** | Baixar/ler a origem, extrair e guardar os arquivos seguros do projeto. Não inclui a análise. | `importFromGitHub`, `importFromZip` |
-| **Project status** | Ciclo de vida: `queued` (arquivos prontos) → `processing` (análise em curso) → `completed` ou `failed`. | `projects.status` |
-| **Claim** | Tomar o projeto para uma análise, garantindo que só uma rode por vez. | rota `analyze` → `Project.claimForAnalysis` |
+| **Project status** | Ciclo de vida: `queued` (arquivos prontos) → `processing` (análise em curso) → `completed` ou `failed`. | `ProjectStatus`; escritas só em `drizzle-project-lifecycle.ts` |
+| **Claim** | Tomar o projeto para uma análise, garantindo que só uma rode por vez. | `analysisStart` (regra) + `claimAnalysis` (UPDATE atômico) |
+| **Active analysis** | `queued` ou `processing`: pode ser cancelada, não pode ser iniciada de novo. | `ACTIVE_STATUSES` |
 | **Stale** | Projeto em `processing` sem atualização por mais tempo que uma análise completa: pode ser retomado. | `STALE_AFTER_SECONDS` |
 | **Public report link** | URL somente leitura, com token e expiração, que expõe só o relatório. | Fase 3 |
 

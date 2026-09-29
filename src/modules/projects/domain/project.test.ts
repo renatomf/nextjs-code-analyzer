@@ -1,0 +1,37 @@
+import { describe, expect, it } from "vitest";
+
+import { analysisStart, STALE_AFTER_SECONDS, type ProjectStatus } from "./project";
+
+const NOW = new Date("2026-09-29T12:00:00Z");
+const secondsBefore = (s: number) => new Date(NOW.getTime() - s * 1000);
+
+function project(status: ProjectStatus, overrides: { fileCount?: number; updatedAt?: Date } = {}) {
+  return { status, fileCount: 3, updatedAt: NOW, ...overrides };
+}
+
+describe("analysisStart", () => {
+  it("never restarts a completed project", () => {
+    expect(analysisStart(project("completed"), NOW)).toBe("completed");
+  });
+
+  it("leaves a live run alone", () => {
+    expect(analysisStart(project("processing", { updatedAt: secondsBefore(60) }), NOW)).toBe(
+      "running",
+    );
+  });
+
+  it("lets a stale run restart once the window has passed", () => {
+    const at = (s: number) => analysisStart(project("processing", { updatedAt: secondsBefore(s) }), NOW);
+    expect(at(STALE_AFTER_SECONDS - 1)).toBe("running");
+    expect(at(STALE_AFTER_SECONDS)).toBe("claimable");
+  });
+
+  it("claims a queued project", () => {
+    expect(analysisStart(project("queued"), NOW)).toBe("claimable");
+  });
+
+  it("retries a failed project only if its files were stored", () => {
+    expect(analysisStart(project("failed", { fileCount: 3 }), NOW)).toBe("claimable");
+    expect(analysisStart(project("failed", { fileCount: 0 }), NOW)).toBe("import-failed");
+  });
+});

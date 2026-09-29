@@ -23,6 +23,7 @@ const mocks = vi.hoisted(() => {
   };
 });
 
+vi.mock("server-only", () => ({}));
 vi.mock("@/lib/auth", () => ({ auth: mocks.auth }));
 vi.mock("@/lib/db", () => ({
   db: { select: mocks.select, query: { projects: { findFirst: mocks.findFirst } } },

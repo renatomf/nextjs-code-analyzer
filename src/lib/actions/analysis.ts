@@ -1,14 +1,13 @@
 "use server";
 import { publicErrorMessage } from "@/shared/public-error-message";
 
-import { and, eq, notInArray } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { projects, users } from "@/db/schema";
-import { setProjectProgress } from "@/lib/analysis/progress";
 import { generateProjectReport } from "@/lib/analysis/report";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -20,6 +19,11 @@ import { downloadGitHubZipball, GitHubError } from "@/lib/github";
 import { assertRateLimit } from "@/lib/rate-limit";
 import { BillingLimitError } from "@/modules/billing";
 import { withQuota } from "@/modules/billing/server";
+import {
+  requeueIdleProject,
+  setProjectProgress,
+  startReanalysis,
+} from "@/modules/projects/server";
 
 export type RetryState = {
   error?: string;
@@ -160,21 +164,11 @@ export async function retryProjectKnowledge(
     // Embeddings run only in the analyze route (the only functions that ship
     // the ONNX runtime on Vercel), so queue the project and let the progress
     // page start it. Stored files are reused; no quota is consumed.
-    const [queued] = await db
-      .update(projects)
-      .set({
-        status: "queued",
-        progressStep: "Waiting to rebuild code knowledge",
-        errorMessage: null,
-      })
-      .where(
-        and(
-          eq(projects.id, project.id),
-          eq(projects.userId, project.userId),
-          notInArray(projects.status, ["processing", "queued"]),
-        ),
-      )
-      .returning({ id: projects.id });
+    const queued = await requeueIdleProject(
+      project.userId,
+      project.id,
+      "Waiting to rebuild code knowledge",
+    );
     if (!queued) {
       return { error: "Analysis is already running for this project." };
     }
@@ -204,17 +198,7 @@ export async function retryFullAnalysis(
     // transaction: the user row is locked, so parallel requests cannot all
     // pass the limit or start the same project twice.
     claimed = await withQuota(project.userId, "analysis", async (tx) => {
-      const [started] = await tx
-        .update(projects)
-        .set({ status: "processing", errorMessage: null })
-        .where(
-          and(
-            eq(projects.id, project.id),
-            eq(projects.userId, project.userId),
-            notInArray(projects.status, ["processing", "queued"]),
-          ),
-        )
-        .returning({ id: projects.id });
+      const started = await startReanalysis(tx, project.userId, project.id);
       // Already running: no new analysis, so no quota consumed.
       if (!started) return { consumed: false, value: false };
 
@@ -228,18 +212,15 @@ export async function retryFullAnalysis(
     // Pull fresh GitHub code when possible; ZIP projects reuse stored files.
     await refreshProjectSources(project);
 
-    await db
-      .update(projects)
-      .set({
-        status: "queued",
-        progressStep:
-          project.source === "github"
-            ? "Latest code fetched — waiting to analyze"
-            : "Waiting to restart analysis",
-        progressPercent: Math.max(project.progressPercent || 0, 25),
-        errorMessage: null,
-      })
-      .where(and(eq(projects.id, project.id), eq(projects.userId, project.userId)));
+    await setProjectProgress(project.userId, project.id, {
+      status: "queued",
+      step:
+        project.source === "github"
+          ? "Latest code fetched — waiting to analyze"
+          : "Waiting to restart analysis",
+      percent: Math.max(project.progressPercent || 0, 25),
+      errorMessage: null,
+    });
     // "layout": the project header/tabs and every tab under it.
     revalidatePath(`/projects/${project.id}`, "layout");
     revalidatePath("/dashboard");

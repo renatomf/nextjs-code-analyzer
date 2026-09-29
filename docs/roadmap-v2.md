@@ -308,7 +308,9 @@ medido antes e depois.
       `src/lib/billing` removido; TD-24 resolvido; regras da cota na
       [ADR-003](decisions/003-quota.md). **projects** — rede de testes do
       ciclo de vida (claim da análise, cancelamento, reanálise) em Postgres
-      real, verificada com mutações; próximo: aggregate `Project`. Convenção
+      real, verificada com mutações; ciclo de vida no módulo (regra
+      `analysisStart` + todas as escritas de status num só arquivo); próximo:
+      queries das pages. Convenção
       provisória em [`docs/modules.md`](modules.md).
 - [ ] identity: acesso a dados atrás do módulo.
 - [ ] Queries por módulo para todas as pages (sai o Drizzle de `src/app`).

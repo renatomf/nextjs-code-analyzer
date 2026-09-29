@@ -14,6 +14,7 @@ import {
   type ReportIssue,
 } from "@/lib/analysis/report-types";
 import { db } from "@/lib/db";
+import { setProjectStatus } from "@/modules/projects/server";
 
 function clampScore(value: number): number {
   return Math.max(0, Math.min(100, Math.round(value)));
@@ -67,10 +68,7 @@ export async function generateProjectReport(
     throw new Error("Project not found");
   }
 
-  await db
-    .update(projects)
-    .set({ status: "processing", errorMessage: null })
-    .where(ownedProject);
+  await setProjectStatus(userId, projectId, "processing", null);
 
   try {
     const files = await loadProjectSourceFiles(userId, projectId);
@@ -157,10 +155,7 @@ export async function generateProjectReport(
       .values({ projectId, ...reportData })
       .onConflictDoUpdate({ target: reports.projectId, set: reportData });
 
-    await db
-      .update(projects)
-      .set({ status: "completed", errorMessage: null })
-      .where(ownedProject);
+    await setProjectStatus(userId, projectId, "completed", null);
 
     return {
       healthScore,
@@ -179,13 +174,12 @@ export async function generateProjectReport(
     } else {
       logger.error("analysis.report_failed", { err: error, userId, projectId });
     }
-    await db
-      .update(projects)
-      .set({
-        status: "failed",
-        errorMessage: isDomain ? error.message : "Failed to generate health report.",
-      })
-      .where(ownedProject);
+    await setProjectStatus(
+      userId,
+      projectId,
+      "failed",
+      isDomain ? error.message : "Failed to generate health report.",
+    );
     throw error;
   }
 }
