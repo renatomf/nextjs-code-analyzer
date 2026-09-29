@@ -25,11 +25,13 @@ const nextConfig: NextConfig = {
     },
   },
   // onnxruntime_binding.node loads libonnxruntime.so via dlopen, which file
-  // tracing cannot see, so it is added by hand. The key is global on purpose:
-  // per-route traces stop Vercel from grouping routes into shared functions,
-  // and the Hobby plan allows at most 12 functions per deployment.
+  // tracing cannot see, so it is added by hand — only to the two routes that
+  // create embeddings. The binary is 46 MB: adding it to more routes stops
+  // Vercel from grouping them and the Hobby plan caps a deployment at 12
+  // functions.
   outputFileTracingIncludes: {
-    "/*": [ONNX_LINUX_BINARIES],
+    "/api/projects/\\[id\\]/analyze": [ONNX_LINUX_BINARIES],
+    "/api/chat": [ONNX_LINUX_BINARIES],
   },
   // Never ship: a locally downloaded model cache (it is fetched at runtime),
   // tree-sitter C sources, and native binaries for other platforms.
