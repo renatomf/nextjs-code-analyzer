@@ -82,8 +82,8 @@ Cada fase tem itens **obrigatórios** (a v2.0 não sai sem eles) e itens
 
 ## Marco 0 — Congelar a v1
 
-- [ ] Tag `v1-tutorial` no commit atual (é o "antes" de toda a história).
-- [ ] README real no lugar do template do `create-next-app`: o que o app faz,
+- [x] Tag `v1-tutorial` no commit atual (é o "antes" de toda a história).
+- [x] README real no lugar do template do `create-next-app`: o que o app faz,
       stack, setup local, variáveis de ambiente (sem valores), diferenças em
       relação ao tutorial (Drizzle/Neon, camada de segurança).
 
