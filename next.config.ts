@@ -1,7 +1,16 @@
 import type { NextConfig } from "next";
 
-const ONNX_LINUX_BINARIES =
-  "./node_modules/onnxruntime-node/bin/napi-v6/linux/x64/**/*";
+// @huggingface/transformers loads onnxruntime-node with a dynamic require
+// (`requireFromHere("onnxruntime-node")`), and the binding loads
+// libonnxruntime.so via dlopen: file tracing sees neither, so both the JS
+// package and the Linux x64 binaries are listed by hand.
+const ONNX_RUNTIME_FILES = [
+  "./node_modules/onnxruntime-node/package.json",
+  "./node_modules/onnxruntime-node/dist/**/*",
+  "./node_modules/onnxruntime-node/bin/napi-v6/linux/x64/**/*",
+  "./node_modules/onnxruntime-common/package.json",
+  "./node_modules/onnxruntime-common/dist/cjs/**/*",
+];
 
 const nextConfig: NextConfig = {
   reactCompiler: true,
@@ -24,14 +33,12 @@ const nextConfig: NextConfig = {
       dynamic: 30,
     },
   },
-  // onnxruntime_binding.node loads libonnxruntime.so via dlopen, which file
-  // tracing cannot see, so it is added by hand — only to the two routes that
-  // create embeddings. The binary is 46 MB: adding it to more routes stops
-  // Vercel from grouping them and the Hobby plan caps a deployment at 12
-  // functions.
+  // Only the two routes that create embeddings get the ONNX runtime. The
+  // binary is 46 MB: adding it to more routes stops Vercel from grouping them,
+  // and the Hobby plan caps a deployment at 12 functions.
   outputFileTracingIncludes: {
-    "/api/projects/\\[id\\]/analyze": [ONNX_LINUX_BINARIES],
-    "/api/chat": [ONNX_LINUX_BINARIES],
+    "/api/projects/\\[id\\]/analyze": ONNX_RUNTIME_FILES,
+    "/api/chat": ONNX_RUNTIME_FILES,
   },
   // Never ship: a locally downloaded model cache (it is fetched at runtime),
   // tree-sitter C sources, and native binaries for other platforms.
