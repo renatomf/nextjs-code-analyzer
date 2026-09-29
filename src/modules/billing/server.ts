@@ -1,5 +1,7 @@
 import "server-only";
 
+import { randomUUID } from "node:crypto";
+
 import { db } from "@/lib/db";
 
 import { createQuota, getBillingSnapshot as snapshotFor } from "./application/quota";
@@ -47,21 +49,33 @@ type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
  *
  * `work` must only do quick database writes: the user row stays locked
  * until it returns (downloads and extraction belong outside).
+ *
+ * `usage.id` is the id the usage record will get: keep it to refund this
+ * analysis if a later step fails on our side (`refundAnalysisUsage`).
  */
 export function withQuota<T>(
   userId: string,
   kind: QuotaKind,
-  work: (tx: Tx) => Promise<{ consumed: boolean; value: T }>,
+  work: (tx: Tx, usage: { id: string }) => Promise<{ consumed: boolean; value: T }>,
 ): Promise<T> {
   return db.transaction(async (tx) => {
     const quota = createQuota(depsFor(tx));
     if (kind === "project") await quota.assertCanCreateProject(userId);
     else await quota.assertCanRunAnalysis(userId);
 
-    const { consumed, value } = await work(tx);
-    if (consumed) await quota.recordAnalysisUsage(userId);
+    const usage = { id: randomUUID() };
+    const { consumed, value } = await work(tx, usage);
+    if (consumed) await quota.recordAnalysisUsage(userId, usage.id);
     return value;
   });
+}
+
+/**
+ * Gives back one analysis recorded by `withQuota` (ADR-003): only when the
+ * work failed on our side, never for user errors such as an invalid ZIP.
+ */
+export function refundAnalysisUsage(userId: string, usageId: string): Promise<void> {
+  return createQuota(depsFor(db)).refundAnalysisUsage(userId, usageId);
 }
 
 // Stripe: loaded on first use, so quota callers (analysis, chat) do not pay

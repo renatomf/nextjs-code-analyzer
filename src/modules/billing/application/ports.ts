@@ -20,7 +20,10 @@ export interface BillingRepository {
   loadUserBilling(userId: string): Promise<UserBilling>;
   countProjects(userId: string): Promise<number>;
   countAnalysesSince(userId: string, since: Date): Promise<number>;
-  recordAnalysisUsage(userId: string): Promise<void>;
+  /** `usageId` lets the caller refund exactly this record later. */
+  recordAnalysisUsage(userId: string, usageId?: string): Promise<void>;
+  /** Removes one of the user's usage records (refund); no-op if absent. */
+  deleteAnalysisUsage(userId: string, usageId: string): Promise<void>;
   /** Throws when the user does not exist. */
   loadBillingProfile(userId: string): Promise<BillingProfile>;
 }

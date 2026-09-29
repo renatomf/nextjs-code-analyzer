@@ -4,7 +4,7 @@ import { afterAll, describe, expect, it, vi } from "vitest";
 import { projects, usageEvents } from "@/db/schema";
 import { db } from "@/lib/db";
 import { BillingLimitError, getPlanCatalog } from "@/modules/billing";
-import { withQuota } from "@/modules/billing/server";
+import { refundAnalysisUsage, withQuota } from "@/modules/billing/server";
 import { createUser, deleteUsers } from "@/test/integration/factories";
 
 // withQuota on a real Postgres: lock + check + work + usage in one
@@ -101,5 +101,20 @@ describe("withQuota", () => {
     expect(rejected?.reason).toBeInstanceOf(BillingLimitError);
     expect(await projectCount(userId)).toBe(maxProjects);
     expect(await usageCount(userId)).toBe(1);
+  });
+
+  it("refunds exactly the usage it recorded, and only for its owner", async () => {
+    const userId = await newUser();
+    const otherUser = await newUser();
+    const usageId = await withQuota(userId, "analysis", async (_tx, usage) => ({
+      consumed: true,
+      value: usage.id,
+    }));
+
+    await refundAnalysisUsage(otherUser, usageId);
+    expect(await usageCount(userId)).toBe(1);
+
+    await refundAnalysisUsage(userId, usageId);
+    expect(await usageCount(userId)).toBe(0);
   });
 });

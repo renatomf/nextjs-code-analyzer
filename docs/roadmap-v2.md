@@ -311,7 +311,9 @@ medido antes e depois.
       real, verificada com mutações; ciclo de vida no módulo (regra
       `analysisStart` + todas as escritas de status num só arquivo); queries
       das pages do projeto no módulo (dashboard, issues, progress, report e
-      rota de status sem Drizzle; baseline 24 → 12); próximo: importação. Convenção
+      rota de status sem Drizzle; baseline 24 → 12); rede de testes da
+      importação + reembolso da cota em falha nossa (TD-12) e TD-14;
+      próximo: importação no módulo. Convenção
       provisória em [`docs/modules.md`](modules.md).
 - [ ] identity: acesso a dados atrás do módulo.
 - [ ] Queries por módulo para todas as pages (sai o Drizzle de `src/app`).

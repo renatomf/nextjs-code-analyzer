@@ -23,7 +23,11 @@ import {
 } from "@/lib/github";
 import { MAX_REPO_SIZE_BYTES } from "@/lib/limits";
 import { BillingLimitError } from "@/modules/billing";
-import { getPlanCatalogWithPricing, withQuota } from "@/modules/billing/server";
+import {
+  getPlanCatalogWithPricing,
+  refundAnalysisUsage,
+  withQuota,
+} from "@/modules/billing/server";
 
 export type ProjectActionState = {
   error?: string;
@@ -110,7 +114,7 @@ async function finalizeProjectFromZip(options: {
 }) {
   // Limit check, insert and usage record in one transaction: the user row is
   // locked, so parallel requests cannot all pass the check.
-  const project = await withQuota(options.userId, "project", async (tx) => {
+  const { project, usageId } = await withQuota(options.userId, "project", async (tx, usage) => {
     const [created] = await tx
       .insert(projects)
       .values({
@@ -124,7 +128,7 @@ async function finalizeProjectFromZip(options: {
       })
       .returning({ id: projects.id });
 
-    return { consumed: true, value: created };
+    return { consumed: true, value: { project: created, usageId: usage.id } };
   });
 
   try {
@@ -138,6 +142,8 @@ async function finalizeProjectFromZip(options: {
       stripRoot: options.source === "github",
     });
 
+    // A bad archive (corrupt, too big, no JS/TS) is the user's error: the
+    // analysis stays charged (ADR-003), so invalid uploads cannot be free.
     if (!extracted.ok) {
       await setProjectProgress(options.userId, project.id, {
         step: "Import failed",
@@ -185,6 +191,10 @@ async function finalizeProjectFromZip(options: {
       percent: 10,
       status: "failed",
       errorMessage: publicErrorMessage(error, "Project ingestion failed."),
+    });
+    // A failure on our side (database, storage) gives the analysis back.
+    await refundAnalysisUsage(options.userId, usageId).catch((refundError) => {
+      logger.error("billing.refund_failed", { err: refundError, projectId: project.id });
     });
     // Best effort: persistProjectFiles is atomic, so there is rarely anything left.
     await deleteProjectFiles(options.userId, project.id).catch((cleanupError) => {
@@ -253,12 +263,6 @@ export async function createProjectFromGitHub(
       fullName,
       defaultBranch,
     );
-
-    if (zipBuffer.byteLength > MAX_REPO_SIZE_BYTES) {
-      return {
-        error: `Repository archive exceeds the ${MAX_REPO_SIZE_BYTES / (1024 * 1024)} MB limit.`,
-      };
-    }
 
     const result = await finalizeProjectFromZip({
       userId: user.id,
