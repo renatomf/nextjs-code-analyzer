@@ -57,47 +57,28 @@ src/modules/<módulo>/
   Stripe com `import()` dentro das funções, para quem só usa a cota (análise,
   chat) não carregar o SDK na cold start.
 
-## Esboço em papel: `projects` na mesma convenção
+## Decisões do módulo projects
 
-Teste da convenção antes de ela se espalhar (nada implementado ainda).
-Baseado no código atual: `api/projects/[id]/analyze/route.ts`,
-`lib/actions/github.ts`, `lib/actions/analysis.ts`, `lib/analysis/progress.ts`.
+O esboço em papel previa uma classe `Project` com `claimForAnalysis()` e um
+repositório com `save()` por concorrência otimista (update condicional pelo
+status lido). Ao implementar, ficou assim:
 
-```ts
-// domain/project.ts — aggregate: único dono da máquina de estados
-type ProjectStatus = "queued" | "processing" | "completed" | "failed";
-
-class Project {
-  // Hoje espalhado na rota analyze (claim com SQL condicional) e nas actions.
-  claimForAnalysis(now: Date): void;       // DomainError: already-analyzed | already-running | import-failed
-  markProgress(step: string, percent: number): void;
-  complete(): void;
-  fail(publicMessage: string): void;
-  isStale(now: Date): boolean;             // STALE_AFTER_SECONDS
-}
-
-// application/ports.ts
-interface ProjectRepository {
-  getOwned(userId: string, projectId: string): Promise<Project | null>;  // escopo por dono num só lugar
-  save(project: Project): Promise<boolean>; // update condicional pelo status lido (concorrência otimista)
-}
-
-// application/start-analysis.ts
-startAnalysis({ projects, runner })(userId, projectId)
-  → getOwned → project.claimForAnalysis(now) → save → runner.run(...)
-
-// server.ts — importar um projeto usa a cota do billing, pela API pública dele:
-import { withQuota } from "@/modules/billing/server";
-withQuota(userId, "project", async (tx) => {
-  const project = await projectsFor(tx).create(...);
-  return { consumed: true, value: project.id };
-});
-```
-
-**O que o esboço confirma:** a estrutura comporta um aggregate com máquina de
-estados; o repositório por aggregate funciona com o mesmo padrão de executor
-do billing; a integração entre módulos passa pela API pública (`server.ts`
-do billing). **O que ainda precisa ser decidido no módulo projects:** como o
-`save` preserva a atomicidade do claim atual (hoje um `UPDATE ... WHERE
-status IN (...)` único) — a opção esboçada é o update condicional pelo status
-lido, a validar com o teste de concorrência existente antes de trocar.
+- **Regra pura + UPDATE condicional com a mesma regra.** `analysisStart`
+  (domínio) decide se a análise pode começar; `claimAnalysis`
+  (infraestrutura) faz um único `UPDATE ... WHERE` com a mesma regra, que é o
+  que garante a atomicidade. O `save` otimista foi descartado: mudaria a
+  condição do claim atual (de "estado que permite começar" para "estado que
+  eu li") sem ganho, e o claim atual já é provado por teste.
+- **A regra existe em dois lugares, e os testes amarram os dois:** testes
+  unitários da regra pura e testes de integração em Postgres real, inclusive
+  um que força duas requisições a lerem "queued" antes de qualquer claim.
+  Esse teste foi verificado com mutação: sem a condição de status no
+  `UPDATE`, ele falha.
+- **Funções em vez de classe.** O estado vem do banco a cada request e a
+  regra é uma função pequena; uma classe só embrulharia os mesmos dados.
+- **Sem interface de repositório:** uma implementação só (ADR-001). Todas as
+  escritas de status ficam em `infrastructure/drizzle-project-lifecycle.ts`,
+  sempre com o escopo por dono (`userId` da sessão).
+- **Integração com o billing pela API pública:** a reanálise chama
+  `startReanalysis(tx, …)` dentro do `withQuota` do billing, então claim e
+  registro de uso entram na mesma transação.

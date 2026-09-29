@@ -1,14 +1,12 @@
 "use server";
 import { logger } from "@/shared/logger";
 
-import { and, eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
-import { projects } from "@/db/schema";
 import { auth } from "@/lib/auth";
-import { db } from "@/lib/db";
+import { cancelActiveAnalysis, deleteProject as deleteOwnedProject } from "@/modules/projects/server";
 
 const projectIdSchema = z.string().uuid();
 
@@ -26,14 +24,8 @@ export async function deleteProject(
   if (!parsed.success) return { error: "Project not found." };
 
   try {
-    const deleted = await db
-      .delete(projects)
-      .where(
-        and(eq(projects.id, parsed.data), eq(projects.userId, session.user.id)),
-      )
-      .returning({ id: projects.id });
-
-    if (deleted.length === 0) return { error: "Project not found." };
+    const deleted = await deleteOwnedProject(session.user.id, parsed.data);
+    if (!deleted) return { error: "Project not found." };
   } catch (error) {
     logger.error("project.delete_failed", { err: error });
     return { error: "Could not delete the project. Try again." };
@@ -45,8 +37,7 @@ export async function deleteProject(
 
 /**
  * Cancels an import/analysis in progress by deleting the project, so nothing
- * (files, chunks, report) is kept. The running pipeline stops at its next step
- * (`setProjectProgress` finds no row) and any late write fails on the FK.
+ * (files, chunks, report) is kept.
  */
 export async function cancelAnalysis(
   projectId: string,
@@ -58,18 +49,8 @@ export async function cancelAnalysis(
   if (!parsed.success) return { error: "Project not found." };
 
   try {
-    const canceled = await db
-      .delete(projects)
-      .where(
-        and(
-          eq(projects.id, parsed.data),
-          eq(projects.userId, session.user.id),
-          inArray(projects.status, ["queued", "processing"]),
-        ),
-      )
-      .returning({ id: projects.id });
-
-    if (canceled.length === 0) {
+    const canceled = await cancelActiveAnalysis(session.user.id, parsed.data);
+    if (!canceled) {
       return { error: "This analysis is no longer running." };
     }
   } catch (error) {

@@ -1,0 +1,183 @@
+import { and, eq, gt, inArray, lt, notInArray, or, sql } from "drizzle-orm";
+
+import { projects } from "@/db/schema";
+import { db, type Db } from "@/lib/db";
+
+import { ACTIVE_STATUSES, STALE_AFTER_SECONDS, type ProjectStatus } from "../domain/project";
+
+type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];
+export type Executor = Db | Tx;
+
+/**
+ * Every write to a project's status. All scoped by `userId`, which must come
+ * from the server session: another user's project is never read or changed.
+ * The WHERE clauses enforce the domain rules atomically, so two requests
+ * racing on the same project cannot both win.
+ */
+
+const owned = (userId: string, projectId: string) =>
+  and(eq(projects.id, projectId), eq(projects.userId, userId));
+
+export async function findAnalysisCandidate(userId: string, projectId: string) {
+  const [project] = await db
+    .select({
+      id: projects.id,
+      status: projects.status,
+      fileCount: projects.fileCount,
+      progressStep: projects.progressStep,
+      progressPercent: projects.progressPercent,
+      updatedAt: projects.updatedAt,
+    })
+    .from(projects)
+    .where(owned(userId, projectId))
+    .limit(1);
+  return project;
+}
+
+export async function readProgress(userId: string, projectId: string) {
+  const [project] = await db
+    .select({
+      status: projects.status,
+      progressStep: projects.progressStep,
+      progressPercent: projects.progressPercent,
+    })
+    .from(projects)
+    .where(owned(userId, projectId))
+    .limit(1);
+  return project;
+}
+
+/**
+ * Atomic claim: only one request can move the project into "processing", so
+ * parallel calls (two tabs, a refresh) never run the analysis twice. Same
+ * rule as `analysisStart` returning "claimable".
+ */
+export async function claimAnalysis(userId: string, projectId: string): Promise<boolean> {
+  const [claimed] = await db
+    .update(projects)
+    .set({
+      status: "processing",
+      progressStep: "Starting analysis",
+      progressPercent: 30,
+      errorMessage: null,
+    })
+    .where(
+      and(
+        owned(userId, projectId),
+        or(
+          eq(projects.status, "queued"),
+          and(eq(projects.status, "failed"), gt(projects.fileCount, 0)),
+          and(
+            eq(projects.status, "processing"),
+            lt(
+              projects.updatedAt,
+              sql`now() - make_interval(secs => ${STALE_AFTER_SECONDS})`,
+            ),
+          ),
+        ),
+      ),
+    )
+    .returning({ id: projects.id });
+  return Boolean(claimed);
+}
+
+/**
+ * Re-analysis: moves an idle project to "processing". Pass the quota
+ * transaction so the claim and the usage record commit together.
+ */
+export async function startReanalysis(
+  executor: Executor,
+  userId: string,
+  projectId: string,
+): Promise<boolean> {
+  const [started] = await executor
+    .update(projects)
+    .set({ status: "processing", errorMessage: null })
+    .where(and(owned(userId, projectId), notInArray(projects.status, [...ACTIVE_STATUSES])))
+    .returning({ id: projects.id });
+  return Boolean(started);
+}
+
+/** Queues an idle project again (stored files reused); false if active. */
+export async function requeueIdleProject(
+  userId: string,
+  projectId: string,
+  step: string,
+): Promise<boolean> {
+  const [queued] = await db
+    .update(projects)
+    .set({ status: "queued", progressStep: step, errorMessage: null })
+    .where(and(owned(userId, projectId), notInArray(projects.status, [...ACTIVE_STATUSES])))
+    .returning({ id: projects.id });
+  return Boolean(queued);
+}
+
+/**
+ * Deletes a project. Files, chunks and the report go with it
+ * (ON DELETE CASCADE). False when there is no such project for this user.
+ */
+export async function deleteProject(userId: string, projectId: string): Promise<boolean> {
+  const deleted = await db
+    .delete(projects)
+    .where(owned(userId, projectId))
+    .returning({ id: projects.id });
+  return deleted.length > 0;
+}
+
+/**
+ * Cancels an active analysis by deleting the project, so nothing is kept. The
+ * running pipeline stops at its next step (`setProjectProgress` finds no row)
+ * and any late write fails on the FK. False when it is no longer active.
+ */
+export async function cancelActiveAnalysis(userId: string, projectId: string): Promise<boolean> {
+  const canceled = await db
+    .delete(projects)
+    .where(and(owned(userId, projectId), inArray(projects.status, [...ACTIVE_STATUSES])))
+    .returning({ id: projects.id });
+  return canceled.length > 0;
+}
+
+/** Status change without a progress step (report generation). */
+export async function setProjectStatus(
+  userId: string,
+  projectId: string,
+  status: ProjectStatus,
+  errorMessage: string | null,
+): Promise<void> {
+  await db.update(projects).set({ status, errorMessage }).where(owned(userId, projectId));
+}
+
+/** Returns `false` when the project no longer exists (canceled). */
+export async function setProjectProgress(
+  userId: string,
+  projectId: string,
+  options: {
+    step: string;
+    percent: number;
+    status?: ProjectStatus;
+    errorMessage?: string | null;
+    framework?: string | null;
+    fileCount?: number;
+  },
+) {
+  const updated = await db
+    .update(projects)
+    .set({
+      progressStep: options.step,
+      progressPercent: options.percent,
+      ...(options.status ? { status: options.status } : {}),
+      ...(options.errorMessage !== undefined
+        ? { errorMessage: options.errorMessage }
+        : {}),
+      ...(options.framework !== undefined
+        ? { framework: options.framework }
+        : {}),
+      ...(options.fileCount !== undefined
+        ? { fileCount: options.fileCount }
+        : {}),
+    })
+    .where(owned(userId, projectId))
+    .returning({ id: projects.id });
+
+  return updated.length > 0;
+}
