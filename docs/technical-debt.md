@@ -105,10 +105,15 @@ maintainability) · **Low** (cleanup).
   production database. `AUTH_URL` also points previews to the production
   domain, so logging in on a preview redirects to production, and OAuth
   (GitHub/Google) cannot work on previews at all.
-- **Direction:** Preview-only values: a Neon branch database per PR (Phase 2
-  item), no `AUTH_URL`, Stripe test keys, separate `ENCRYPTION_KEY` and
-  `AUTH_SECRET`; OAuth tested only on production or a stable staging domain.
-- **Phase:** Test safety net (with the Neon branch per PR).
+- **Done:** previews use a schema-only Neon branch (`preview`: production
+  schema and migration journal, no rows) and their own `DATABASE_URL`,
+  `AUTH_SECRET`, `ENCRYPTION_KEY` and `GROQ_API_KEY`. `AUTH_URL`, OAuth and
+  Stripe secrets are Production-only, so login stays on the preview domain;
+  OAuth and checkout are not available on previews by design.
+  `NEXT_PUBLIC_APP_URL` and `NEXT_PUBLIC_PUBLISHABLE_KEY` remain shared: both
+  are public values (the latter is not read by the app).
+- **Follow-up:** schema changes must also be migrated on the `preview`
+  branch (`drizzle-kit migrate` with its connection string).
 
 ### TD-06 — Batch concurrency is assumed, not measured · Low
 - **Where:** [embeddings.ts:55-73](../src/lib/analysis/embeddings.ts#L55-L73)

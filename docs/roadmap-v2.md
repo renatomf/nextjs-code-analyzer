@@ -134,7 +134,7 @@ de qualquer achado do LLM):
       reais do Drizzle a cada execução. Troca da ideia original ("branch do
       Neon por PR"): custo zero, sem dados de produção, sem segredos no CI, e
       sem esbarrar no limite de branches do plano gratuito.
-- [ ] **Previews sem dados nem segredos de produção (TD-36):** um único
+- [x] **Previews sem dados nem segredos de produção (TD-36):** um único
       branch **schema-only** do Neon (`preview`) para todos os previews, e
       variáveis só de preview na Vercel (sem `AUTH_URL`, `AUTH_SECRET` e
       `ENCRYPTION_KEY` próprios, chaves de teste do Stripe).
