@@ -45,6 +45,31 @@ describe("computeDeterministicMetrics", () => {
     expect(metrics.testedSourceApproxPercent).toBe(50);
   });
 
+  // TD-31 regression. The start regex treats any `const x = (` as a function,
+  // so a parenthesized expression is reported as a "complex function" that
+  // runs until the braces of the following code close (262 lines on this
+  // repo's report page). The scan also jumps over the real long function
+  // that follows (`render` below is never reported). `it.fails` keeps CI
+  // green while the bug exists and
+  // turns red once it is fixed: then switch it to `it`.
+  it.fails("does not report a parenthesized const expression as a function", () => {
+    const body = Array.from({ length: 90 }, (_, i) => `  const v${i} = ${i};`);
+    const content = [
+      "const scores = (defaults ??",
+      "  null) as Scores | null;",
+      "",
+      "export function render() {",
+      ...body,
+      "}",
+    ].join("\n");
+
+    const metrics = computeDeterministicMetrics([
+      { relativePath: "src/app/page.tsx", content },
+    ]);
+
+    expect(metrics.complexFunctions.map((fn) => fn.name)).not.toContain("scores");
+  });
+
   it("flags untested critical paths", () => {
     const metrics = computeDeterministicMetrics([
       {
