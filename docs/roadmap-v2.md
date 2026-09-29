@@ -126,11 +126,11 @@ de qualquer achado do LLM):
 
 - [x] **CI no GitHub Actions:** `lint`, `typecheck`, `test`, `build`. Actions
       fixadas por SHA. Checks obrigatórios no ruleset da `main`.
-- [ ] **Migrations só via `drizzle-kit migrate`** no CI e em produção
-      (`db:push` apenas local). Mudanças incompatíveis no padrão
-      expand/contract. *Parcial:* o CI aplica as migrations reais a cada
-      execução; falta documentar e padronizar a aplicação em produção e no
-      branch `preview`.
+- [x] **Migrations só via `drizzle-kit migrate`:** o CI falha se o
+      `schema.ts` mudar sem migration e aplica as migrations do zero a cada
+      PR; `db:push` removido (o `.env.local` aponta para produção); fluxo
+      preview → produção e expand/contract em
+      [`docs/runbooks/migrations.md`](runbooks/migrations.md).
 - [x] **Banco isolado para os testes de integração:** Postgres + pgvector
       (pg18) como service container do GitHub Actions, com as migrations
       reais do Drizzle a cada execução. Troca da ideia original ("branch do
