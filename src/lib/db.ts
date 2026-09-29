@@ -20,7 +20,11 @@ function createPool() {
   const pool = new Pool({
     connectionString,
     // Fallback when the URL has no sslmode; certificates are always verified.
-    ssl: true,
+    // The only exception is the throwaway local Postgres of the integration
+    // tests, which has no TLS: it needs NODE_ENV=test *and* an explicit flag.
+    ssl: !(
+      process.env.NODE_ENV === "test" && process.env.DATABASE_SSL === "disable"
+    ),
     max: 10,
   });
   attachDatabasePool(pool);
