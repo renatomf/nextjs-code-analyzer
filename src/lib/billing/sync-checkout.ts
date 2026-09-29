@@ -87,8 +87,11 @@ export async function syncCustomerSubscriptionsForUser(
       sub.status === "past_due",
   );
 
-  if (!active) return false;
+  // No live subscription: sync the most recent one (Stripe lists newest
+  // first) so a canceled or expired plan is downgraded, not kept.
+  const current = active ?? list.data[0];
+  if (!current) return false;
 
-  await syncSubscriptionFromStripe(active);
+  await syncSubscriptionFromStripe(current);
   return true;
 }
