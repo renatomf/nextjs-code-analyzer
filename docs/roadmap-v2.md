@@ -231,6 +231,12 @@ src/
 - [ ] Erro de domínio seguro para o usuário (TD-33).
 - [ ] Env vars validadas por um schema zod único em `shared/env`, falhando no
       boot (hoje: 36 leituras de `process.env` espalhadas).
+- [x] **Logger estruturado** em `src/shared/logger.ts` (TD-26), antecipado da
+      Fase 4 para ajudar a própria refatoração: uma linha JSON por evento,
+      erro real (nome, mensagem, stack, causa) só no servidor, correlation id
+      (`x-vercel-id`), redação de segredos por nome de campo e por padrão no
+      texto. Substituiu as 26 chamadas `console.*`, a maioria das quais
+      descartava o erro.
 - [ ] **Front** (ver [Front e estado](#front-e-estado)): hook
       `useAnalysisProgress`, `report/page.tsx` dividido em seções server
       component, filtros do issues dashboard na URL, fetch do explorer com
@@ -250,8 +256,7 @@ Vem antes da ingestão assíncrona: job em segundo plano sem log é caixa preta.
 
 **Obrigatório**
 
-- [ ] Logger estruturado no servidor: erro real, correlation id, segredos
-      removidos. O cliente continua recebendo a mensagem genérica (TD-26).
+- [x] ~~Logger estruturado~~ — feito na Fase 3 (ver lá).
 - [ ] Sentry (erros + tracing) com PII e código-fonte fora dos eventos.
 - [ ] Tokens, custo e latência por chamada de LLM, gravados por `userId` e
       `projectId`.

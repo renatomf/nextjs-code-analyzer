@@ -1,4 +1,5 @@
 "use server";
+import { logger } from "@/shared/logger";
 
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
@@ -129,8 +130,8 @@ export async function openBillingPortal(): Promise<
       return_url: `${appUrl}/settings`,
     });
     return { url: session.url };
-  } catch {
-    console.error("Failed to create billing portal session");
+  } catch (error) {
+    logger.error("billing.portal_failed", { err: error, userId });
     return { error: "Could not open the billing portal. Try again." };
   }
 }

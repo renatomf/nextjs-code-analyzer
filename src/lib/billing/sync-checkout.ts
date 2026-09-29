@@ -1,3 +1,4 @@
+import { logger } from "@/shared/logger";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 
@@ -28,8 +29,8 @@ export async function syncCheckoutSessionForUser(
     session = await stripe.checkout.sessions.retrieve(parsedId.data, {
       expand: ["subscription"],
     });
-  } catch {
-    console.warn("[stripe] could not retrieve checkout session");
+  } catch (error) {
+    logger.warn("stripe.checkout_session_retrieve_failed", { err: error });
     return false;
   }
 
@@ -38,10 +39,7 @@ export async function syncCheckoutSessionForUser(
 
   // Only sync sessions created for this user (a missing userId is rejected too).
   if (sessionUserId !== userId) {
-    console.warn("[stripe] checkout session user mismatch", {
-      sessionUserId,
-      userId,
-    });
+    logger.warn("stripe.checkout_session_user_mismatch", { sessionUserId, userId });
     return false;
   }
 

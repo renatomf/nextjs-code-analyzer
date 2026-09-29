@@ -1,3 +1,4 @@
+import { logger } from "@/shared/logger";
 import { and, asc, eq } from "drizzle-orm";
 
 import { codeChunks, projects, reports } from "@/db/schema";
@@ -170,7 +171,7 @@ export async function generateProjectReport(
   } catch (error) {
     // errorMessage is shown to the user: raw errors (LLM provider, DB) may
     // carry internals, so only a generic message is stored.
-    console.error("Failed to generate health report");
+    logger.error("analysis.report_failed", { err: error, userId, projectId });
     await db
       .update(projects)
       .set({

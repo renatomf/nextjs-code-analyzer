@@ -1,3 +1,4 @@
+import { logger } from "@/shared/logger";
 import { chunkProjectFiles } from "@/lib/analysis/chunking";
 import {
   AnalysisCanceledError,
@@ -79,7 +80,7 @@ export async function buildProjectKnowledge(
     // Deleted mid-step (canceled): the failed write was the FK, not a bug.
     if (!stillExists) throw new AnalysisCanceledError();
 
-    console.error("Failed to build code knowledge base");
+    logger.error("analysis.knowledge_failed", { err: error, userId, projectId });
     throw error;
   }
 }

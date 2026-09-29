@@ -1,3 +1,4 @@
+import { logger, requestIdFrom } from "@/shared/logger";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
@@ -143,7 +144,7 @@ export async function POST(request: Request) {
     }
 
     // Details stay in the server log, never in the response.
-    console.error("Chat API error");
+    logger.error("chat.failed", { err: error, requestId: requestIdFrom(request.headers) });
     return Response.json(
       { error: "Failed to answer the question." },
       { status: 500 },

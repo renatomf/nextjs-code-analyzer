@@ -1,4 +1,5 @@
 "use server";
+import { logger } from "@/shared/logger";
 
 import { and, eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
@@ -33,8 +34,8 @@ export async function deleteProject(
       .returning({ id: projects.id });
 
     if (deleted.length === 0) return { error: "Project not found." };
-  } catch {
-    console.error("Failed to delete project");
+  } catch (error) {
+    logger.error("project.delete_failed", { err: error });
     return { error: "Could not delete the project. Try again." };
   }
 
@@ -71,8 +72,8 @@ export async function cancelAnalysis(
     if (canceled.length === 0) {
       return { error: "This analysis is no longer running." };
     }
-  } catch {
-    console.error("Failed to cancel analysis");
+  } catch (error) {
+    logger.error("project.cancel_failed", { err: error });
     return { error: "Could not cancel the analysis. Try again." };
   }
 

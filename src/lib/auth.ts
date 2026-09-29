@@ -1,3 +1,4 @@
+import { logger } from "@/shared/logger";
 import "server-only";
 
 import NextAuth from "next-auth";
@@ -80,8 +81,8 @@ async function fetchGithubUsername(accessToken: string) {
 
     const profile = (await res.json()) as { login?: string };
     return profile.login;
-  } catch {
-    console.error("Failed to fetch GitHub profile");
+  } catch (error) {
+    logger.error("auth.github_profile_failed", { err: error });
     return undefined;
   }
 }
@@ -138,8 +139,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (!account.access_token) return false;
         try {
           return await isGithubEmailVerified(account.access_token, user.email);
-        } catch {
-          console.error("Failed to verify GitHub email");
+        } catch (error) {
+          logger.error("auth.github_email_check_failed", { err: error });
           return false;
         }
       }
