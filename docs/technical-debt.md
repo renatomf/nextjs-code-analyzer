@@ -55,11 +55,21 @@ maintainability) · **Low** (cleanup).
 ### TD-05 — Local model in a serverless runtime · High
 - **Where:** [embeddings.ts:4](../src/lib/analysis/embeddings.ts#L4)
 - **Problem:** the ~23 MB model is downloaded from the Hugging Face hub at
-  runtime, on cold start, with no pinned revision. The default cache lives
+  runtime, on cold start (the revision is now pinned, see TD-35). The default cache lives
   inside `node_modules`, which is likely read-only on Vercel (only `/tmp` is
   writable) — verify on the first deploy.
 - **Impact:** cold-start latency, memory pressure, availability tied to an
-  external hub, model can change under us.
+  external hub.
+- **Found on Vercel (Hobby):** analysis never worked in production — file
+  tracing missed `libonnxruntime.so` (loaded via `dlopen`) and, after the
+  migration, the `onnxruntime-node` package itself (dynamic `require`).
+  Both are now listed in `outputFileTracingIncludes`, **only** for
+  `/api/projects/[id]/analyze` and `/api/chat`: the binary is 46 MB, and
+  adding it to more routes stops Vercel from grouping them, breaking the
+  Hobby limit of 12 functions per deployment. Every embedding call must
+  therefore go through those two routes (the "retry knowledge" server action
+  now queues the project instead of embedding in place). The model cache
+  uses `/tmp` on Vercel.
 - **Direction:** ADR: bundle the model / set `env.cacheDir` to `/tmp` / move
   embeddings to a worker or an embeddings API behind an interface.
 - **Phase:** AI Gateway (ADR).
@@ -75,11 +85,30 @@ maintainability) · **Low** (cleanup).
   hub at runtime with no pinned revision (TD-05), so the risk is low
   likelihood but high impact. `npm audit fix` only offers a downgrade;
   `overrides` across protobufjs majors would break `onnx-proto`.
-- **Direction:** migrate to `@huggingface/transformers`; add a test that the
-  same text yields the same vector (the stored embeddings must stay valid);
-  pin the model revision (TD-05). Until then the advisories are accepted in
-  `osv-scanner.toml` with an expiry date (2026-10-31).
-- **Phase:** Test safety net (next PR) — security fix, not deferred.
+- **Done:** migrated to `@huggingface/transformers@4.3` with the same model
+  file (`dtype: "q8"` = `model_quantized.onnx`) and a pinned hub revision.
+  `npm audit` now only reports dev-only `esbuild` (via `drizzle-kit`).
+  Equivalence measured against golden vectors recorded with the old library
+  (`embeddings.model.test.ts`, opt-in with `RUN_MODEL_TESTS=1`): tokens and
+  fp32 outputs are identical; q8 differs on some inputs (worst cosine
+  0.99884, onnxruntime 1.14 → 1.30), smaller than the q8-vs-fp32 gap
+  (~0.994), so stored vectors stay valid without re-embedding.
+- **Follow-up:** whether fp32 (or another model) retrieves better is an eval
+  question (Phase 7); switching requires re-embedding every project.
+
+### TD-36 — Preview deployments run with production secrets and data · High
+- **Where:** Vercel project environment variables (Production + Preview
+  share `DATABASE_URL`, `AUTH_SECRET`, `ENCRYPTION_KEY`, `STRIPE_SECRET_KEY`,
+  OAuth and Groq keys, `AUTH_URL`, `NEXT_PUBLIC_APP_URL`)
+- **Problem:** every PR preview — including Dependabot PRs that bring new
+  third-party code — runs with production credentials against the
+  production database. `AUTH_URL` also points previews to the production
+  domain, so logging in on a preview redirects to production, and OAuth
+  (GitHub/Google) cannot work on previews at all.
+- **Direction:** Preview-only values: a Neon branch database per PR (Phase 2
+  item), no `AUTH_URL`, Stripe test keys, separate `ENCRYPTION_KEY` and
+  `AUTH_SECRET`; OAuth tested only on production or a stable staging domain.
+- **Phase:** Test safety net (with the Neon branch per PR).
 
 ### TD-06 — Batch concurrency is assumed, not measured · Low
 - **Where:** [embeddings.ts:55-73](../src/lib/analysis/embeddings.ts#L55-L73)

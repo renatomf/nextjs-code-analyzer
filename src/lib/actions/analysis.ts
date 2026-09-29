@@ -7,7 +7,6 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { projects, users } from "@/db/schema";
-import { buildProjectKnowledge } from "@/lib/analysis/pipeline";
 import { setProjectProgress } from "@/lib/analysis/progress";
 import { generateProjectReport } from "@/lib/analysis/report";
 import { auth } from "@/lib/auth";
@@ -176,11 +175,31 @@ export async function retryProjectKnowledge(
 
   try {
     await assertAiActionRateLimit("knowledge", project.userId);
-    await buildProjectKnowledge(project.userId, project.id);
+    // Embeddings run only in the analyze route (the only functions that ship
+    // the ONNX runtime on Vercel), so queue the project and let the progress
+    // page start it. Stored files are reused; no quota is consumed.
+    const [queued] = await db
+      .update(projects)
+      .set({
+        status: "queued",
+        progressStep: "Waiting to rebuild code knowledge",
+        errorMessage: null,
+      })
+      .where(
+        and(
+          eq(projects.id, project.id),
+          eq(projects.userId, project.userId),
+          notInArray(projects.status, ["processing", "queued"]),
+        ),
+      )
+      .returning({ id: projects.id });
+    if (!queued) {
+      return { error: "Analysis is already running for this project." };
+    }
     // "layout": the project header/tabs and every tab under it.
     revalidatePath(`/projects/${project.id}`, "layout");
     revalidatePath("/dashboard");
-    redirect(`/projects/${project.id}`);
+    redirect(`/projects/${project.id}/progress`);
   } catch (error) {
     if (isRedirectError(error)) throw error;
     return {
