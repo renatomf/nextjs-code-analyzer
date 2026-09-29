@@ -99,3 +99,68 @@ jobs:
       - run: npm ci
 
       - run: npm run test:integration
+
+  e2e:
+    name: E2E main flow (Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    services:
+      postgres:
+        image: pgvector/pgvector:0.8.6-pg18@sha256:2ba9ca5f2e7daa0f0e7723cba1ee9167bab54efd3640516a44ac1a928dd67e7a
+        env:
+          POSTGRES_USER: app
+          POSTGRES_PASSWORD: app
+          POSTGRES_DB: app
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U app"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    # Test-only values: disposable database, throwaway secrets, fake LLM.
+    # None of them exist anywhere else. `sslmode=disable` because the service
+    # container has no TLS (production URLs keep TLS).
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+      DATABASE_URL: postgresql://app:app@localhost:5432/app?sslmode=disable
+      DATABASE_URL_UNPOOLED: postgresql://app:app@localhost:5432/app?sslmode=disable
+      AUTH_SECRET: e2e-only-auth-secret-not-used-anywhere-else
+      AUTH_URL: http://localhost:3000
+      AUTH_TRUST_HOST: "true"
+      ENCRYPTION_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      NEXT_PUBLIC_PLAN_PREMIUM_PRICE_LABEL: "$0/mo"
+      E2E_FAKE_LLM: "1"
+      E2E_MAIN_FLOW: "1"
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Apply migrations
+        run: npx drizzle-kit migrate
+
+      - run: npm run build
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - run: npx playwright test
+
+      - name: Upload Playwright traces
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: playwright-traces
+          path: test-results/
+          retention-days: 7
