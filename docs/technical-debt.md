@@ -115,6 +115,23 @@ maintainability) · **Low** (cleanup).
 - **Follow-up:** schema changes must also be migrated on the `preview`
   branch (`drizzle-kit migrate` with its connection string).
 
+### TD-37 — Stripe subscription changes are never synced (no webhook) · High
+- **Where:** [sync-checkout.ts](../src/lib/billing/sync-checkout.ts),
+  [webhook-handlers.ts](../src/lib/billing/webhook-handlers.ts) (no route
+  calls them with a verified Stripe signature)
+- **Problem:** the plan is only synced when the user returns from Checkout
+  or opens Settings. Cancellations, failed payments and expirations never
+  reach the app, and `syncCustomerSubscriptionsForUser` only acts when it
+  finds an *active* subscription — a canceled user keeps premium forever.
+  (What exists is safe: sessions are fetched server-side from Stripe and
+  checked against the session's user.)
+- **Direction:** `POST /api/stripe/webhook` that verifies the signature with
+  `stripe.webhooks.constructEvent` (raw body + `STRIPE_WEBHOOK_SECRET`),
+  dedupes by `event.id`, and reuses the existing handlers for
+  `customer.subscription.updated/deleted` and `invoice.payment_failed`; the
+  Settings sync should also downgrade when no active subscription is found.
+- **Phase:** Test safety net (billing correctness).
+
 ### TD-06 — Batch concurrency is assumed, not measured · Low
 - **Where:** [embeddings.ts:55-73](../src/lib/analysis/embeddings.ts#L55-L73)
 - **Problem:** `Promise.all` over 16 texts may not run in parallel on CPU

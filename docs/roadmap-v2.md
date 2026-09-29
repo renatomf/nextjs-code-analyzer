@@ -124,11 +124,13 @@ de qualquer achado do LLM):
 
 **Obrigatório**
 
-- [ ] **CI no GitHub Actions:** `lint`, `typecheck`, `test`, `build`. Actions
-      fixadas por SHA.
+- [x] **CI no GitHub Actions:** `lint`, `typecheck`, `test`, `build`. Actions
+      fixadas por SHA. Checks obrigatórios no ruleset da `main`.
 - [ ] **Migrations só via `drizzle-kit migrate`** no CI e em produção
       (`db:push` apenas local). Mudanças incompatíveis no padrão
-      expand/contract.
+      expand/contract. *Parcial:* o CI aplica as migrations reais a cada
+      execução; falta documentar e padronizar a aplicação em produção e no
+      branch `preview`.
 - [x] **Banco isolado para os testes de integração:** Postgres + pgvector
       (pg18) como service container do GitHub Actions, com as migrations
       reais do Drizzle a cada execução. Troca da ideia original ("branch do
@@ -136,21 +138,25 @@ de qualquer achado do LLM):
       sem esbarrar no limite de branches do plano gratuito.
 - [x] **Previews sem dados nem segredos de produção (TD-36):** um único
       branch **schema-only** do Neon (`preview`) para todos os previews, e
-      variáveis só de preview na Vercel (sem `AUTH_URL`, `AUTH_SECRET` e
-      `ENCRYPTION_KEY` próprios, chaves de teste do Stripe).
+      variáveis só de preview na Vercel (sem `AUTH_URL`, com `AUTH_SECRET`,
+      `ENCRYPTION_KEY` e `GROQ_API_KEY` próprios; OAuth e Stripe só em
+      produção).
 - [ ] **Testes de caracterização**, por prioridade de risco:
-  1. Segurança (código puro): `extract` (zip-slip, zip bomb, symlink, limite
-     de entradas, arquivo sensível), `encryption` (ida e volta, adulteração,
-     AAD de outro usuário), estado OAuth do GitHub (expirado, nonce, usuário,
-     HMAC), `validations/auth` (limites, senha > 72 bytes).
-  2. Núcleo da análise: `chunking` (tipos de nó, profundidade, tamanho),
+  1. [x] Segurança (código puro): `extract` (zip-slip, zip bomb, symlink,
+     limite de entradas, arquivo sensível), `encryption` (ida e volta,
+     adulteração, AAD de outro usuário), estado OAuth do GitHub (expirado,
+     nonce, usuário, HMAC), `validations/auth` (limites, senha > 72 bytes).
+  2. [x] Núcleo da análise: `chunking` (tipos de nó, profundidade, tamanho),
      regressão do falso positivo `const x = (expr)` em `metrics` (TD-31),
      `scoreFromIssues` fixando o comportamento atual.
-  3. Regras de billing do TD-25 (reset à meia-noite UTC, `past_due` mantendo
-     premium).
+  3. [ ] Regras de billing do TD-25 (reset à meia-noite UTC, `past_due`
+     mantendo premium).
 - [ ] **Fronteira HTTP** (handler chamado direto, `auth()` mockado): sem
       sessão → 401, input inválido → 400 sem detalhes internos, rate limit →
-      429, webhook do Stripe com assinatura inválida → 400.
+      429.
+- [ ] **Webhook do Stripe (TD-37):** rota com verificação de assinatura
+      (`constructEvent`) que sincroniza cancelamento, falha de pagamento e
+      expiração; teste de assinatura inválida → 400.
 - [x] **Testes de integração de IDOR:** o usuário B nunca lê, altera ou apaga
       um projeto, arquivo, relatório ou chat do usuário A. Também cobrem o
       limite de projetos sob concorrência e a exclusão em cascata.
@@ -352,6 +358,25 @@ Vem antes da ingestão assíncrona: job em segundo plano sem log é caixa preta.
       código").
 - [ ] Decisões pendentes respondidas (ver abaixo).
 - [ ] Tag `v2.0.0`.
+
+### Renomear para `nextjs-codedriven` (pendente)
+
+Já feito: repositório do GitHub, `package.json`, projeto no Neon e nome do
+projeto na Vercel. Falta, nesta ordem:
+
+1. [ ] **Domínio de produção** `nextjs-code-analyzer.vercel.app` →
+       `nextjs-codedriven.vercel.app`, tudo na mesma sessão para não quebrar
+       login e billing: adicionar o domínio novo na Vercel e redirecionar o
+       antigo; `AUTH_URL` e `NEXT_PUBLIC_APP_URL` de Production; callbacks do
+       GitHub OAuth App (`/api/auth/callback/github` e `/api/github/callback`)
+       e do Google OAuth (`/api/auth/callback/google`); URL do webhook no
+       Stripe (`/api/stripe/webhook`); redeploy de produção.
+2. [ ] Comentários "Code Analyzer" em `globals.css`, `ui/button.tsx` e
+       `ui/select.tsx` (o `CLAUDE.md` mantém a referência ao tutorial
+       original `AI-Code-Analyzer`).
+3. [ ] **Por último**, a pasta local `nextjs-code-analyzer` →
+       `nextjs-codedriven` (fechar o VS Code antes). O histórico do Claude
+       Code é por caminho de pasta: a pasta nova começa uma sessão nova.
 
 ---
 
