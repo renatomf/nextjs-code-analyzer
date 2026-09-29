@@ -359,6 +359,25 @@ Vem antes da ingestão assíncrona: job em segundo plano sem log é caixa preta.
 - [ ] Decisões pendentes respondidas (ver abaixo).
 - [ ] Tag `v2.0.0`.
 
+### Renomear para `nextjs-codedriven` (pendente)
+
+Já feito: repositório do GitHub, `package.json`, projeto no Neon e nome do
+projeto na Vercel. Falta, nesta ordem:
+
+1. [ ] **Domínio de produção** `nextjs-code-analyzer.vercel.app` →
+       `nextjs-codedriven.vercel.app`, tudo na mesma sessão para não quebrar
+       login e billing: adicionar o domínio novo na Vercel e redirecionar o
+       antigo; `AUTH_URL` e `NEXT_PUBLIC_APP_URL` de Production; callbacks do
+       GitHub OAuth App (`/api/auth/callback/github` e `/api/github/callback`)
+       e do Google OAuth (`/api/auth/callback/google`); URL do webhook no
+       Stripe (`/api/stripe/webhook`); redeploy de produção.
+2. [ ] Comentários "Code Analyzer" em `globals.css`, `ui/button.tsx` e
+       `ui/select.tsx` (o `CLAUDE.md` mantém a referência ao tutorial
+       original `AI-Code-Analyzer`).
+3. [ ] **Por último**, a pasta local `nextjs-code-analyzer` →
+       `nextjs-codedriven` (fechar o VS Code antes). O histórico do Claude
+       Code é por caminho de pasta: a pasta nova começa uma sessão nova.
+
 ---
 
 ## Arquitetura: o que entra e o que fica de fora
