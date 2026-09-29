@@ -7,11 +7,12 @@ import {
   createBillingRepository,
   type Executor,
 } from "./infrastructure/drizzle-billing-repository";
-import { getPlanCatalog } from "./index";
+import { getPlanCatalog, type PlanCatalog } from "./index";
 
 /**
  * Public API of the billing module — server part (ADR-001): use cases bound
- * to the database. Import from server code only.
+ * to the database and to Stripe. Import from server code only. Every
+ * `userId` must come from the server session, never from the client.
  */
 
 function depsFor(executor: Executor) {
@@ -61,4 +62,58 @@ export function withQuota<T>(
     if (consumed) await quota.recordAnalysisUsage(userId);
     return value;
   });
+}
+
+// Stripe: loaded on first use, so quota callers (analysis, chat) do not pay
+// for the SDK at cold start.
+const stripeClient = () => import("./infrastructure/stripe/client");
+const stripeCheckout = () => import("./infrastructure/stripe/checkout");
+const stripeSync = () => import("./infrastructure/stripe/sync-checkout");
+const stripeWebhook = () => import("./infrastructure/stripe/webhook");
+
+/**
+ * Same as getPlanCatalog(), but premium.priceLabel comes from Stripe
+ * (STRIPE_PRICE_PREMIUM) unless NEXT_PUBLIC_PLAN_PREMIUM_PRICE_LABEL is set.
+ */
+export async function getPlanCatalogWithPricing(): Promise<PlanCatalog> {
+  const plans = getPlanCatalog();
+  if (process.env.NEXT_PUBLIC_PLAN_PREMIUM_PRICE_LABEL?.trim()) {
+    return plans;
+  }
+
+  const fromStripe = await (await stripeClient()).fetchPremiumPriceLabel();
+  if (fromStripe) {
+    plans.premium.priceLabel = fromStripe;
+  }
+  return plans;
+}
+
+/** Checkout URL, or `alreadySubscribed` so a paid user is never billed twice. */
+export async function createPremiumCheckout(userId: string) {
+  return (await stripeCheckout()).createPremiumCheckout(userId);
+}
+
+export async function createBillingPortalSession(userId: string) {
+  return (await stripeCheckout()).createBillingPortalSession(userId);
+}
+
+/** After the Checkout redirect: sync the session even if the webhook was missed. */
+export async function syncCheckoutSessionForUser(userId: string, checkoutSessionId: string) {
+  return (await stripeSync()).syncCheckoutSessionForUser(userId, checkoutSessionId);
+}
+
+/** Recover the plan from Stripe by listing the customer's subscriptions. */
+export async function syncCustomerSubscriptionsForUser(userId: string) {
+  return (await stripeSync()).syncCustomerSubscriptionsForUser(userId);
+}
+
+/** The event, or null when the signature does not match the raw payload. */
+export async function verifyStripeWebhook(payload: string, signature: string, secret: string) {
+  return (await stripeWebhook()).verifyStripeWebhook(payload, signature, secret);
+}
+
+export type StripeWebhookEvent = NonNullable<Awaited<ReturnType<typeof verifyStripeWebhook>>>;
+
+export async function handleStripeEvent(event: StripeWebhookEvent) {
+  return (await stripeWebhook()).handleStripeEvent(event);
 }

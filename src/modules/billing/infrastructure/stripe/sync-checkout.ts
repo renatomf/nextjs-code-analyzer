@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { users } from "@/db/schema";
-import { getStripe } from "@/lib/billing/stripe";
+import { getStripe } from "./client";
 import { db } from "@/lib/db";
 import {
   handleCheckoutSessionCompleted,

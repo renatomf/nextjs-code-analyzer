@@ -44,6 +44,18 @@ src/modules/<módulo>/
 - **Strangler.** O código antigo (`src/lib/billing/*`) vira fachada que delega
   ao módulo, com as mesmas assinaturas; os testes existentes provam que nada
   mudou. Depois os chamadores migram e a fachada é apagada.
+- **Stripe atrás de uma camada anticorrupção, sem porta.** Os tipos do Stripe
+  param em `infrastructure/stripe/`: `translate.ts` converte status e preço
+  para os termos do billing, e a regra de negócio (`entitlementFor`: preço
+  desconhecido nunca dá premium; `past_due` mantém o plano) é domínio puro.
+  Não há interface `PaymentGateway`: só existe uma implementação, e a ADR-001
+  cria porta só com duas ou mais.
+- **Código movido leva os testes junto.** Ao mover arquivos (`git mv`), os
+  testes existentes mudam só o caminho dos mocks, nunca as asserções; o diff
+  prova que o comportamento é o mesmo.
+- **Dependência pesada carregada sob demanda.** O `server.ts` importa o
+  Stripe com `import()` dentro das funções, para quem só usa a cota (análise,
+  chat) não carregar o SDK na cold start.
 
 ## Esboço em papel: `projects` na mesma convenção
 

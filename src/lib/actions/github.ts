@@ -26,8 +26,8 @@ import {
   fullNameSchema,
   refSchema,
 } from "@/lib/github";
-import { getPlansWithStripePricing } from "@/lib/billing/plans";
 import { MAX_REPO_SIZE_BYTES } from "@/lib/limits";
+import { getPlanCatalogWithPricing } from "@/modules/billing/server";
 
 export type ProjectActionState = {
   error?: string;
@@ -45,7 +45,7 @@ export type LimitNotice = {
 
 async function limitNotice(error: BillingLimitError): Promise<LimitNotice> {
   const paid = error.canUpgrade
-    ? (await getPlansWithStripePricing()).premium
+    ? (await getPlanCatalogWithPricing()).premium
     : null;
   return {
     title: error.title ?? "Plan limit reached",

@@ -126,8 +126,8 @@ maintainability) · **Low** (cleanup).
   change, check `vercel env ls` before deploying.
 
 ### TD-37 — Stripe subscription changes are never synced (no webhook) · High
-- **Where:** [sync-checkout.ts](../src/lib/billing/sync-checkout.ts),
-  [webhook-handlers.ts](../src/lib/billing/webhook-handlers.ts) (no route
+- **Where:** [sync-checkout.ts](../src/modules/billing/infrastructure/stripe/sync-checkout.ts),
+  [webhook-handlers.ts](../src/modules/billing/infrastructure/stripe/webhook-handlers.ts) (no route
   calls them with a verified Stripe signature)
 - **Problem:** the plan is only synced when the user returns from Checkout
   or opens Settings. Cancellations, failed payments and expirations never

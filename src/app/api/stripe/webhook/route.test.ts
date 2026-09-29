@@ -14,14 +14,18 @@ const { retrieveSubscription, handleCheckout, syncSubscription } = vi.hoisted(
   }),
 );
 
-vi.mock("@/lib/billing/stripe", () => ({
+// The billing module's server API also loads these; no database is used.
+vi.mock("server-only", () => ({}));
+vi.mock("@/lib/db", () => ({ db: {} }));
+
+vi.mock("@/modules/billing/infrastructure/stripe/client", () => ({
   getStripe: () => ({
     webhooks: realStripe.webhooks,
     subscriptions: { retrieve: retrieveSubscription },
   }),
 }));
 
-vi.mock("@/lib/billing/webhook-handlers", () => ({
+vi.mock("@/modules/billing/infrastructure/stripe/webhook-handlers", () => ({
   handleCheckoutSessionCompleted: handleCheckout,
   syncSubscriptionFromStripe: syncSubscription,
 }));
