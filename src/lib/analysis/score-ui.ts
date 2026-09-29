@@ -36,7 +36,7 @@ export function scoreLabel(tone: ScoreTone): string {
   }
 }
 
-// Kudos is monochrome: categories share one accent; the label tells them apart.
+// The UI is monochrome: categories share one accent; the label tells them apart.
 const CATEGORY_STYLE = {
   bar: "bg-(--ca-ink)",
   soft: "border-(--ca-line) bg-(--ca-card)",

@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils"
 
-// shadcn Skeleton, restyled for Kudos: line color, square corners.
+// shadcn Skeleton, restyled for codedriven: line color, square corners.
 function Skeleton({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div

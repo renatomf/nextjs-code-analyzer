@@ -474,14 +474,13 @@ projeto na Vercel.
        `/api/auth/callback/github` e `/api/github/callback`), redirect URI
        do Google OAuth, URL do webhook do Stripe. Limpeza pendente: URIs
        antigas no Google.
-2. [x] Comentários "Code Analyzer" → "Kudos" (nome do layout) em
+2. [x] `<title>` da página como **codedriven · AI Codebase Auditor** (a landing mantém "AI Codebase Auditor"), README e User-Agent do GitHub como codedriven, e comentários "Code Analyzer"/"Kudos" removidos em
        `globals.css`, `ui/button.tsx` e `ui/select.tsx`. O `CLAUDE.md` e o
        README mantêm a referência ao tutorial original `AI-Code-Analyzer`.
 3. [ ] **Por último**, a pasta local `nextjs-code-analyzer` →
        `nextjs-codedriven` (fechar o VS Code antes). O histórico do Claude
        Code é por caminho de pasta: a pasta nova começa uma sessão nova.
-4. [ ] Decidir o nome do **produto** (hoje "AI Code Auditor" no título e na
-       landing): manter, ou unificar com "codedriven".
+4. [x] Nome: **codedriven** no título, README e repositório; "AI Codebase Auditor" segue como descrição na landing.
 
 ---
 

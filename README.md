@@ -1,4 +1,4 @@
-# AI Code Auditor
+# codedriven
 
 An AI senior-developer assistant for JavaScript/TypeScript codebases: import a
 repository from GitHub (or upload a ZIP) and get a health report, a
