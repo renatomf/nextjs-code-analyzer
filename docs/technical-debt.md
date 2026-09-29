@@ -60,6 +60,16 @@ maintainability) · **Low** (cleanup).
   writable) — verify on the first deploy.
 - **Impact:** cold-start latency, memory pressure, availability tied to an
   external hub.
+- **Found on Vercel (Hobby):** analysis never worked in production — file
+  tracing missed `libonnxruntime.so` (loaded via `dlopen`) and, after the
+  migration, the `onnxruntime-node` package itself (dynamic `require`).
+  Both are now listed in `outputFileTracingIncludes`, **only** for
+  `/api/projects/[id]/analyze` and `/api/chat`: the binary is 46 MB, and
+  adding it to more routes stops Vercel from grouping them, breaking the
+  Hobby limit of 12 functions per deployment. Every embedding call must
+  therefore go through those two routes (the "retry knowledge" server action
+  now queues the project instead of embedding in place). The model cache
+  uses `/tmp` on Vercel.
 - **Direction:** ADR: bundle the model / set `env.cacheDir` to `/tmp` / move
   embeddings to a worker or an embeddings API behind an interface.
 - **Phase:** AI Gateway (ADR).
@@ -85,6 +95,20 @@ maintainability) · **Low** (cleanup).
   (~0.994), so stored vectors stay valid without re-embedding.
 - **Follow-up:** whether fp32 (or another model) retrieves better is an eval
   question (Phase 7); switching requires re-embedding every project.
+
+### TD-36 — Preview deployments run with production secrets and data · High
+- **Where:** Vercel project environment variables (Production + Preview
+  share `DATABASE_URL`, `AUTH_SECRET`, `ENCRYPTION_KEY`, `STRIPE_SECRET_KEY`,
+  OAuth and Groq keys, `AUTH_URL`, `NEXT_PUBLIC_APP_URL`)
+- **Problem:** every PR preview — including Dependabot PRs that bring new
+  third-party code — runs with production credentials against the
+  production database. `AUTH_URL` also points previews to the production
+  domain, so logging in on a preview redirects to production, and OAuth
+  (GitHub/Google) cannot work on previews at all.
+- **Direction:** Preview-only values: a Neon branch database per PR (Phase 2
+  item), no `AUTH_URL`, Stripe test keys, separate `ENCRYPTION_KEY` and
+  `AUTH_SECRET`; OAuth tested only on production or a stable staging domain.
+- **Phase:** Test safety net (with the Neon branch per PR).
 
 ### TD-06 — Batch concurrency is assumed, not measured · Low
 - **Where:** [embeddings.ts:55-73](../src/lib/analysis/embeddings.ts#L55-L73)
