@@ -231,7 +231,11 @@ maintainability) · **Low** (cleanup).
   Tree-sitter already parses every file in `chunking.ts`.
 - **Impact:** on this repo the deterministic part alone gives Code Quality
   72 − 96 = 0 and Testing 40 − 108 = 0 (with the uncapped penalty in
-  `scoreFromIssues`).
+  `scoreFromIssues`). Baseline 2026-09-29 ([baseline.md](baseline.md)):
+  still Testing 0 with 169 tests in the repo, and a **critical** "hardcoded
+  secret" false positive in `src/test/integration/factories.ts` —
+  `isTestFile` does not treat `src/test/` as a test folder, so test fixtures
+  are scanned as production code.
 - **Direction:** short term, fix the regex, stop sizing React components by
   lines and tighten the "critical" rule (roadmap Phase 7); then compute
   metrics from the same AST (real function bounds, cyclomatic complexity);

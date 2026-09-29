@@ -91,7 +91,7 @@ Cada fase tem itens **obrigatórios** (a v2.0 não sai sem eles) e itens
 
 **Obrigatório**
 
-- [ ] `docs/architecture.md` descrevendo **como está**, não como deveria ser:
+- [x] `docs/architecture.md` descrevendo **como está**, não como deveria ser:
   - C4 nível 1 e 2 (usuário, Next.js, Neon/pgvector, Groq, GitHub, Stripe,
     Hugging Face hub).
   - Fluxos: importação (GitHub/ZIP → `project_files`), análise
@@ -99,7 +99,7 @@ Cada fase tem itens **obrigatórios** (a v2.0 não sai sem eles) e itens
     `maxDuration = 300`), chat RAG, billing/webhook.
   - Mapa de acoplamento: 6 pages, as actions, as rotas e `lib/analysis`
     falam direto com Drizzle e Groq.
-- [ ] `docs/baseline.md`, com data e método de cada medida:
+- [x] `docs/baseline.md`, com data e método de cada medida:
 
 | Métrica | Como medir |
 |---|---|
