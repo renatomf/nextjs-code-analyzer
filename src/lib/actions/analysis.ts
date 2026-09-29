@@ -1,5 +1,5 @@
 "use server";
-import { logger } from "@/shared/logger";
+import { publicErrorMessage } from "@/shared/public-error-message";
 
 import { and, eq, notInArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
@@ -22,7 +22,7 @@ import { isSourceFile } from "@/lib/files/filters";
 import { detectFramework } from "@/lib/files/framework";
 import { persistProjectFiles } from "@/lib/files/storage";
 import { downloadGitHubZipball, GitHubError } from "@/lib/github";
-import { assertRateLimit, RateLimitError } from "@/lib/rate-limit";
+import { assertRateLimit } from "@/lib/rate-limit";
 
 export type RetryState = {
   error?: string;
@@ -40,22 +40,6 @@ function assertAiActionRateLimit(action: string, userId: string) {
     60 * 60 * 1000,
     `Rate limit reached (${AI_ACTION_MAX_PER_HOUR}/hour). Try again later.`,
   );
-}
-
-/**
- * Only our own error types carry user-facing messages; anything else (DB,
- * LLM provider, bugs) may contain internals and becomes a generic message.
- */
-function publicErrorMessage(error: unknown, fallback: string): string {
-  if (
-    error instanceof BillingLimitError ||
-    error instanceof GitHubError ||
-    error instanceof RateLimitError
-  ) {
-    return error.message;
-  }
-  logger.error("action.failed", { err: error, message: fallback });
-  return fallback;
 }
 
 async function requireOwnedProject(formData: FormData) {

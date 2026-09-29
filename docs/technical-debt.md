@@ -422,6 +422,7 @@ maintainability) · **Low** (cleanup).
 - **Problem:** `"use server"` files can only export async functions, so the
   helper cannot be shared from one of them and was copied.
 - **Direction:** move it to `src/lib` (e.g. with the error classes).
+- **Done:** single `publicErrorMessage` in `src/shared/public-error-message.ts`.
 - **Phase:** Clean Architecture.
 
 ### TD-33 — Useful failure reasons are hidden behind generic messages · Low
@@ -432,6 +433,9 @@ maintainability) · **Low** (cleanup).
   available", "No JavaScript/TypeScript source files found").
 - **Direction:** a safe, user-facing error class (like `GitHubError`) for
   domain errors; everything else stays generic and is logged (TD-26).
+- **Done:** `DomainError` (`src/shared/errors.ts`); `RateLimitError`,
+  `GitHubError` and `BillingLimitError` extend it. "No JS/TS files" and "no
+  code chunks" now reach the user; other failures stay generic and are logged.
 - **Phase:** Clean Architecture.
 
 ### TD-34 — No full Content-Security-Policy · Medium

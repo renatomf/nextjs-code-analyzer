@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { decryptToken } from "@/lib/encryption";
 import { MAX_REPO_SIZE_BYTES } from "@/lib/limits";
+import { DomainError } from "@/shared/errors";
 
 const GITHUB_API = "https://api.github.com";
 const GITHUB_TIMEOUT_MS = 10_000;
@@ -20,7 +21,7 @@ export const GITHUB_OAUTH_NONCE_COOKIE =
 export const GITHUB_OAUTH_NONCE_MAX_AGE_S = OAUTH_STATE_TTL_MS / 1000;
 
 /** Errors whose message is safe to show to the user (no internals). */
-export class GitHubError extends Error {
+export class GitHubError extends DomainError {
   name = "GitHubError";
 }
 

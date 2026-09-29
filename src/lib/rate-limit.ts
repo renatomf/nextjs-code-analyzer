@@ -7,6 +7,7 @@ import { eq, sql } from "drizzle-orm";
 import { rateLimits, users } from "@/db/schema";
 import { getPlanLimits, getPlans } from "@/lib/billing/plans";
 import { db } from "@/lib/db";
+import { DomainError } from "@/shared/errors";
 
 /**
  * Counts one hit for `key` and throws once more than `max` hits happen within
@@ -62,7 +63,7 @@ export async function assertChatRateLimit(userId: string): Promise<void> {
   );
 }
 
-export class RateLimitError extends Error {
+export class RateLimitError extends DomainError {
   status = 429;
 
   constructor(message: string) {
