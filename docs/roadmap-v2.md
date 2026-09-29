@@ -149,9 +149,15 @@ de qualquer achado do LLM):
 - [ ] **E2E do fluxo principal (Playwright):** registrar → upload de um ZIP
       fixture → analisar → relatório → chat. LLM e embeddings via fake
       (`MockLanguageModel` do AI SDK, só no ambiente de teste).
-- [ ] **Dependências:** Renovate ou Dependabot + `osv-scanner` no CI; revisar
-      origem e necessidade de pacotes menos conhecidos (`cn`, `@neon/config`,
-      `@neon/env`) e mover `shadcn` (CLI) para `devDependencies`.
+- [x] **Dependências:** Dependabot (npm + Actions) e `osv-scanner` no CI,
+      com exceções com prazo em `osv-scanner.toml`; origem dos pacotes menos
+      conhecidos verificada no npm (`cn`, `shadcn`, `@neon/*` são dos
+      mantenedores oficiais); `@shadcn/react` e `@neon/env` removidos (sem
+      uso), `@neon/config` movido para dev. `shadcn` fica em `dependencies`
+      (o `globals.css` importa `shadcn/tailwind.css`).
+- [ ] **Migrar `@xenova/transformers` → `@huggingface/transformers`**
+      (TD-35), com teste de equivalência dos embeddings e revisão do modelo
+      fixada (TD-05).
 
 **Se sobrar**
 

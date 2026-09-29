@@ -64,6 +64,23 @@ maintainability) · **Low** (cleanup).
   embeddings to a worker or an embeddings API behind an interface.
 - **Phase:** AI Gateway (ADR).
 
+### TD-35 — Embedding library pulls vulnerable, unmaintained dependencies · High
+- **Where:** [embeddings.ts](../src/lib/analysis/embeddings.ts),
+  `package.json` (`@xenova/transformers@2.17.2`)
+- **Problem:** `@xenova/transformers` is superseded by
+  `@huggingface/transformers`. Its tree ships `protobufjs@6.11.6` (via
+  `onnxruntime-web` → `onnx-proto`: 12 advisories, one critical code
+  execution) and `sharp@0.32.6` (libvips/libheif CVEs). Exploiting protobufjs
+  needs a tampered model/proto file, and the model is downloaded from the
+  hub at runtime with no pinned revision (TD-05), so the risk is low
+  likelihood but high impact. `npm audit fix` only offers a downgrade;
+  `overrides` across protobufjs majors would break `onnx-proto`.
+- **Direction:** migrate to `@huggingface/transformers`; add a test that the
+  same text yields the same vector (the stored embeddings must stay valid);
+  pin the model revision (TD-05). Until then the advisories are accepted in
+  `osv-scanner.toml` with an expiry date (2026-10-31).
+- **Phase:** Test safety net (next PR) — security fix, not deferred.
+
 ### TD-06 — Batch concurrency is assumed, not measured · Low
 - **Where:** [embeddings.ts:55-73](../src/lib/analysis/embeddings.ts#L55-L73)
 - **Problem:** `Promise.all` over 16 texts may not run in parallel on CPU
