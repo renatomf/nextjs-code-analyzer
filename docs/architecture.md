@@ -10,7 +10,7 @@ Fase 3 (monólito modular + Clean Architecture). Medições em
 ```mermaid
 flowchart LR
   user([Desenvolvedor])
-  app[AI Code Auditor<br/>Next.js na Vercel]
+  app[codedriven<br/>Next.js na Vercel]
   neon[(Neon Postgres<br/>+ pgvector)]
   groq[Groq<br/>LLM]
   hf[Hugging Face Hub<br/>modelo de embeddings]

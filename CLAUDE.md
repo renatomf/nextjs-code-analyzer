@@ -19,7 +19,7 @@
 - Vercel env vars: to give an environment its own value, uncheck it on the shared variable and create a new one with *Add New* — editing a shared variable changes every environment it has (see TD-36).
 
 # UI
-- Our "Kudos" layout: `ca-*` classes and `--ca-*` tokens in `globals.css`, and the shadcn components in `src/components/ui/` (restyled; Button has an extra `night` variant and `bar` prop). Page shell: `landing-shell ca-guides` + `ca-container` (see `dashboard/page.tsx`).
+- The codedriven layout: `ca-*` classes and `--ca-*` tokens in `globals.css`, and the shadcn components in `src/components/ui/` (restyled; Button has an extra `night` variant and `bar` prop). Page shell: `landing-shell ca-guides` + `ca-container` (see `dashboard/page.tsx`).
 - Components folders: `src/components/ui/` holds only shadcn components; project components reused by more than one screen go in `src/components/shared/` (e.g. `confirm-dialog.tsx`, `action-alert.tsx`, `hero-silk.tsx`); screen/feature-specific ones stay in their feature folder (`projects/`, `billing/`, ...).
 
 # Pending reminders (tracked in the roadmap)

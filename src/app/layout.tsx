@@ -27,7 +27,7 @@ const syne = Syne({
 });
 
 export const metadata: Metadata = {
-  title: "AI Code Auditor",
+  title: "codedriven · AI Codebase Auditor",
   description:
     "An AI Senior developer that understands your codebase - health reports, issues, and chat grounded in your real code.",
 };

@@ -62,7 +62,7 @@ function githubHeaders(accessToken?: string): HeadersInit {
     ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
     Accept: "application/vnd.github+json",
     "X-GitHub-Api-Version": "2022-11-28",
-    "User-Agent": "ai-codebase-auditor",
+    "User-Agent": "codedriven",
   };
 }
 

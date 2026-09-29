@@ -5,7 +5,7 @@ import { Select as SelectPrimitive } from "@base-ui/react/select"
 import { cn } from "cn"
 import { ChevronDownIcon, CheckIcon, ChevronUpIcon } from "lucide-react"
 
-// Code Analyzer look: square field with an inset hairline (same as the old
+// codedriven look: square field with an inset hairline (same as the old
 // native select), paper popup like DropdownMenu, mint (#00ffc8) highlight
 // instead of the OS blue. Tokens come from `--ca-*` in globals.css.
 

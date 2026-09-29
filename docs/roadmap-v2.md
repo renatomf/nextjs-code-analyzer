@@ -460,24 +460,27 @@ Vem antes da ingestão assíncrona: job em segundo plano sem log é caixa preta.
 - [ ] Decisões pendentes respondidas (ver abaixo).
 - [ ] Tag `v2.0.0`.
 
-### Renomear para `nextjs-codedriven` (pendente)
+### Renomear para `nextjs-codedriven`
 
 Já feito: repositório do GitHub, `package.json`, projeto no Neon e nome do
-projeto na Vercel. Falta, nesta ordem:
+projeto na Vercel.
 
-1. [ ] **Domínio de produção** `nextjs-code-analyzer.vercel.app` →
-       `nextjs-codedriven.vercel.app`, tudo na mesma sessão para não quebrar
-       login e billing: adicionar o domínio novo na Vercel e redirecionar o
-       antigo; `AUTH_URL` e `NEXT_PUBLIC_APP_URL` de Production; callbacks do
-       GitHub OAuth App (`/api/auth/callback/github` e `/api/github/callback`)
-       e do Google OAuth (`/api/auth/callback/google`); URL do webhook no
-       Stripe (`/api/stripe/webhook`); redeploy de produção.
-2. [ ] Comentários "Code Analyzer" em `globals.css`, `ui/button.tsx` e
-       `ui/select.tsx` (o `CLAUDE.md` mantém a referência ao tutorial
-       original `AI-Code-Analyzer`).
+1. [x] **Domínio de produção:** `https://nextjs-codedriven.vercel.app`
+       (2026-09-29). O antigo `nextjs-code-analyzer.vercel.app` continua
+       ligado ao projeto como **redirect 308** preservando o caminho (não foi
+       removido, para os links antigos funcionarem e o nome não ficar livre
+       para terceiros). Atualizados: `AUTH_URL` e `NEXT_PUBLIC_APP_URL` de
+       Production, callback do GitHub OAuth App (só o domínio, cobre
+       `/api/auth/callback/github` e `/api/github/callback`), redirect URI
+       do Google OAuth, URL do webhook do Stripe. Limpeza pendente: URIs
+       antigas no Google.
+2. [x] `<title>` da página como **codedriven · AI Codebase Auditor** (a landing mantém "AI Codebase Auditor"), README e User-Agent do GitHub como codedriven, e comentários "Code Analyzer"/"Kudos" removidos em
+       `globals.css`, `ui/button.tsx` e `ui/select.tsx`. O `CLAUDE.md` e o
+       README mantêm a referência ao tutorial original `AI-Code-Analyzer`.
 3. [ ] **Por último**, a pasta local `nextjs-code-analyzer` →
        `nextjs-codedriven` (fechar o VS Code antes). O histórico do Claude
        Code é por caminho de pasta: a pasta nova começa uma sessão nova.
+4. [x] Nome: **codedriven** no título, README e repositório; "AI Codebase Auditor" segue como descrição na landing.
 
 ---
 

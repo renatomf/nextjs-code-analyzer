@@ -23,7 +23,7 @@ function FileGlyph({ name, className }: { name: string; className?: string }) {
   return <FileText className={className} aria-hidden />;
 }
 
-// Kudos is monochrome: source files in ink, everything else muted.
+// The UI is monochrome: source files in ink, everything else muted.
 function fileIconClass(name: string) {
   if (/\.(tsx?|jsx?)$/i.test(name)) return "text-(--ca-ink)";
   return "text-(--ca-muted)";
