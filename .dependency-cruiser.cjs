@@ -45,12 +45,32 @@ module.exports = {
     {
       name: "module-public-api-only",
       severity: "error",
-      comment: "A module only imports another module through its index.ts.",
+      comment:
+        "A module only imports another module through its public API: index.ts (pure) or server.ts (database-bound).",
       from: { path: "^src/modules/([^/]+)/" },
       to: {
         path: "^src/modules/[^/]+/",
-        pathNot: ["^src/modules/$1/", "^src/modules/[^/]+/index\\.ts$"],
+        pathNot: ["^src/modules/$1/", "^src/modules/[^/]+/(index|server)\\.ts$"],
       },
+    },
+    {
+      name: "outside-uses-module-public-api",
+      severity: "error",
+      comment:
+        "Code outside src/modules only imports a module through index.ts or server.ts, never its internals.",
+      from: { path: "^src/", pathNot: ["^src/modules/", "\\.test\\.ts$"] },
+      to: {
+        path: "^src/modules/",
+        pathNot: ["^src/modules/[^/]+/(index|server)\\.ts$"],
+      },
+    },
+    {
+      name: "public-api-is-pure",
+      severity: "error",
+      comment:
+        "index.ts must stay importable anywhere: no database, no server-only code. Database-bound exports belong in server.ts.",
+      from: { path: "^src/modules/[^/]+/index\\.ts$" },
+      to: { path: ["^src/(lib/db\\.ts$|db/)", "^src/modules/[^/]+/server\\.ts$", "^node_modules/server-only/"] },
     },
     {
       name: "no-react-in-modules",
