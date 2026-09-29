@@ -2,6 +2,10 @@ import { env, pipeline } from "@huggingface/transformers";
 
 // Run fully from the Hugging Face hub cache; no local model path required.
 env.allowLocalModels = false;
+// On Vercel only /tmp is writable; the default cache lives in node_modules.
+if (process.env.VERCEL) {
+  env.cacheDir = "/tmp/transformers-cache";
+}
 
 export const EMBEDDING_DIMENSIONS = 384;
 const BATCH_SIZE = 16;
