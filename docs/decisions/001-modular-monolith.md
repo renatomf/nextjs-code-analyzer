@@ -1,4 +1,4 @@
-# ADR-001 — Monólito modular com Clean Architecture seletiva
+# ADR-001 — Monólito modular com Clean Architecture e DDD seletivos
 
 - **Status:** aceita
 - **Data:** 2026-09-29
@@ -95,9 +95,30 @@ com regra de negócio**.
   `VectorStore`, `SourceProvider` (GitHub · ZIP · pasta local), repositórios
   (Drizzle · em memória), `PaymentGateway` e `AnalysisRunner` (síncrono hoje ·
   fila na Fase 5).
-- **DDD tático onde paga:** aggregate `Project` como único dono da máquina de
-  estados; value objects `RepoRef` e `SafeFilePath`; `Finding`, `Rule` e
-  `ScoringPolicy` na análise; eventos de domínio só em processo.
+- **DDD estratégico:** cada módulo é um **bounded context**, com modelo e
+  linguagem próprios. A **linguagem ubíqua** fica em `docs/glossary.md`
+  (mesmo termo no código, nos docs e na UI). O **context map** é explícito:
+  por exemplo, *projects* pergunta a *billing* "pode analisar?" e *billing*
+  não conhece análise. Stripe e GitHub entram por uma **anticorruption
+  layer** nos adaptadores: status como `unpaid` ou `incomplete_expired`
+  nunca chegam ao domínio, são traduzidos para `active`, `past_due` e
+  `canceled`.
+- **DDD tático só onde há regra:**
+
+  | Contexto | Aggregate | Value objects | Política / serviço de domínio | Eventos |
+  |---|---|---|---|---|
+  | projects | `Project` (máquina de estados, claim, detecção de travado) | `RepoRef`, `SafeFilePath` | — | `ProjectImported` |
+  | billing | `Subscription` | `Plan`, `Quota` | política de cota (reset UTC, carência do `past_due`) | `PlanChanged` |
+  | analysis | `Report` | `Finding` (com evidência), `Severity`, `Score` | `ScoringPolicy`, `Rule` | `AnalysisCompleted` |
+  | ingestion | — | `Chunk` | regras de chunking | — |
+  | chat | — | — | política do prompt (código tratado como dado) | — |
+
+  Um repositório por aggregate (Drizzle na infraestrutura). Eventos de
+  domínio só em processo; viram gatilho de job na Fase 5. **Fora do DDD
+  tático:** identity e as telas sem regra (settings, perfil, dashboard), que
+  seriam só cerimônia. **Não adotados:** event sourcing (não há requisito de
+  reconstruir estado) e modelos separados de leitura e escrita (CQRS leve
+  basta).
 - **Injeção de dependência por funções factory** no `index.ts` de cada módulo,
   sem container: a composição fica explícita e legível em um só arquivo.
 - **Garantia por máquina:** as regras de dependência são verificadas pelo
