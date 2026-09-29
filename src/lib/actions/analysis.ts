@@ -11,11 +11,6 @@ import { projects, users } from "@/db/schema";
 import { setProjectProgress } from "@/lib/analysis/progress";
 import { generateProjectReport } from "@/lib/analysis/report";
 import { auth } from "@/lib/auth";
-import {
-  assertCanRunAnalysis,
-  BillingLimitError,
-  recordAnalysisUsage,
-} from "@/lib/billing/entitlements";
 import { db } from "@/lib/db";
 import { extractFromZipBuffer } from "@/lib/files/extract";
 import { isSourceFile } from "@/lib/files/filters";
@@ -23,6 +18,8 @@ import { detectFramework } from "@/lib/files/framework";
 import { persistProjectFiles } from "@/lib/files/storage";
 import { downloadGitHubZipball, GitHubError } from "@/lib/github";
 import { assertRateLimit } from "@/lib/rate-limit";
+import { BillingLimitError } from "@/modules/billing";
+import { withQuota } from "@/modules/billing/server";
 
 export type RetryState = {
   error?: string;
@@ -206,9 +203,7 @@ export async function retryFullAnalysis(
     // Limit check, "not already running" check and usage record in one
     // transaction: the user row is locked, so parallel requests cannot all
     // pass the limit or start the same project twice.
-    claimed = await db.transaction(async (tx) => {
-      await assertCanRunAnalysis(project.userId, tx);
-
+    claimed = await withQuota(project.userId, "analysis", async (tx) => {
       const [started] = await tx
         .update(projects)
         .set({ status: "processing", errorMessage: null })
@@ -220,10 +215,10 @@ export async function retryFullAnalysis(
           ),
         )
         .returning({ id: projects.id });
-      if (!started) return false;
+      // Already running: no new analysis, so no quota consumed.
+      if (!started) return { consumed: false, value: false };
 
-      await recordAnalysisUsage(project.userId, tx);
-      return true;
+      return { consumed: true, value: true };
     });
 
     if (!claimed) {

@@ -11,11 +11,6 @@ import { z } from "zod";
 import { accounts, projects, users } from "@/db/schema";
 import { setProjectProgress } from "@/lib/analysis/progress";
 import { auth, signIn } from "@/lib/auth";
-import {
-  assertCanCreateProject,
-  BillingLimitError,
-  recordAnalysisUsage,
-} from "@/lib/billing/entitlements";
 import { db } from "@/lib/db";
 import { extractFromZipBuffer } from "@/lib/files/extract";
 import { isSourceFile } from "@/lib/files/filters";
@@ -27,7 +22,8 @@ import {
   refSchema,
 } from "@/lib/github";
 import { MAX_REPO_SIZE_BYTES } from "@/lib/limits";
-import { getPlanCatalogWithPricing } from "@/modules/billing/server";
+import { BillingLimitError } from "@/modules/billing";
+import { getPlanCatalogWithPricing, withQuota } from "@/modules/billing/server";
 
 export type ProjectActionState = {
   error?: string;
@@ -114,9 +110,7 @@ async function finalizeProjectFromZip(options: {
 }) {
   // Limit check, insert and usage record in one transaction: the user row is
   // locked, so parallel requests cannot all pass the check.
-  const project = await db.transaction(async (tx) => {
-    await assertCanCreateProject(options.userId, tx);
-
+  const project = await withQuota(options.userId, "project", async (tx) => {
     const [created] = await tx
       .insert(projects)
       .values({
@@ -130,8 +124,7 @@ async function finalizeProjectFromZip(options: {
       })
       .returning({ id: projects.id });
 
-    await recordAnalysisUsage(options.userId, tx);
-    return created;
+    return { consumed: true, value: created };
   });
 
   try {

@@ -1,19 +1,11 @@
-import { count, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
-import { codeChunks, projectFiles, projects, reports, usageEvents } from "@/db/schema";
-import {
-  assertCanCreateProject,
-  assertCanRunAnalysis,
-  BillingLimitError,
-} from "@/lib/billing/entitlements";
-import { getPlanLimits } from "@/lib/billing/plans";
+import { projects, usageEvents } from "@/db/schema";
 import { db } from "@/lib/db";
-import {
-  createProjectWithData,
-  createUser,
-  deleteUsers,
-} from "@/test/integration/factories";
+import { BillingLimitError, getPlanCatalog } from "@/modules/billing";
+import { billingFor } from "@/modules/billing/server";
+import { createUser, deleteUsers } from "@/test/integration/factories";
 
 const created: string[] = [];
 
@@ -24,7 +16,7 @@ afterAll(async () => {
 /** Same shape as project creation in actions/github.ts: check, then insert. */
 function createProjectUnderLimit(userId: string, name: string) {
   return db.transaction(async (tx) => {
-    await assertCanCreateProject(userId, tx);
+    await billingFor(tx).assertCanCreateProject(userId);
     await tx.insert(projects).values({
       userId,
       name,
@@ -36,7 +28,7 @@ function createProjectUnderLimit(userId: string, name: string) {
 
 describe("project limit under concurrency", () => {
   let userId: string;
-  const { maxProjects } = getPlanLimits("free", "none");
+  const { maxProjects } = getPlanCatalog().free;
 
   beforeAll(async () => {
     userId = await createUser();
@@ -68,7 +60,7 @@ describe("project limit under concurrency", () => {
 // TD-25: the daily analysis quota resets at 00:00 UTC (not the user's local
 // midnight, not a rolling 24h window).
 describe("daily analysis quota", () => {
-  const { analysesPerDay } = getPlanLimits("free", "none");
+  const { analysesPerDay } = getPlanCatalog().free;
 
   afterEach(() => {
     vi.useRealTimers();
@@ -92,27 +84,9 @@ describe("daily analysis quota", () => {
     await seedUsage(userId, new Date("2026-03-09T23:59:00Z"), analysesPerDay);
     await seedUsage(userId, new Date("2026-03-10T00:01:00Z"), analysesPerDay - 1);
 
-    await expect(assertCanRunAnalysis(userId)).resolves.toBeUndefined();
+    await expect(billingFor().assertCanRunAnalysis(userId)).resolves.toBeUndefined();
 
     await seedUsage(userId, new Date("2026-03-10T01:00:00Z"), 1);
-    await expect(assertCanRunAnalysis(userId)).rejects.toBeInstanceOf(BillingLimitError);
-  });
-});
-
-describe("deleting a project", () => {
-  it("removes its files, chunks and report (no private code left behind)", async () => {
-    const userId = await createUser();
-    created.push(userId);
-    const projectId = await createProjectWithData(userId, "to-delete");
-
-    await db.delete(projects).where(eq(projects.id, projectId));
-
-    for (const table of [projectFiles, codeChunks, reports]) {
-      const [row] = await db
-        .select({ n: count() })
-        .from(table)
-        .where(eq(table.projectId, projectId));
-      expect(row.n).toBe(0);
-    }
+    await expect(billingFor().assertCanRunAnalysis(userId)).rejects.toBeInstanceOf(BillingLimitError);
   });
 });

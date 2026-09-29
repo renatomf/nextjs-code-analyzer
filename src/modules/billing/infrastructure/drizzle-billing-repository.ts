@@ -9,7 +9,7 @@ type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];
 export type Executor = Db | Tx;
 
 /**
- * Same queries as the pre-module `lib/billing/entitlements.ts`, so behavior
+ * Same queries as before the module existed (`lib/billing/entitlements.ts`), so behavior
  * (including the row lock) is unchanged. Pass a transaction to make the
  * FOR UPDATE lock hold until it commits.
  */

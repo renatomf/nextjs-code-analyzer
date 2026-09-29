@@ -69,13 +69,13 @@ export function buildPlanCatalog(config: PlanConfig): PlanCatalog {
 
 /**
  * Paid while `active` or `past_due` (grace period after a failed renewal —
- * product rule pinned by tests, TD-25). Accepts legacy "pro" rows.
+ * product rule pinned by tests, TD-25).
  */
 export function isPaidPlan(
   plan: string | null | undefined,
   planStatus?: string | null,
 ): boolean {
-  if (plan !== "premium" && plan !== "pro") return false;
+  if (plan !== "premium") return false;
   return planStatus === "active" || planStatus === "past_due";
 }
 

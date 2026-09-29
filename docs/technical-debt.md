@@ -377,24 +377,30 @@ maintainability) · **Low** (cleanup).
 - **Phase:** Performance.
 
 ### TD-24 — Dead legacy plan code · Low
-- **Where:** [plans.ts:86](../src/lib/billing/plans.ts#L86)
+- **Where:** `isPaidPlan` (was `src/lib/billing/plans.ts`)
 - **Problem:** accepts a `"pro"` plan that the `plan` enum cannot hold
   (copied from the tutorial).
 - **Phase:** Clean Architecture.
+- **Done:** removed with the billing module (no migration ever had `"pro"`);
+  a test pins that `"pro"` is not paid. The unused `startProCheckout` action
+  was removed too. The `STRIPE_PRICE_PRO_MONTHLY` env alias stays until the
+  Vercel variables are checked.
 
 ### TD-25 — Billing rules undocumented · Low
-- **Where:** [entitlements.ts:36-40](../src/lib/billing/entitlements.ts#L36-L40),
-  [plans.ts:87](../src/lib/billing/plans.ts#L87)
+- **Where:** [domain/quota.ts](../src/modules/billing/domain/quota.ts),
+  [domain/plan.ts](../src/modules/billing/domain/plan.ts)
 - **Problem:** the daily quota resets at UTC midnight and `past_due` keeps
   premium limits. Both are product decisions hidden in code.
 - **Direction:** ADR + unit tests that pin these rules.
-- **Done (tests):** pinned by `plans.test.ts`, `webhook-handlers.test.ts`
-  and `entitlements.integration.test.ts` (real Postgres: usage from
+- **Done (tests):** pinned by `plan-catalog.test.ts`, `webhook-handlers.test.ts`
+  and `quota.integration.test.ts` (real Postgres: usage from
   23:59 UTC yesterday does not count today). Found while pinning: Stripe's
   `unpaid` (renewal retries exhausted) is also mapped to `past_due`, so such
   users keep premium indefinitely until Stripe cancels the subscription.
-- **Still open:** ADR for the grace-period rule (how long a failed renewal
-  keeps premium) — a product decision, moved to the billing module (Phase 3).
+- **ADR:** [ADR-003](decisions/003-quota.md) (proposed) records the rules;
+  the grace-period length is left to Stripe's failed-payment settings.
+  **Still open:** configure Stripe to cancel the subscription when retries
+  run out (product decision, see the ADR).
 - **Phase:** Test safety net.
 
 ---
