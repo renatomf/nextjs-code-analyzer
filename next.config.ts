@@ -25,12 +25,22 @@ const nextConfig: NextConfig = {
     },
   },
   // onnxruntime_binding.node loads libonnxruntime.so via dlopen, which file
-  // tracing cannot see: ship the Linux x64 binaries with every function that
-  // creates embeddings (analysis, chat, and project pages' server actions).
+  // tracing cannot see, so it is added by hand. The key is global on purpose:
+  // per-route traces stop Vercel from grouping routes into shared functions,
+  // and the Hobby plan allows at most 12 functions per deployment.
   outputFileTracingIncludes: {
-    "/api/projects/\\[id\\]/analyze": [ONNX_LINUX_BINARIES],
-    "/api/chat": [ONNX_LINUX_BINARIES],
-    "/projects/**": [ONNX_LINUX_BINARIES],
+    "/*": [ONNX_LINUX_BINARIES],
+  },
+  // Never ship: a locally downloaded model cache (it is fetched at runtime),
+  // tree-sitter C sources, and native binaries for other platforms.
+  outputFileTracingExcludes: {
+    "/*": [
+      "./node_modules/@huggingface/transformers/.cache/**/*",
+      "./node_modules/tree-sitter-*/src/**/*",
+      "./node_modules/tree-sitter-*/prebuilds/!(linux-x64)/**/*",
+      "./node_modules/onnxruntime-node/bin/napi-v6/!(linux)/**/*",
+      "./node_modules/onnxruntime-node/bin/napi-v6/linux/arm64/**/*",
+    ],
   },
   poweredByHeader: false,
   // Baseline security headers. A full Content-Security-Policy (scripts,
