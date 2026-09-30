@@ -140,6 +140,27 @@ assinatura e busca o estado atual da assinatura no Stripe (idempotente).
 | `src/lib/rate-limit.ts` | limitador em Postgres (tabela `rate_limits`); o plano vem do billing | infraestrutura compartilhada |
 | `src/lib/auth.ts` | configuração do NextAuth (adapter do Drizzle) | integração, fica |
 
+O resto da raiz de `src/lib` fica onde está de propósito: é integração ou
+infraestrutura usada por vários módulos, não regra de negócio de um só
+(ADR-001). Mover não mudaria comportamento e trocaria dezenas de imports.
+
+| Arquivo | O que é | Por que fica |
+|---|---|---|
+| `db.ts` | cliente do Postgres (Drizzle + `pg`; TLS: ver TD-38) | todo acesso a dados passa por ele |
+| `auth.config.ts` | provedores e callbacks do NextAuth sem o banco | o `proxy.ts` usa esta parte, que não pode carregar o adapter |
+| `encryption.ts` | AES-256-GCM do token do GitHub, chave própria | usado pelo identity e pelo cliente do GitHub |
+| `github.ts` | cliente da API do GitHub (OAuth com `state`, repositórios, zipball) | integração externa |
+| `limits.ts` | limites e filtros da importação (pastas excluídas, arquivos sensíveis) e o top-k do RAG | usados pela extração, pela análise e pelo chat |
+| `utils.ts` | `cn()` das classes CSS | os componentes do shadcn importam `@/lib/utils` |
+| `projects.ts` | `cache()` do React sobre o resumo do projeto | cola do Next: o módulo projects não depende do React |
+| `actions/` | server actions (camada de entrega, como `src/app`) | ver o diagrama acima |
+| `ai/` | modelo do Groq e o fake do E2E | integração externa |
+| `validations/` | schemas zod das ações de autenticação | entrega |
+
+Os testes de integração na raiz (`chat`, `project-import`,
+`project-lifecycle`, `reanalysis-github`, `tenant-isolation`) cobrem fluxos
+que atravessam vários módulos; por isso não estão dentro de um deles.
+
 Arquivos de produção com acesso ao banco ou ao Drizzle: 17 (eram 27), 11
 deles dentro dos módulos ([results-phase-3.md](results-phase-3.md)).
 
