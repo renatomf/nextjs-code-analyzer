@@ -46,6 +46,7 @@ estes termos; ao precisar de um conceito novo, acrescente-o aqui no mesmo PR.
 | **Question** | Pergunta do usuário sobre o código de um projeto. | `extractLastUserText` |
 | **Context** | Os chunks mais próximos da pergunta, recuperados por busca vetorial. | `retrieveChatContext` |
 | **Source** (no chat) | Chunk citado na resposta, com arquivo e linhas. | `ChatSource` |
+| **Prompt policy** | Como a pergunta e o código recuperado viram o prompt de sistema; só o servidor escreve o prompt. | `buildChatSystemPrompt` |
 
 ## billing
 

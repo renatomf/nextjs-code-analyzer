@@ -1,12 +1,10 @@
 import { logger, requestIdFrom } from "@/shared/logger";
-import { and, eq } from "drizzle-orm";
 import { NextRequest } from "next/server";
 import { z } from "zod";
 
-import { projects } from "@/db/schema";
 import { auth } from "@/lib/auth";
-import { db } from "@/lib/db";
 import { readProjectFile } from "@/lib/files/explorer";
+import { findOwnedProject } from "@/modules/projects/server";
 
 const querySchema = z.object({
   projectId: z.uuid(),
@@ -34,11 +32,7 @@ export async function GET(request: NextRequest) {
 
     const { projectId, file: filePath } = parsed.data;
 
-    const [project] = await db
-      .select({ id: projects.id })
-      .from(projects)
-      .where(and(eq(projects.id, projectId), eq(projects.userId, session.user.id)))
-      .limit(1);
+    const project = await findOwnedProject(session.user.id, projectId);
 
     if (!project) {
       return Response.json({ error: "Project not found" }, { status: 404 });

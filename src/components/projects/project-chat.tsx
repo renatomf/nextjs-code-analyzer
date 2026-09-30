@@ -3,7 +3,7 @@
 import { ActionAlert } from "@/components/shared/action-alert";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import type { ChatSource } from "@/lib/analysis/chat-rag";
+import type { ChatSource } from "@/modules/chat";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { ArrowUp, Square } from "lucide-react";

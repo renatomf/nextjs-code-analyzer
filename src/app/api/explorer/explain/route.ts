@@ -1,14 +1,12 @@
 import { logger, requestIdFrom } from "@/shared/logger";
-import { and, eq } from "drizzle-orm";
 import { generateText } from "ai";
 import { z } from "zod";
 
-import { projects } from "@/db/schema";
 import { getLanguageModel } from "@/lib/ai/llm";
 import { auth } from "@/lib/auth";
-import { db } from "@/lib/db";
 import { readProjectFile } from "@/lib/files/explorer";
 import { assertChatRateLimit, RateLimitError } from "@/lib/rate-limit";
+import { findOwnedProject } from "@/modules/projects/server";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -36,11 +34,7 @@ export async function POST(request: Request) {
     }
     const { projectId, filePath, question } = parsed.data;
 
-    const [project] = await db
-      .select({ id: projects.id, name: projects.name })
-      .from(projects)
-      .where(and(eq(projects.id, projectId), eq(projects.userId, session.user.id)))
-      .limit(1);
+    const project = await findOwnedProject(session.user.id, projectId);
     if (!project) {
       return Response.json({ error: "Project not found" }, { status: 404 });
     }

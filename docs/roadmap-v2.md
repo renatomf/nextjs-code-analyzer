@@ -331,7 +331,10 @@ medido antes e depois.
       correções objetivas (TD-31, `src/test/`, segredos em fixtures);
       **chat** — caracterização da rota (RAG em Postgres real com o
       modelo falso do E2E: resposta, fontes em ordem, prompt em snapshot,
-      isolamento, sem knowledge, limite da pergunta); próximo: módulo. Convenção
+      isolamento, sem knowledge, limite da pergunta); módulo chat (política
+      do prompt no domínio, busca de contexto no `server.ts`); rotas do chat
+      e do explorer sem Drizzle (baseline 12 → 6); próximo: TD-28 (código
+      como dado no prompt). Convenção
       provisória em [`docs/modules.md`](modules.md).
 - [ ] identity: acesso a dados atrás do módulo.
 - [ ] Queries por módulo para todas as pages (sai o Drizzle de `src/app`).

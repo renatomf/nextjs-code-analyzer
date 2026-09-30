@@ -57,6 +57,17 @@ src/modules/<módulo>/
   Stripe com `import()` dentro das funções, para quem só usa a cota (análise,
   chat) não carregar o SDK na cold start.
 
+## Decisões do módulo chat
+
+- **Domínio = política do prompt:** `buildChatSystemPrompt` e
+  `extractLastUserText` são puros e têm tipo próprio para o chunk
+  recuperado (`RetrievedChunk`), sem depender do ingestion.
+- **Sem porta de LLM ainda:** a troca de provedor (Groq ou o fake do E2E)
+  já acontece em `getLanguageModel`; a porta nasce com o Ollama (v2.2).
+- **A rota continua dona do HTTP e do streaming** (validação, rate limit,
+  `streamText`); o projeto e a checagem de knowledge vêm do projects
+  (`getChatProject`), com o mesmo formato de consulta de antes.
+
 ## Decisões do módulo analysis
 
 - **Domínio puro e sem APIs do Node:** o `index.ts` é importado por

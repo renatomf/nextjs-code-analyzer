@@ -1,18 +1,16 @@
 import { logger, requestIdFrom } from "@/shared/logger";
-import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
-import { codeChunks, projects } from "@/db/schema";
 import { getLanguageModel } from "@/lib/ai/llm";
+import { auth } from "@/lib/auth";
+import { assertChatRateLimit, RateLimitError } from "@/lib/rate-limit";
 import {
   buildChatSystemPrompt,
   extractLastUserText,
-  retrieveChatContext,
   type ChatSource,
-} from "@/lib/analysis/chat-rag";
-import { auth } from "@/lib/auth";
-import { db } from "@/lib/db";
-import { assertChatRateLimit, RateLimitError } from "@/lib/rate-limit";
+} from "@/modules/chat";
+import { retrieveChatContext } from "@/modules/chat/server";
+import { getChatProject } from "@/modules/projects/server";
 import {
   convertToModelMessages,
   createUIMessageStreamResponse,
@@ -59,32 +57,13 @@ export async function POST(request: Request) {
     }
     const messages = validated.data;
 
-    const [project] = await db
-      .select({
-        id: projects.id,
-        name: projects.name,
-        framework: projects.framework,
-      })
-      .from(projects)
-      .where(
-        and(
-          eq(projects.id, parsed.data.projectId),
-          eq(projects.userId, session.user.id),
-        ),
-      )
-      .limit(1);
+    const project = await getChatProject(session.user.id, parsed.data.projectId);
 
     if (!project) {
       return Response.json({ error: "Project not found" }, { status: 404 });
     }
 
-    const [chunk] = await db
-      .select({ id: codeChunks.id })
-      .from(codeChunks)
-      .where(eq(codeChunks.projectId, project.id))
-      .limit(1);
-
-    if (!chunk) {
+    if (!project.hasChunks) {
       return Response.json(
         {
           error:
