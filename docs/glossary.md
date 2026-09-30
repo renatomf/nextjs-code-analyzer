@@ -23,8 +23,8 @@ estes termos; ao precisar de um conceito novo, acrescente-o aqui no mesmo PR.
 |---|---|---|
 | **Project file** | Arquivo extraído e aceito pelos filtros (sem segredos, sem binários, dentro dos limites). | `project_files` |
 | **Chunk** | Trecho de código delimitado pela AST (função, classe, declaração), com linhas de início e fim. | `code_chunks`, `chunkSourceFile` |
-| **Embedding** | Vetor de 384 dimensões que representa um chunk para busca semântica. | `embedTexts`, `Embedder` |
-| **Knowledge (base)** | O conjunto de chunks com embeddings de um projeto. Pré-requisito do relatório e do chat. | `buildProjectKnowledge` |
+| **Embedding** | Vetor de 384 dimensões (`EMBEDDING_DIMENSIONS`) que representa um chunk para busca semântica. | porta `Embedder` (ONNX; fake nos testes) |
+| **Knowledge (base)** | O conjunto de chunks com embeddings de um projeto. Pré-requisito do relatório e do chat. | `storeKnowledge` (caso de uso), porta `VectorStore` (pgvector; em memória nos testes), `buildProjectKnowledge` |
 
 ## analysis
 

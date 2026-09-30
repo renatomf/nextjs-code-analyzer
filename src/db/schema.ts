@@ -17,6 +17,7 @@ import type {
   CategorySummaries,
   ReportIssue,
 } from "@/lib/analysis/report-types";
+import { EMBEDDING_DIMENSIONS } from "@/modules/ingestion";
 
 // Enums
 
@@ -186,7 +187,7 @@ export const codeChunks = pgTable(
     content: text("content").notNull(),
     startLine: integer("start_line"),
     endLine: integer("end_line"),
-    embedding: vector("embedding", { dimensions: 384 }).notNull(),
+    embedding: vector("embedding", { dimensions: EMBEDDING_DIMENSIONS }).notNull(),
   },
   (t) => [index("code_chunks_project_id_idx").on(t.projectId)],
 ).enableRLS();

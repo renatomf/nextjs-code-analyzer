@@ -1,11 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import golden from "@/lib/analysis/__fixtures__/minilm-golden.json";
-import {
-  EMBEDDING_DIMENSIONS,
-  MODEL_REVISION,
-  embedTexts,
-} from "@/lib/analysis/embeddings";
+import { EMBEDDING_DIMENSIONS } from "../domain/knowledge";
+import golden from "./__fixtures__/minilm-golden.json";
+import { MODEL_REVISION, embedTexts } from "./onnx-embedder";
 
 // Opt-in: downloads the real model (~23 MB) from the Hugging Face hub.
 // Run with `RUN_MODEL_TESTS=1 npx vitest run embeddings.model` whenever the

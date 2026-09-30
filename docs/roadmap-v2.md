@@ -320,8 +320,9 @@ medido antes e depois.
       `/r/<token>` com rate limit por IP, `noindex` e `no-referrer`).
       **ingestion** — rede de testes da montagem do knowledge (chunking
       real + pgvector real, modelo trocado por vetores determinísticos),
-      verificada com mutações; próximo: módulo com `Embedder` e
-      `VectorStore`. Convenção
+      verificada com mutações; módulo com o caso de uso `storeKnowledge`,
+      portas `Embedder` e `VectorStore` (testadas com fakes) e TD-04;
+      `SourceProvider` fica para a v2.2 (a 3ª implementação, pasta local). Convenção
       provisória em [`docs/modules.md`](modules.md).
 - [ ] identity: acesso a dados atrás do módulo.
 - [ ] Queries por módulo para todas as pages (sai o Drizzle de `src/app`).

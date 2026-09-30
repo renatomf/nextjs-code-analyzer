@@ -13,15 +13,15 @@ import { axisEmbedding, createUser, deleteUsers } from "@/test/integration/facto
 
 const mocks = vi.hoisted(() => ({ embedTexts: vi.fn() }));
 
-vi.mock("@/lib/analysis/embeddings", () => ({
-  EMBEDDING_DIMENSIONS: 384,
+vi.mock("@/modules/ingestion/infrastructure/onnx-embedder", () => ({
+  onnxEmbedder: { embed: mocks.embedTexts },
   embedTexts: mocks.embedTexts,
   embedQuery: vi.fn(),
 }));
 
 import { buildProjectKnowledge } from "@/lib/analysis/pipeline";
 import { AnalysisCanceledError } from "@/lib/analysis/progress";
-import { searchProjectChunks } from "@/lib/analysis/vector-store";
+import { searchProjectChunks } from "@/modules/ingestion/server";
 
 const created: string[] = [];
 let owner: string;
