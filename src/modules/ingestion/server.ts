@@ -10,7 +10,7 @@ import { pgvectorStore } from "./infrastructure/pgvector-store";
  * `userId` must come from the server session, never from the client.
  */
 
-export { embedQuery } from "./infrastructure/onnx-embedder";
+export { embedQuery, embedTexts } from "./infrastructure/onnx-embedder";
 export { searchProjectChunks, type StoredChunk } from "./infrastructure/pgvector-store";
 
 /** Embeds the chunks and replaces the project's knowledge in pgvector. */
