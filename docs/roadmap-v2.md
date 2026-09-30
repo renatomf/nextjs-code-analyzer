@@ -317,7 +317,11 @@ medido antes e depois.
       duplicado); link público do relatório — backend (tabela
       `report_shares`, token só como hash, revogação, expiração, redação de
       segredos) e interface (compartilhar, copiar, revogar; página pública
-      `/r/<token>` com rate limit por IP, `noindex` e `no-referrer`). Convenção
+      `/r/<token>` com rate limit por IP, `noindex` e `no-referrer`).
+      **ingestion** — rede de testes da montagem do knowledge (chunking
+      real + pgvector real, modelo trocado por vetores determinísticos),
+      verificada com mutações; próximo: módulo com `Embedder` e
+      `VectorStore`. Convenção
       provisória em [`docs/modules.md`](modules.md).
 - [ ] identity: acesso a dados atrás do módulo.
 - [ ] Queries por módulo para todas as pages (sai o Drizzle de `src/app`).
