@@ -64,6 +64,8 @@ describe("shouldSkipPath", () => {
     ".vscode/extension.js",
     ".husky/commit-msg.js",
     "app/assets/vendor/bootstrap/bootstrap-tour.js",
+    "public/vendor/pdf.worker.js",
+    "vendor/autoload.js",
     "lib/third_party/parser.ts",
     "public/bower_components/angular/angular.js",
     "app/assets/js/jquery.min.js",
@@ -80,6 +82,15 @@ describe("shouldSkipPath", () => {
     // Only a real ".min.js" suffix is minified.
     expect(shouldSkipPath("src/lib/admin.js")).toBe(false);
     expect(shouldSkipPath("src/utils/min.ts")).toBe(false);
+  });
+
+  it.each([
+    "src/modules/vendor/service.ts",
+    "src/app/vendor/[id]/page.tsx",
+    "app/vendor/orders.ts",
+    "src/vendor.ts",
+  ])("keeps `vendor` as a domain word in the app's code: %s", (path) => {
+    expect(shouldSkipPath(path)).toBe(false);
   });
 
   it("skips secret-bearing files in any folder and casing", () => {
