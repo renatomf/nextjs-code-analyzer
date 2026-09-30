@@ -45,7 +45,9 @@ reviewer (prompt injection, TD-28). Each case runs `LLM_EVAL_RUNS` times
 (default 3), spaced out for the free tier's tokens per minute. Per case:
 **recall** (category + file), **evidence validity** (cited files the model
 actually received), **stability** (overlap between runs), number of
-findings, latency and tokens. Only the `GROQ_*` variables are read from the
+findings, findings dropped because their quote was not in the cited file
+(`verifyEvidence`), failed calls (kept with the provider's response, not
+fatal), latency and tokens. Only the `GROQ_*` variables are read from the
 local env files. Results: `evals/results/<date>-<commit>-llm.json`.
 
 ## Rules

@@ -3,11 +3,27 @@ import { dataBlock, dataRules, newDataBoundary } from "@/shared/prompt-data";
 import { getStructuredLanguageModel } from "@/lib/ai/llm";
 import type { ReportIssue } from "@/lib/analysis/report-types";
 import { verifyEvidence } from "@/modules/analysis";
-import { generateObject } from "ai";
+import { APICallError, generateObject } from "ai";
 import { z } from "zod";
 
 // A slow provider must not hold the analysis request (TD-29).
 const LLM_TIMEOUT_MS = 120_000;
+// The prompt asks for at most 10; the server enforces it (stored in reports).
+const MAX_ISSUES = 10;
+const MAX_TITLE = 200;
+const MAX_DESCRIPTION = 1_000;
+
+/**
+ * Groq answers 400 json_validate_failed when the model writes invalid JSON
+ * (seen with quotes holding an unbalanced "{"). Groq recommends a retry.
+ */
+function isInvalidJsonGeneration(error: unknown): boolean {
+  return (
+    APICallError.isInstance(error) &&
+    error.statusCode === 400 &&
+    (error.responseBody ?? "").includes("json_validate_failed")
+  );
+}
 
 const reportSchema = z.object({
   architectureSummary: z.string(),
@@ -86,38 +102,46 @@ export async function runLlmHealthReview(options: {
     usedChars += size;
   }
 
-  const boundary = newDataBoundary();
-  const { object, usage } = await generateObject({
-    model: getStructuredLanguageModel(),
-    schema: reportSchema,
-    // Same code, same review: needed for a stable report and a fair eval.
-    temperature: 0,
-    abortSignal: AbortSignal.timeout(LLM_TIMEOUT_MS),
-    instructions: [
-      "You are an AI senior engineer reviewing a JavaScript/TypeScript codebase.",
-      "Find potential issues for the developer to verify — not certified vulnerabilities or proven bottlenecks.",
-      "",
-      "Cover these categories only: architecture, security, performance.",
-      "Severity guide:",
-      "- critical: likely security breach or data loss risk",
-      "- high: likely incorrect behavior or major performance problem",
-      "- medium: maintainability / structure problem",
-      "- low: minor concern",
-      "",
-      "You see a sample of the project, not all of it: never claim that something is missing from the codebase (tests, validation, error handling) unless the snippets themselves show it.",
-      "Report only issues the snippets support. A few precise issues are better than many generic ones; an empty list is a valid answer. At most 10 issues.",
-      "Report each root cause once, in its most relevant category.",
-      "For an issue about a file, set filePath exactly as written in the snippet header and set quote to the exact code that shows the problem (1 to 3 lines, copied verbatim). Issues whose quote is not found in that file are discarded.",
-      "Use filePath null (and quote null) only for an issue visible across several snippets.",
-      ...dataRules(boundary),
-    ].join("\n"),
-    prompt: [
-      `Project: ${options.projectName}`,
-      `Framework: ${options.framework ?? "Unknown"}`,
-      "",
-      "Code snippets:",
-      formatChunks(sampled, boundary),
-    ].join("\n"),
+  const review = () => {
+    const boundary = newDataBoundary();
+    return generateObject({
+      model: getStructuredLanguageModel(),
+      schema: reportSchema,
+      // Same code, same review: needed for a stable report and a fair eval.
+      temperature: 0,
+      abortSignal: AbortSignal.timeout(LLM_TIMEOUT_MS),
+      instructions: [
+        "You are an AI senior engineer reviewing a JavaScript/TypeScript codebase.",
+        "Find potential issues for the developer to verify — not certified vulnerabilities or proven bottlenecks.",
+        "",
+        "Cover these categories only: architecture, security, performance.",
+        "Severity guide:",
+        "- critical: likely security breach or data loss risk",
+        "- high: likely incorrect behavior or major performance problem",
+        "- medium: maintainability / structure problem",
+        "- low: minor concern",
+        "",
+        "You see a sample of the project, not all of it: never claim that something is missing from the codebase (tests, validation, error handling) unless the snippets themselves show it.",
+        "Report only issues the snippets support. A few precise issues are better than many generic ones; an empty list is a valid answer. At most 10 issues.",
+        "Report each root cause once, in its most relevant category.",
+        "For an issue about a file, set filePath exactly as written in the snippet header and set quote to the single line of code that shows the problem, copied verbatim. Issues whose quote is not found in that file are discarded.",
+        "Use filePath null (and quote null) only for an issue visible across several snippets.",
+        ...dataRules(boundary),
+      ].join("\n"),
+      prompt: [
+        `Project: ${options.projectName}`,
+        `Framework: ${options.framework ?? "Unknown"}`,
+        "",
+        "Code snippets:",
+        formatChunks(sampled, boundary),
+      ].join("\n"),
+    });
+  };
+
+  // One retry, only for invalid JSON; other errors (auth, quota) fail fast.
+  const { object, usage } = await review().catch((error: unknown) => {
+    if (isInvalidJsonGeneration(error)) return review();
+    throw error;
   });
 
   // Evidence or out: issues whose quote is not in the code they cite go.
@@ -127,7 +151,11 @@ export async function runLlmHealthReview(options: {
     architectureSummary: object.architectureSummary,
     securitySummary: object.securitySummary,
     performanceSummary: object.performanceSummary,
-    issues: verified.findings,
+    issues: verified.findings.slice(0, MAX_ISSUES).map((issue) => ({
+      ...issue,
+      title: issue.title.slice(0, MAX_TITLE),
+      description: issue.description.slice(0, MAX_DESCRIPTION),
+    })),
     droppedUnverified: verified.dropped.length,
     sentFilePaths: [...new Set(sampled.map((chunk) => chunk.filePath))],
     usage: { inputTokens: usage.inputTokens, outputTokens: usage.outputTokens },
