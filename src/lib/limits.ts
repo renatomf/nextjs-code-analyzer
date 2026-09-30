@@ -34,6 +34,12 @@ export const ALWAYS_EXCLUDE_DIR_NAMES = new Set([
   ".cache",
   ".parcel-cache",
   ".yarn",
+  // Third-party code copied into the repository: not the project's code, and
+  // it takes the review sample and yields findings about someone else's code.
+  "vendor",
+  "third_party",
+  "third-party",
+  "bower_components",
   // Editor and AI agent settings: not the project's code.
   ".claude",
   ".cursor",
@@ -49,6 +55,9 @@ export const ALWAYS_EXCLUDE_FILE_NAMES = new Set([
   "bun.lock",
   "bun.lockb",
 ]);
+
+/** Minified bundles (`jquery.min.js`): third-party or built, never reviewed source. */
+export const MINIFIED_FILE_PATTERN = /\.min\.[cm]?js$/;
 
 /**
  * Secret-bearing files: never read, chunked into `code_chunks` or sent to
