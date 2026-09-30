@@ -499,6 +499,18 @@ Vem antes da ingestão assíncrona: job em segundo plano sem log é caixa preta.
       arquivos, 286 → 93 chunks (−67% de embeddings e armazenamento), 7 → 6
       achados (sai o falso positivo); linhas na amostra seguem 2/9 (a causa
       principal é a escolha dentro do arquivo, próximo PR).
+      ✅ Dentro de cada arquivo, os chunks com mais sinais de risco primeiro
+      (entrada não confiável, chamadas perigosas, autenticação/sessão:
+      categorias genéricas do OWASP para JS/TS, não as linhas do NodeGoat),
+      depois por linha; o primeiro chunk costuma ser só os imports.
+      NodeGoat: linhas vulneráveis na amostra 2/9 → **4/9**. Custo medido:
+      chunks arriscados são maiores, então cabem menos arquivos no mesmo
+      orçamento (este repo 24 → 18 arquivos; saem, entre outros,
+      `checkout.ts` e `drizzle-project-queries.ts`, entra `db.ts`). No
+      NodeGoat faltam os DAOs (`app/data/`): os chunks das rotas esgotam o
+      orçamento antes. Próxima alavanca: ordenar também os arquivos por
+      risco, ou enviar só o trecho arriscado de chunks grandes. Eval do LLM
+      pendente da cota do Groq.
 - [ ] `npm run eval` → `evals/results/<data>.json`: precisão/recall dos
       achados, falsos positivos, groundedness do chat, recall do retrieval,
       latência, tokens e custo.
