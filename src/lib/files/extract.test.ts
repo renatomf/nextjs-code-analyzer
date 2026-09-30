@@ -171,6 +171,23 @@ describe("extractFromZipBuffer", () => {
     if (!result.ok) expect(result.error).toMatch(/file limit/);
   });
 
+  it("counts only JS/TS files against the file count limit", async () => {
+    // 12 translation files (not analyzed, not stored) + 2 source files.
+    const entries = Object.fromEntries([
+      ...Array.from({ length: 12 }, (_, i) => [`i18n/l${i}.json`, "{}"]),
+      ["src/a.ts", "x"],
+      ["src/b.ts", "y"],
+    ]);
+    const result = await extractFromZipBuffer(await makeZip(entries));
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.sourceFiles.map((f) => f.relativePath).sort()).toEqual(["src/a.ts", "src/b.ts"]);
+      // Still listed, for framework detection by file names.
+      expect(result.allRelativePaths).toHaveLength(14);
+    }
+  });
+
   it("rejects repositories whose decompressed total exceeds the size limit", async () => {
     // Each file is under the per-file limit; together they exceed 4096 bytes.
     const entries = Object.fromEntries(
