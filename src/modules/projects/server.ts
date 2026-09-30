@@ -27,6 +27,8 @@ export {
 } from "./infrastructure/drizzle-report-shares";
 export {
   findExistingImport,
+  findOwnedProject,
+  getChatProject,
   getProjectIssues,
   getProjectProgress,
   getProjectReport,

@@ -1,9 +1,15 @@
-import { RAG_TOP_K } from "@/lib/limits";
-import {
-  embedQuery,
-  searchProjectChunks,
-  type StoredChunk,
-} from "@/modules/ingestion/server";
+/**
+ * Chat prompt policy and message handling. Pure: retrieval lives in
+ * `../server.ts`.
+ */
+
+/** A code chunk retrieved for the question. */
+export type RetrievedChunk = {
+  filePath: string;
+  content: string;
+  startLine: number | null;
+  endLine: number | null;
+};
 
 export type ChatSource = {
   filePath: string;
@@ -15,7 +21,7 @@ export type ChatSource = {
 export function buildChatSystemPrompt(options: {
   projectName: string;
   framework: string | null;
-  chunks: StoredChunk[];
+  chunks: RetrievedChunk[];
 }): string {
   const context = options.chunks
     .map((chunk, index) => {
@@ -48,30 +54,6 @@ export function buildChatSystemPrompt(options: {
     "Retrieved code sources:",
     context || "(No relevant sources were retrieved.)",
   ].join("\n");
-}
-
-/** `userId` must come from the server session. */
-export async function retrieveChatContext(
-  userId: string,
-  projectId: string,
-  question: string,
-): Promise<{ chunks: StoredChunk[]; sources: ChatSource[] }> {
-  const queryEmbedding = await embedQuery(question);
-  const chunks = await searchProjectChunks(
-    userId,
-    projectId,
-    queryEmbedding,
-    RAG_TOP_K,
-  );
-
-  const sources: ChatSource[] = chunks.map((chunk) => ({
-    filePath: chunk.filePath,
-    startLine: chunk.startLine,
-    endLine: chunk.endLine,
-    score: chunk.score ?? 0,
-  }));
-
-  return { chunks, sources };
 }
 
 export function extractLastUserText(

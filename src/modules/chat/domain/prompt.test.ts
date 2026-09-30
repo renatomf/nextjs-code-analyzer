@@ -1,10 +1,6 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
-// chat-rag imports the ingestion module (database, model); these helpers
-// need neither.
-vi.mock("@/modules/ingestion/server", () => ({}));
-
-import { extractLastUserText } from "@/lib/analysis/chat-rag";
+import { extractLastUserText } from "./prompt";
 
 describe("extractLastUserText", () => {
   it("takes the last user message, ignoring the assistant's", () => {

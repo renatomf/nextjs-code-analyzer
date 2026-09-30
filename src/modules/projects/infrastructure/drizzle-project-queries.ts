@@ -99,6 +99,23 @@ export function getProjectProgress(userId: string, projectId: string) {
   });
 }
 
+/** The owner's project: what the chat and the explorer routes need. */
+export async function findOwnedProject(userId: string, projectId: string) {
+  const [project] = await db
+    .select({ id: projects.id, name: projects.name, framework: projects.framework })
+    .from(projects)
+    .where(owned(userId, projectId))
+    .limit(1);
+  return project;
+}
+
+/** The chat needs the project and to know whether its code is indexed. */
+export async function getChatProject(userId: string, projectId: string) {
+  const project = await findOwnedProject(userId, projectId);
+  if (!project) return undefined;
+  return { ...project, hasChunks: await hasCodeChunks(project.id) };
+}
+
 /** Called only after the ownership check of the caller in this file. */
 async function hasCodeChunks(projectId: string) {
   const [chunk] = await db
