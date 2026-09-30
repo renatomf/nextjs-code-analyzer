@@ -36,9 +36,14 @@ test files in the review sample). There is no full ground truth here; it tracks 
 **Real repositories** ([repos/repos.ts](repos/repos.ts)): open-source
 projects with known problems, annotated by file and line, pinned to a
 commit and read like a GitHub import. The source is downloaded once into
-`evals/.cache/` (git-ignored) and never committed. Today: OWASP NodeGoat
-(Apache-2.0), 9 active vulnerabilities (the fixes it keeps commented out do
-not count). Reported without an LLM: files, chunks, deterministic findings
+`evals/.cache/` (git-ignored) and never committed. Today:
+
+- OWASP NodeGoat (Apache-2.0, Express): 9 active vulnerabilities (the fixes
+  it keeps commented out do not count).
+- OWASP Juice Shop (MIT, TypeScript, Express + Angular): 8 files with
+  vulnerable lines, taken from the project's own `vuln-code-snippet
+  vuln-line` markers. The markers name the flaw, so the loader strips them
+  (the comment only; line numbers stay) before the analysis. Reported without an LLM: files, chunks, deterministic findings
 and how many annotated lines reach the reviewer's sample (the model can
 only report what it receives). NodeGoat comments its own flaws, so its LLM
 recall is an upper bound.
@@ -81,7 +86,8 @@ and the run fails if a change makes the analysis worse (`GATE` in
 
 - annotated cases: precision and recall stay at 1.00;
 - real repositories: at least as many annotated vulnerable lines in the LLM
-  review sample as the last improvement reached (NodeGoat: 5 of 9).
+  review sample as the last improvement reached (NodeGoat: 5 of 9; Juice
+  Shop: 1 of 8, its baseline).
 
 Raise a limit when an improvement is merged; never lower one to make a
 change pass.

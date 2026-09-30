@@ -47,9 +47,11 @@ async function realRepository(repoCase: RepoCase) {
   }
   const expected = repoCase.expected.map((e) => ({
     filePath: e.filePath,
-    line: e.line,
+    lines: e.lines,
     inSample: sample.some(
-      (c) => c.filePath === e.filePath && (c.startLine ?? 0) <= e.line && e.line <= (c.endLine ?? 0),
+      (c) =>
+        c.filePath === e.filePath &&
+        e.lines.some((line) => (c.startLine ?? 0) <= line && line <= (c.endLine ?? 0)),
     ),
   }));
 
@@ -217,7 +219,7 @@ it("measures the deterministic analysis", async () => {
 const GATE = {
   minPrecision: 1,
   minRecall: 1,
-  minExpectedInSample: { nodegoat: 5 } as Record<string, number>,
+  minExpectedInSample: { nodegoat: 5, "juice-shop": 1 } as Record<string, number>,
 };
 
 type EvalResult = {
