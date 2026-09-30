@@ -1,3 +1,5 @@
+import { dataBlock, dataRules } from "@/shared/prompt-data";
+
 /**
  * Chat prompt policy and message handling. Pure: retrieval lives in
  * `../server.ts`.
@@ -18,10 +20,15 @@ export type ChatSource = {
   score: number;
 };
 
+/**
+ * The retrieved code is untrusted (TD-28): each source goes in a data block
+ * marked with `boundary` (random per request, see `newDataBoundary`).
+ */
 export function buildChatSystemPrompt(options: {
   projectName: string;
   framework: string | null;
   chunks: RetrievedChunk[];
+  boundary: string;
 }): string {
   const context = options.chunks
     .map((chunk, index) => {
@@ -29,13 +36,11 @@ export function buildChatSystemPrompt(options: {
         chunk.startLine && chunk.endLine
           ? `L${chunk.startLine}-L${chunk.endLine}`
           : "lines unknown";
-      return [
-        `### Source ${index + 1}`,
-        `File: ${chunk.filePath} (${lines})`,
-        "```",
+      return dataBlock(
+        options.boundary,
+        `Source ${index + 1}. File: ${chunk.filePath} (${lines})`,
         chunk.content,
-        "```",
-      ].join("\n");
+      );
     })
     .join("\n\n");
 
@@ -50,6 +55,7 @@ export function buildChatSystemPrompt(options: {
     "- If the sources are insufficient, say what is missing instead of inventing details.",
     "- Be concrete and concise. Prefer explanations tied to real code.",
     "- Do not claim to have run the code or verified runtime behavior.",
+    ...dataRules(options.boundary).map((rule) => `- ${rule}`),
     "",
     "Retrieved code sources:",
     context || "(No relevant sources were retrieved.)",

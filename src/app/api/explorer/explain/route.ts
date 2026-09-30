@@ -1,4 +1,5 @@
 import { logger, requestIdFrom } from "@/shared/logger";
+import { dataBlock, dataRules, newDataBoundary } from "@/shared/prompt-data";
 import { generateText } from "ai";
 import { z } from "zod";
 
@@ -51,21 +52,22 @@ export async function POST(request: Request) {
         ? `${file.content.slice(0, 12000)}\n\n/* truncated for analysis */`
         : file.content;
 
+    // The file is untrusted (TD-28): it goes in a data block, the rules in
+    // the instructions.
+    const boundary = newDataBoundary();
     const { text } = await generateText({
       model: getLanguageModel(),
-      prompt: [
+      instructions: [
         "You are an AI senior engineer helping a developer understand a single source file.",
         "Be concrete and concise. Cite symbols/functions from the file when useful.",
         "If something is unclear from this file alone, say so.",
-        "",
+        ...dataRules(boundary),
+      ].join("\n"),
+      prompt: [
         `Project: ${project.name}`,
-        `File: ${file.relativePath}`,
         `Question: ${question}`,
         "",
-        "File contents:",
-        "```",
-        truncated,
-        "```",
+        dataBlock(boundary, `File: ${file.relativePath}`, truncated),
       ].join("\n"),
     });
 

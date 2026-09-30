@@ -1,6 +1,8 @@
 import { logger, requestIdFrom } from "@/shared/logger";
 import { z } from "zod";
 
+import { newDataBoundary } from "@/shared/prompt-data";
+
 import { getLanguageModel } from "@/lib/ai/llm";
 import { auth } from "@/lib/auth";
 import { assertChatRateLimit, RateLimitError } from "@/lib/rate-limit";
@@ -95,10 +97,11 @@ export async function POST(request: Request) {
 
     const result = streamText({
       model: getLanguageModel(),
-      system: buildChatSystemPrompt({
+      instructions: buildChatSystemPrompt({
         projectName: project.name,
         framework: project.framework,
         chunks,
+        boundary: newDataBoundary(),
       }),
       messages: await convertToModelMessages(messages),
     });
