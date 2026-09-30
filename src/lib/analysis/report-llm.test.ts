@@ -119,6 +119,21 @@ describe("runLlmHealthReview", () => {
     });
   });
 
+  it("sends the review prompt word for word (a change here is a prompt change)", async () => {
+    model.answers = [answer(report)];
+
+    await review();
+
+    const { prompt } = model.lastOptions as {
+      prompt: Array<{ role: string; content: string | Array<{ type: string; text?: string }> }>;
+    };
+    // The data boundary is random per request.
+    const text = (content: string | Array<{ type: string; text?: string }>) =>
+      (typeof content === "string" ? content : content.map((part) => part.text ?? "").join(""))
+        .replace(/[0-9a-f]{16}/g, "<boundary>");
+    expect(prompt.map((message) => `[${message.role}]\n${text(message.content)}`).join("\n\n")).toMatchSnapshot();
+  });
+
   it("caps the number of issues and the length of their texts", async () => {
     const [valid] = report.issues;
     const issues = Array.from({ length: 12 }, (_, i) => ({

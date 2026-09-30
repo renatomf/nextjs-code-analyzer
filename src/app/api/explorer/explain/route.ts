@@ -1,5 +1,5 @@
 import { logger, requestIdFrom } from "@/shared/logger";
-import { dataBlock, dataRules, newDataBoundary } from "@/shared/prompt-data";
+import { dataBlock, newDataBoundary } from "@/shared/prompt-data";
 import { generateText } from "ai";
 import { z } from "zod";
 
@@ -7,6 +7,7 @@ import { getLanguageModel } from "@/lib/ai/llm";
 import { auth } from "@/lib/auth";
 import { readProjectFile } from "@/lib/files/explorer";
 import { assertChatRateLimit, RateLimitError } from "@/lib/rate-limit";
+import { explainInstructions } from "@/modules/chat";
 import { findOwnedProject } from "@/modules/projects/server";
 
 export const runtime = "nodejs";
@@ -57,12 +58,7 @@ export async function POST(request: Request) {
     const boundary = newDataBoundary();
     const { text } = await generateText({
       model: getLanguageModel(),
-      instructions: [
-        "You are an AI senior engineer helping a developer understand a single source file.",
-        "Be concrete and concise. Cite symbols/functions from the file when useful.",
-        "If something is unclear from this file alone, say so.",
-        ...dataRules(boundary),
-      ].join("\n"),
+      instructions: explainInstructions(boundary),
       prompt: [
         `Project: ${project.name}`,
         `Question: ${question}`,

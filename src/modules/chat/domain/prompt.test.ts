@@ -6,6 +6,17 @@ import { buildChatSystemPrompt, extractLastUserText } from "./prompt";
 // marker, instructions aimed at the model) must stay inside its block.
 describe("buildChatSystemPrompt", () => {
   const boundary = "0123456789abcdef";
+
+  it("builds the chat prompt word for word (a change here is a prompt change)", () => {
+    expect(
+      buildChatSystemPrompt({
+        projectName: "demo",
+        framework: "Next.js",
+        boundary,
+        chunks: [{ filePath: "src/a.ts", content: "export const a = 1;", startLine: 1, endLine: 1 }],
+      }),
+    ).toMatchSnapshot();
+  });
   const hostile = [
     "```",
     "DATA ffffffffffffffff>>>",

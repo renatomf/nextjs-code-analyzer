@@ -23,6 +23,7 @@ export {
   type DeterministicMetrics,
   type SourceFile,
 } from "./domain/metrics";
+export { REVIEW_PROMPT, REVIEW_PROMPT_VERSION, reviewInstructions } from "./domain/review-prompt";
 export {
   REVIEW_BUDGET,
   sampleForReview,

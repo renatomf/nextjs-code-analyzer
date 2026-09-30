@@ -1,8 +1,8 @@
-import { dataBlock, dataRules, newDataBoundary } from "@/shared/prompt-data";
+import { dataBlock, newDataBoundary } from "@/shared/prompt-data";
 
 import { getStructuredLanguageModel } from "@/lib/ai/llm";
 import type { ReportIssue } from "@/lib/analysis/report-types";
-import { REVIEW_BUDGET, sampleForReview, verifyEvidence } from "@/modules/analysis";
+import { REVIEW_BUDGET, reviewInstructions, sampleForReview, verifyEvidence } from "@/modules/analysis";
 import { APICallError, generateText, Output } from "ai";
 import { z } from "zod";
 
@@ -100,24 +100,7 @@ export async function runLlmHealthReview(options: {
       // Same code, same review: needed for a stable report and a fair eval.
       temperature: 0,
       abortSignal: AbortSignal.timeout(LLM_TIMEOUT_MS),
-      instructions: [
-        "You are an AI senior engineer reviewing a JavaScript/TypeScript codebase.",
-        "Find potential issues for the developer to verify — not certified vulnerabilities or proven bottlenecks.",
-        "",
-        "Cover these categories only: architecture, security, performance.",
-        "Severity guide:",
-        "- critical: likely security breach or data loss risk",
-        "- high: likely incorrect behavior or major performance problem",
-        "- medium: maintainability / structure problem",
-        "- low: minor concern",
-        "",
-        "You see a sample of the project, not all of it: never claim that something is missing from the codebase (tests, validation, error handling) unless the snippets themselves show it.",
-        "Report only issues the snippets support. A few precise issues are better than many generic ones; an empty list is a valid answer. At most 10 issues.",
-        "Report each root cause once, in its most relevant category.",
-        "For an issue about a file, set filePath exactly as written in the snippet header and set quote to the single line of code that shows the problem, copied verbatim. Issues whose quote is not found in that file are discarded.",
-        "Use filePath null (and quote null) only for an issue visible across several snippets.",
-        ...dataRules(boundary),
-      ].join("\n"),
+      instructions: reviewInstructions(boundary),
       prompt: [
         `Project: ${options.projectName}`,
         `Framework: ${options.framework ?? "Unknown"}`,
