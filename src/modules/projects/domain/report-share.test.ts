@@ -28,13 +28,17 @@ describe("isShareActive", () => {
   });
 });
 
+// Fake credentials are assembled at runtime so no key-shaped literal sits in
+// the source (GitHub secret scanning flags the format, even for fakes).
+const fake = (...parts: string[]) => parts.join("");
+
 describe("redactForPublic", () => {
   it.each([
-    ["Hardcoded key sk_live_abc123 in config", "Hardcoded key [REDACTED] in config"],
-    ["AWS key AKIAABCDEFGHIJKLMNOP committed", "AWS key [REDACTED] committed"],
-    ["OpenAI key sk-proj-abcdefghijklmnopqrstuv found", "OpenAI key [REDACTED] found"],
-    ["Google key AIzaSyA1234567890abcdefghijklmnopqrstuv", "Google key [REDACTED]"],
-    ["token eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.abcdefghijk1234", "token [REDACTED]"],
+    [`Hardcoded key ${fake("sk_", "live_", "abc123")} in config`, "Hardcoded key [REDACTED] in config"],
+    [`AWS key ${fake("AK", "IA", "X".repeat(16))} committed`, "AWS key [REDACTED] committed"],
+    [`OpenAI key ${fake("sk-", "proj-", "x".repeat(22))} found`, "OpenAI key [REDACTED] found"],
+    [`Google key ${fake("AI", "za", "x".repeat(35))}`, "Google key [REDACTED]"],
+    [`token ${fake("ey", "J", "x".repeat(12), ".", "y".repeat(12), ".", "z".repeat(12))}`, "token [REDACTED]"],
     ['password = "hunter2hunter2" in db.ts', 'password = "[REDACTED]" in db.ts'],
     ["apiKey: 'abcd1234efgh' is exposed", "apiKey: '[REDACTED]' is exposed"],
     [
