@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { appendFileSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { expect, it } from "vitest";
@@ -132,5 +132,36 @@ it("measures the chat retrieval", async () => {
     ].join("\n"),
   );
 
+  const summary = process.env.GITHUB_STEP_SUMMARY;
+  if (summary) {
+    appendFileSync(
+      summary,
+      [
+        `## Chat retrieval eval @ \`${result.commit}\` (top ${RAG_TOP_K})`,
+        "",
+        `| Repository | Questions answered in the top ${RAG_TOP_K} | Hit@1 | MRR |`,
+        "|---|---|---|---|",
+        ...cases.map(
+          (c) =>
+            `| ${c.repo} | ${c.details.filter((q) => q.rank !== null).length}/${c.questions} (gate ≥ ${GATE[c.repo] ?? 0}) | ${pct(c.hitAt1)} | ${pct(c.mrr)} |`,
+        ),
+        "",
+      ].join("\n"),
+    );
+  }
+
   expect(cases).toHaveLength(RETRIEVAL_CASES.length);
+  // Quality gate (also in CI): questions answered in the top k may not drop.
+  for (const c of cases) {
+    const answered = c.details.filter((q) => q.rank !== null).length;
+    expect(answered, `${c.repo}: questions answered in the top ${RAG_TOP_K}`).toBeGreaterThanOrEqual(
+      GATE[c.repo] ?? 0,
+    );
+  }
 }, 20 * 60_000);
+
+/**
+ * Questions answered in the top k, per repository: the baseline of
+ * 2026-09-30 (`18b11ed`). Raise when an improvement is merged, never lower.
+ */
+const GATE: Record<string, number> = { nodegoat: 7, "juice-shop": 2, "this-repository": 3 };
