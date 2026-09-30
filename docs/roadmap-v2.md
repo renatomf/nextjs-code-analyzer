@@ -574,6 +574,15 @@ Vem antes da ingestão assíncrona: job em segundo plano sem log é caixa preta.
       embedding). Falta: groundedness da resposta (usa o LLM).
 - [ ] Prompts em arquivos versionados; PR que altera prompt ou retrieval roda
       o eval e falha se a qualidade cair.
+      Progresso: os 3 prompts em módulos próprios (`analysis/domain/
+      review-prompt.ts`, `chat/domain/prompt.ts`, `chat/domain/
+      explain-prompt.ts`), o texto enviado provado idêntico por snapshot
+      antes × depois; versão = hash do texto fixo. `evals/prompts.lock.json`
+      registra a versão de cada prompt e o resultado de eval que a mediu, e
+      o CI falha se um prompt muda sem o lock (o CI não tem chave do LLM,
+      então não roda o eval do prompt ele mesmo). Retrieval: o eval roda no
+      CI com gate. Falta: o CI rodar o eval do LLM e falhar se a qualidade
+      cair (precisa de uma chave de LLM no CI, conta Groq separada).
 - [ ] **Dogfooding:** o analisador roda no próprio repo a cada PR e publica
       score e achados; gráfico do score ao longo das fases no README.
       Progresso: job `eval` no CI (parte determinística, sem LLM, sem custo

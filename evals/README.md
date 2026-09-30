@@ -107,6 +107,21 @@ and the run fails if a change makes the analysis worse (`GATE` in
 Raise a limit when an improvement is merged; never lower one to make a
 change pass.
 
+## Prompts
+
+The LLM prompts live in their own modules (`REVIEW_PROMPT`, `CHAT_PROMPT`,
+`EXPLAIN_PROMPT`); a prompt's version is a hash of its fixed text.
+[prompts.lock.json](prompts.lock.json) records each version with the eval
+result that measured it, and CI fails when a prompt changes without the
+lock ([prompts/prompts.test.ts](prompts/prompts.test.ts)): CI has no LLM
+key, so the author runs the eval and commits the result. To change a
+prompt:
+
+1. edit it, and run `RUN_LLM_EVAL=1 npm run eval` (the result records
+   `promptVersions`);
+2. compare with the result the lock points to;
+3. commit the result, and set the new version and that file in the lock.
+
 ## Rules
 
 - Files in the cases are built at runtime: fake credentials never appear as

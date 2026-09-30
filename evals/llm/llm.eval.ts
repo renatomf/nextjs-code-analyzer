@@ -6,7 +6,7 @@ import { expect, it } from "vitest";
 
 import { chunkProjectFiles } from "@/lib/analysis/chunking";
 import { runLlmHealthReview } from "@/lib/analysis/report-llm";
-import type { IssueCategory } from "@/modules/analysis";
+import { REVIEW_PROMPT_VERSION, type IssueCategory } from "@/modules/analysis";
 
 import { loadRepo, REPO_CASES } from "../repos/repos";
 import { LLM_CASES } from "./cases";
@@ -188,6 +188,8 @@ it.skipIf(!enabled)(
       date,
       commit,
       model: process.env.GROQ_STRUCTURED_MODEL ?? "openai/gpt-oss-120b",
+      // Which prompt text was measured (evals/prompts.lock.json points here).
+      promptVersions: { review: REVIEW_PROMPT_VERSION },
       llm: { cases },
     };
     const dir = join(process.cwd(), "evals", "results");
