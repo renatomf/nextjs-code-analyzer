@@ -1,5 +1,7 @@
 import { randomUUID } from "node:crypto";
 
+import { REDACTED, redactSecrets } from "./redact";
+
 /**
  * Structured server-side logger (TD-26). One JSON line per event, which the
  * Vercel log viewer can filter by field. It carries the real error (name,
@@ -19,28 +21,14 @@ export type LogFields = {
   [key: string]: unknown;
 };
 
-const REDACTED = "[REDACTED]";
 const MAX_DEPTH = 4;
 const MAX_STRING = 2000;
 
 const SENSITIVE_KEY =
   /pass(word)?|secret|token|api[-_]?key|authorization|cookie|credential|database_url|private[-_]?key/i;
 
-// Credentials that may appear inside free text (error messages, stacks).
-const SENSITIVE_TEXT: Array<[RegExp, string]> = [
-  [/(postgres(?:ql)?:\/\/)[^\s@/]+@/gi, `$1${REDACTED}@`],
-  [/\bBearer\s+[\w.~+/-]+=*/gi, `Bearer ${REDACTED}`],
-  [/\b(?:sk|rk|pk)_(?:live|test)_[A-Za-z0-9]+/g, REDACTED],
-  [/\bwhsec_[A-Za-z0-9]+/g, REDACTED],
-  [/\bgh[pousr]_[A-Za-z0-9]{20,}/g, REDACTED],
-  [/\bgsk_[A-Za-z0-9]{20,}/g, REDACTED],
-];
-
 export function redactText(text: string): string {
-  let out = text;
-  for (const [pattern, replacement] of SENSITIVE_TEXT) {
-    out = out.replace(pattern, replacement);
-  }
+  const out = redactSecrets(text);
   return out.length > MAX_STRING ? `${out.slice(0, MAX_STRING)}…` : out;
 }
 

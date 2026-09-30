@@ -206,6 +206,21 @@ export const reports = pgTable("reports", {
   createdAt: createdAt(),
 }).enableRLS();
 
+// Public read-only link to a project's report. One per project (a new link
+// replaces the old one). Only the SHA-256 of the token is stored: the link
+// itself is shown to the owner once. Null expiresAt = no expiry (revocable).
+export const reportShares = pgTable("report_shares", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  projectId: uuid("project_id")
+    .notNull()
+    .unique()
+    .references(() => projects.id, { onDelete: "cascade" }),
+  tokenHash: text("token_hash").notNull().unique(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }),
+  revokedAt: timestamp("revoked_at", { withTimezone: true }),
+  createdAt: createdAt(),
+}).enableRLS();
+
 // Relations
 
 export const usersRelations = relations(users, ({ many }) => ({

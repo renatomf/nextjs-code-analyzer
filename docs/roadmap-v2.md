@@ -314,7 +314,9 @@ medido antes e depois.
       rota de status sem Drizzle; baseline 24 → 12); rede de testes da
       importação + reembolso da cota em falha nossa (TD-12) e TD-14;
       importação no módulo (`importArchive`, criação do projeto e busca de
-      duplicado); próximo: link público do relatório. Convenção
+      duplicado); link público do relatório — backend (tabela
+      `report_shares`, token só como hash, revogação, expiração, redação de
+      segredos); próximo: a interface. Convenção
       provisória em [`docs/modules.md`](modules.md).
 - [ ] identity: acesso a dados atrás do módulo.
 - [ ] Queries por módulo para todas as pages (sai o Drizzle de `src/app`).
