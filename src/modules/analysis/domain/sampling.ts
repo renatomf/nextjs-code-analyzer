@@ -87,8 +87,24 @@ export function riskScore(content: string): number {
 /** 0 = server logic, 1 = other logic, 2 = UI, 3 = configuration and type declarations. */
 function priority(filePath: string): number {
   if (/\.config\.[cm]?[jt]s$|\.d\.ts$/i.test(filePath)) return 3;
-  if (/\.[jt]sx$/i.test(filePath)) return 2;
+  if (isUiFile(filePath)) return 2;
   return pathWords(filePath).some((word) => SERVER_WORDS.has(word)) ? 0 : 1;
+}
+
+/**
+ * Code that runs in the browser: its path may say "payment" or "auth"
+ * (`frontend/src/app/payment/payment.component.ts`), but the checks that
+ * matter run on the server. Only unambiguous signs: JSX, Angular components
+ * (NestJS uses `.service`/`.module`/`.pipe` on the server, not
+ * `.component`), a top-level `frontend/` or `client/` folder, and files
+ * inside a static-files folder.
+ */
+function isUiFile(filePath: string): boolean {
+  if (/\.[jt]sx$|\.component\.[jt]s$/i.test(filePath)) return true;
+  if (/^(frontend|client)\//i.test(filePath)) return true;
+  // Served files and data (`public/js/`, `app/assets/`, `data/static/`),
+  // not code the server runs.
+  return /(^|\/)(static|public|assets)\//i.test(filePath);
 }
 
 /**

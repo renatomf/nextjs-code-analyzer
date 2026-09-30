@@ -87,7 +87,7 @@ and the run fails if a change makes the analysis worse (`GATE` in
 - annotated cases: precision and recall stay at 1.00;
 - real repositories: at least as many annotated vulnerable lines in the LLM
   review sample as the last improvement reached (NodeGoat: 5 of 9; Juice
-  Shop: 1 of 8, its baseline).
+  Shop: 2 of 8).
 
 Raise a limit when an improvement is merged; never lower one to make a
 change pass.

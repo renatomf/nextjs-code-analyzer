@@ -538,6 +538,17 @@ Vem antes da ingestão assíncrona: job em segundo plano sem log é caixa preta.
       (`*.component.ts`, `frontend/`, `client/`) não ganha prioridade de
       servidor pelo nome. A medir em produção: se a ingestão de 2 mil
       chunks cabe nos 300 s da Vercel.
+      ✅ Código do navegador sem prioridade de servidor pelo nome
+      (componentes Angular `*.component.ts`, pasta `frontend/` ou `client/`
+      na raiz): Juice Shop 1/8 → **2/8** (entra `routes/login.ts`, SQL
+      injection no login); NodeGoat e este repo sem mudança. Arquivos em
+      `static/`, `public/` ou `assets/` também (servidos ou dados, não
+      código do servidor): o número não mudou (2/8), mas as variantes de
+      `data/static/codefixes/` saíram e a amostra ficou só com backend. O
+      limite agora é estrutural: ~60 rotas no Juice Shop, cabem 13 no
+      orçamento de 16 mil caracteres. Avançar pede mais orçamento por
+      análise (várias chamadas em lotes ou outro provedor, ADR-011),
+      decisão de custo/cota a tomar depois do eval do LLM.
 - [ ] `npm run eval` → `evals/results/<data>.json`: precisão/recall dos
       achados, falsos positivos, groundedness do chat, recall do retrieval,
       latência, tokens e custo.
