@@ -511,6 +511,19 @@ Vem antes da ingestão assíncrona: job em segundo plano sem log é caixa preta.
       orçamento antes. Próxima alavanca: ordenar também os arquivos por
       risco, ou enviar só o trecho arriscado de chunks grandes. Eval do LLM
       pendente da cota do Groq.
+      ✅ Arquivos com sinal de risco antes dos sem nenhum (respeitando a
+      prioridade por caminho entre eles), o mais arriscado primeiro:
+      NodeGoat 4/9 → **5/9** (entra `user-dao.js`, senhas em texto puro).
+      Este repo mostrou um viés dos sinais: só conheciam Express e SQL cru,
+      e consulta via ORM (Drizzle/Prisma), NextAuth e `process.env`
+      pontuavam zero, então `proxy.ts` e os repositórios saíam da amostra.
+      Sinais ampliados com acesso a dados via ORM, bibliotecas de
+      autenticação e segredos/configuração (categorias do OWASP para
+      qualquer stack): NodeGoat segue 5/9; este repo 17 arquivos, com
+      `proxy.ts`, `auth.ts`, rotas de API, webhook e checkout. Faltam no
+      NodeGoat os outros DAOs, a regex do ReDoS e o `autoescape`, por
+      orçamento. Próximo passo: o eval do LLM, para saber se o recall
+      acompanha a amostra, antes de mexer mais nela.
 - [ ] `npm run eval` → `evals/results/<data>.json`: precisão/recall dos
       achados, falsos positivos, groundedness do chat, recall do retrieval,
       latência, tokens e custo.
