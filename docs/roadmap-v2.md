@@ -482,6 +482,12 @@ Vem antes da ingestão assíncrona: job em segundo plano sem log é caixa preta.
 - [ ] `npm run eval` → `evals/results/<data>.json`: precisão/recall dos
       achados, falsos positivos, groundedness do chat, recall do retrieval,
       latência, tokens e custo.
+      Progresso: harness da análise determinística (casos anotados + este
+      repo lido como importação do GitHub). **Baseline da Fase 7**
+      (2026-09-30, `a853a30`): precisão 0,67, recall 1,00, 3 falsos
+      positivos (componente React por linhas, `oauth-icons` como área
+      crítica, texto de UI com "token"); este repo: 22 achados, Code
+      Quality 0 e Testing 0. Falta: retrieval, LLM, latência e custo.
 - [ ] Prompts em arquivos versionados; PR que altera prompt ou retrieval roda
       o eval e falha se a qualidade cair.
 - [ ] **Dogfooding:** o analisador roda no próprio repo a cada PR e publica
