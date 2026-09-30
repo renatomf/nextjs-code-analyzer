@@ -53,4 +53,17 @@ describe("IssueCard", () => {
     expect(screen.queryAllByRole("listitem")).toHaveLength(0);
     expect(screen.getByRole("link", { name: "src/auth/login.ts" })).toBeTruthy();
   });
+
+  it("shows the lines the evidence points to", () => {
+    const { occurrences, ...single } = grouped;
+    void occurrences;
+    const { rerender } = render(
+      <IssueCard issue={{ ...single, evidence: { startLine: 12, endLine: 14, snippet: "x" } }} />,
+    );
+
+    expect(screen.getByText(":12-14")).toBeTruthy();
+
+    rerender(<IssueCard issue={{ ...single, evidence: { startLine: 7, endLine: 7 } }} />);
+    expect(screen.getByText(":7")).toBeTruthy();
+  });
 });

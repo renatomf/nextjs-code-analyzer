@@ -127,6 +127,32 @@ describe("findSharedReport", () => {
     expect(report?.issues[0].description).toContain("[REDACTED]");
   });
 
+  it("shares the evidence's lines but never the quoted code", async () => {
+    const projectId = await sharedProject("share-evidence");
+    const quoted = "const rows = await db.query(sql + name);";
+    await db
+      .update(reports)
+      .set({
+        issues: [
+          {
+            title: "SQL built from input",
+            description: "The query concatenates a request parameter.",
+            severity: "critical",
+            category: "security",
+            filePath: "src/routes/users.ts",
+            evidence: { startLine: 12, endLine: 12, snippet: quoted },
+          },
+        ],
+      })
+      .where(eq(reports.projectId, projectId));
+    const share = await createReportShare(alice, projectId, "7d");
+
+    const report = await findSharedReport(share!.token);
+
+    expect(report?.issues[0].evidence).toEqual({ startLine: 12, endLine: 12 });
+    expect(JSON.stringify(report)).not.toContain(quoted);
+  });
+
   it("redacts secrets inside the occurrences of a grouped finding", async () => {
     const projectId = await sharedProject("share-redact-grouped");
     const occurrence = (file: string) => ({

@@ -10,8 +10,9 @@ export type IssueCategory =
   | "testing";
 
 /**
- * Where in the code a finding comes from. Optional: today no rule or LLM
- * review fills it; Phase 7 requires it for high/critical findings.
+ * Where in the code a finding comes from. The LLM review fills it for every
+ * finding about a file (verifyEvidence); the deterministic rules do not yet.
+ * Public report links get the lines only, never the snippet.
  */
 export type Evidence = {
   startLine: number;

@@ -11,7 +11,8 @@ import type { ReportIssue } from "@/lib/analysis/report-types";
 import { cn } from "@/lib/utils";
 
 // One issue card for every list (report "Top issues" and the Issues page):
-// severity-colored left rule + icon + badges, files linked to the explorer.
+// severity-colored left rule + icon + badges, files linked to the explorer,
+// with the lines the evidence points to.
 // A grouped finding (ADR-010) lists each occurrence.
 // No hooks, so it renders from both server and client components.
 // Without `projectId` (public shared report) the file is plain text.
@@ -52,6 +53,14 @@ export function IssueCard({
       ) : issue.filePath ? (
         <div className="mt-2">
           <FileRef filePath={issue.filePath} projectId={projectId} />
+          {issue.evidence ? (
+            <span className="font-mono text-xs text-(--ca-muted)">
+              :{issue.evidence.startLine}
+              {issue.evidence.endLine > issue.evidence.startLine
+                ? `-${issue.evidence.endLine}`
+                : ""}
+            </span>
+          ) : null}
         </div>
       ) : (
         <p className="mt-2 font-mono text-xs text-(--ca-muted)">
