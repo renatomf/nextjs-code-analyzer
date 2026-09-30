@@ -155,6 +155,10 @@ export async function findSharedReport(token: string): Promise<SharedReport | nu
       severity: issue.severity,
       category: issue.category,
       filePath: issue.filePath,
+      // Line numbers only: the quoted code (snippet) stays private.
+      ...(issue.evidence
+        ? { evidence: { startLine: issue.evidence.startLine, endLine: issue.evidence.endLine } }
+        : {}),
       ...(issue.occurrences
         ? {
             occurrences: issue.occurrences.map((occurrence) => ({
