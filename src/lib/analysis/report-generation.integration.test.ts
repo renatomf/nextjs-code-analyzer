@@ -128,16 +128,16 @@ describe("generateProjectReport (characterization)", () => {
     expect(await projectState(projectId)).toEqual({ status: "completed", errorMessage: null });
   });
 
-  it("sends the LLM the first 80 chunks in file-path order", async () => {
+  it("gives the LLM review every chunk, in file-path order (it samples them)", async () => {
     const projectId = await analyzedProject(85);
 
     await generateProjectReport(owner, projectId);
 
     const [{ projectName, framework, chunks }] = mocks.runLlmHealthReview.mock.calls[0];
     expect({ projectName, framework }).toEqual({ projectName: "fixture", framework: "nextjs" });
-    expect(chunks).toHaveLength(80);
+    expect(chunks).toHaveLength(85);
     expect(chunks[0].filePath).toBe("src/chunk-000.ts");
-    expect(chunks[79].filePath).toBe("src/chunk-079.ts");
+    expect(chunks[84].filePath).toBe("src/chunk-084.ts");
   });
 
   it("fails with a user-facing message when there is no code knowledge", async () => {

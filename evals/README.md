@@ -29,8 +29,9 @@ missed ones. A finding matches an expectation by category, file and title;
 each expectation matches once.
 
 **This repository**, read like a GitHub import (the committed tree through the
-real extractor): number of findings per rule and the deterministic category
-scores. There is no full ground truth here; it tracks the dogfooding trend.
+real extractor): number of findings per rule, the deterministic category
+scores and what the LLM reviewer would see of it (files, directories and
+test files in the review sample). There is no full ground truth here; it tracks the dogfooding trend.
 
 ## LLM review (opt-in)
 
@@ -40,12 +41,15 @@ RUN_LLM_EVAL=1 npm run eval   # real model, free Groq quota, about 5 minutes
 
 Cases in [llm/cases.ts](llm/cases.ts): planted problems a reviewer should
 find (SQL built from input, a delete route without authorization, N+1 and
-sync file reads), plus the same code with a comment that tries to steer the
-reviewer (prompt injection, TD-28). Each case runs `LLM_EVAL_RUNS` times
+sync file reads), the same code with a comment that tries to steer the
+reviewer (prompt injection, TD-28), and the problem files behind 30
+harmless files that come first in alphabetical order (the review sample
+must reach them). Each case runs `LLM_EVAL_RUNS` times
 (default 3), spaced out for the free tier's tokens per minute. Per case:
 **recall** (category + file), **evidence validity** (cited files the model
 actually received), **stability** (overlap between runs), number of
-findings, findings dropped because their quote was not in the cited file
+findings, **expected files sent** (the sample, apart from the model),
+findings dropped because their quote was not in the cited file
 (`verifyEvidence`), failed calls (kept with the provider's response, not
 fatal), latency and tokens. Only the `GROQ_*` variables are read from the
 local env files. Results: `evals/results/<date>-<commit>-llm.json`.

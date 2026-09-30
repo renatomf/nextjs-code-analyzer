@@ -498,8 +498,20 @@ Vem antes da ingestão assíncrona: job em segundo plano sem log é caixa preta.
 - [ ] Melhorias, cada uma num PR com eval antes × depois:
   1. Excluir `.claude` e outras pastas de ferramenta/docs em
      `ALWAYS_EXCLUDE_DIR_NAMES` (`src/lib/limits.ts`).
-  2. Amostrar chunks do projeto inteiro no relatório, em vez dos 80 primeiros
-     em ordem alfabética (`report.ts`).
+  2. ✅ Amostrar chunks do projeto inteiro no relatório, em vez dos 80 primeiros
+     em ordem alfabética (`report.ts`). Feito: `sampleForReview` (puro, no
+     módulo analysis) tira os testes, põe lógica de servidor primeiro
+     (API, rotas, actions, auth, db...), depois outra lógica, UI e
+     configuração/tipos, e alterna uma pasta por vez, no mesmo orçamento
+     (16 mil caracteres, 24 chunks). Neste repo, o revisor via 14 chunks
+     de 5 arquivos em 3 pastas (config, specs E2E e evals, nenhum código da
+     aplicação) → 24 chunks de 24 arquivos em 24 pastas (rotas de API,
+     auth, webhook do Stripe, actions, módulos), 0 testes. Eval do LLM, 2
+     casos novos com o arquivo problemático atrás de 30 arquivos que vêm
+     antes na ordem alfabética: arquivo enviado 0/1 → 1/1, recall 0 → 1,00
+     nas 3 execuções; casos antigos seguem com recall 1,00. Custo: com a
+     amostra cheia, ~5,5 mil tokens de entrada e 15–30 s por chamada
+     (dentro do timeout de 120 s e do limite por minuto do Groq).
   3. ✅ Agrupar achados repetidos (uma linha "Critical area may lack tests" com a
      lista de arquivos).
   4. ✅ Score com penalidade limitada por regra ou decrescente

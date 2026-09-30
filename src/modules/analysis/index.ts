@@ -24,6 +24,11 @@ export {
   type SourceFile,
 } from "./domain/metrics";
 export {
+  REVIEW_BUDGET,
+  sampleForReview,
+  type ReviewBudget,
+} from "./domain/sampling";
+export {
   DETERMINISTIC_RULES,
   type ProjectMeasures,
   type Rule,

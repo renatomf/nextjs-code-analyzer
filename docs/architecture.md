@@ -89,7 +89,8 @@ devolve a análise (ADR-003, TD-12).
 Página de progresso (`useAnalysisProgress`) → `POST /api/projects/:id/analyze`
 → `analysisStart` decide e `claimAnalysis` faz o claim atômico (projects) →
 pipeline: chunking (Tree-sitter) → `storeKnowledge` (ingestion) → métricas
-e regras (analysis) → revisão do LLM com o código em blocos de dados
+e regras (analysis) → `sampleForReview` (amostra espalhada pelo projeto) →
+revisão do LLM com o código em blocos de dados
 (TD-28) → `verifyEvidence` (achado do LLM só fica com trecho que existe no
 arquivo citado) → `groupFindings` + `diminishingPenaltyPolicy` (ADR-010) →
 `reports`. Tudo dentro da request
