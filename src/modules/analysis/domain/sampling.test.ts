@@ -43,6 +43,40 @@ describe("sampleForReview", () => {
     expect(files(sampleForReview([chunk("src/types/next-auth.d.ts"), chunk("src/components/button.tsx")], budget(1)))).toEqual(["src/components/button.tsx"]);
   });
 
+  it.each([
+    "frontend/src/app/payment/payment.component.ts",
+    "frontend/src/app/Services/payment.service.ts",
+    "client/src/api/auth.ts",
+    "src/app/login/login.component.ts",
+  ])("does not give browser code server priority from its path: %s", (uiFile) => {
+    const code = "export const pay = (session) => session.token;";
+    const sample = sampleForReview(
+      [
+        { filePath: uiFile, startLine: 1, content: code },
+        { filePath: "src/lib/orders.ts", startLine: 1, content: code },
+      ],
+      budget(1),
+    );
+
+    expect(files(sample)).toEqual(["src/lib/orders.ts"]);
+  });
+
+  it.each(["src/payments/payments.service.ts", "apps/api/src/auth/auth.module.ts", "server/routes/auth.ts"])(
+    "keeps server priority for backend code: %s",
+    (serverFile) => {
+      const code = "export const pay = (session) => session.token;";
+      const sample = sampleForReview(
+        [
+          { filePath: "src/lib/orders.ts", startLine: 1, content: code },
+          { filePath: serverFile, startLine: 1, content: code },
+        ],
+        budget(1),
+      );
+
+      expect(files(sample)).toEqual([serverFile]);
+    },
+  );
+
   it("takes one file per directory in turn", () => {
     const sample = sampleForReview(
       [chunk("src/a/one.ts"), chunk("src/a/two.ts"), chunk("src/a/three.ts"), chunk("src/b/one.ts")],
