@@ -48,7 +48,10 @@ describe("sampleForReview", () => {
     "frontend/src/app/Services/payment.service.ts",
     "client/src/api/auth.ts",
     "src/app/login/login.component.ts",
-  ])("does not give browser code server priority from its path: %s", (uiFile) => {
+    "data/static/codefixes/loginAdmin_1.ts",
+    "public/js/session.js",
+    "app/assets/js/auth-tour.js",
+  ])("does not give browser code or served files server priority from its path: %s", (uiFile) => {
     const code = "export const pay = (session) => session.token;";
     const sample = sampleForReview(
       [
