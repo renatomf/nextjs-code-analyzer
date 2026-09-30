@@ -4,8 +4,8 @@ import { inArray } from "drizzle-orm";
 
 import { codeChunks, projectFiles, projects, reports, users } from "@/db/schema";
 import { db } from "@/lib/db";
+import { EMBEDDING_DIMENSIONS } from "@/modules/ingestion";
 
-const EMBEDDING_DIMENSIONS = 384;
 
 /** Unit vector pointing at one axis: distinct, deterministic embeddings. */
 export function axisEmbedding(axis: number): number[] {

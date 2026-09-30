@@ -4,7 +4,6 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { projectFiles, projects } from "@/db/schema";
 import { loadProjectSourceFiles } from "@/lib/analysis/project-files";
 import { setProjectProgress } from "@/lib/analysis/progress";
-import { searchProjectChunks } from "@/lib/analysis/vector-store";
 import { db } from "@/lib/db";
 import { listProjectFilePaths, readProjectFile } from "@/lib/files/explorer";
 import {
@@ -20,6 +19,7 @@ import {
   getProjectReport,
   listUserProjects,
 } from "@/modules/projects/server";
+import { searchProjectChunks } from "@/modules/ingestion/server";
 import {
   axisEmbedding,
   createProjectWithData,

@@ -7,7 +7,7 @@ import {
 } from "@/lib/analysis/progress";
 import { loadProjectSourceFiles } from "@/lib/analysis/project-files";
 import { generateProjectReport } from "@/lib/analysis/report";
-import { storeProjectChunks } from "@/lib/analysis/vector-store";
+import { storeProjectChunks } from "@/modules/ingestion/server";
 
 // `userId` must come from the server session: every step below is scoped by
 // it, so a projectId sent by the client can never reach another user's data.

@@ -1,9 +1,9 @@
-import { embedQuery } from "@/lib/analysis/embeddings";
+import { RAG_TOP_K } from "@/lib/limits";
 import {
+  embedQuery,
   searchProjectChunks,
   type StoredChunk,
-} from "@/lib/analysis/vector-store";
-import { RAG_TOP_K } from "@/lib/limits";
+} from "@/modules/ingestion/server";
 
 export type ChatSource = {
   filePath: string;

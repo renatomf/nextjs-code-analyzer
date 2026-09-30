@@ -51,6 +51,10 @@ maintainability) · **Low** (cleanup).
   [schema.ts:175](../src/db/schema.ts#L175) (literal `384`)
 - **Direction:** one constant, imported by the schema and the embedder.
 - **Phase:** Clean Architecture.
+- **Done:** `EMBEDDING_DIMENSIONS` lives in the ingestion domain
+  ([knowledge.ts](../src/modules/ingestion/domain/knowledge.ts)); the schema,
+  the ONNX adapter and the test factories import it (`drizzle-kit generate`:
+  no schema changes).
 
 ### TD-05 — Local model in a serverless runtime · High
 - **Where:** [embeddings.ts:4](../src/lib/analysis/embeddings.ts#L4)

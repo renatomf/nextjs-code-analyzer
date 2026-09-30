@@ -57,6 +57,18 @@ src/modules/<módulo>/
   Stripe com `import()` dentro das funções, para quem só usa a cota (análise,
   chat) não carregar o SDK na cold start.
 
+## Decisões do módulo ingestion
+
+- **Primeiras portas do projeto:** `Embedder` e `VectorStore`, porque um
+  teste precisa de fake (ADR-001): o caso de uso `storeKnowledge` é testado
+  sem banco e sem baixar o modelo. O adaptador real é verificado pelo teste
+  do modelo (vetores de referência) e pela integração em Postgres.
+- **`SourceProvider` adiado:** GitHub e ZIP já convergem no `importArchive`
+  (projects); a porta nasce com a pasta local da v2.2, a implementação que a
+  justifica.
+- **Chunking ainda em `src/lib`:** usa Tree-sitter (binário nativo); entra no
+  módulo quando o pipeline de análise migrar.
+
 ## Decisões do módulo projects
 
 O esboço em papel previa uma classe `Project` com `claimForAnalysis()` e um

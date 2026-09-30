@@ -8,9 +8,6 @@ export const MAX_FILE_SIZE_BYTES = 500 * 1024; // 500 KB
 /** Raw ZIP entries (before filtering); bounds work on hostile archives. */
 export const MAX_ZIP_ENTRIES = 50_000;
 
-/** Must match `vector("embedding", { dimensions })` in `code_chunks`. */
-export const EMBEDDING_DIMENSIONS = 384;
-
 /** RAG retrieval size */
 export const RAG_TOP_K = 8;
 
