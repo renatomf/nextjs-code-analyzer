@@ -109,6 +109,23 @@ export async function findOwnedProject(userId: string, projectId: string) {
   return project;
 }
 
+/** What the analysis actions need to re-run, rebuild or report on a project. */
+export async function findReanalysisTarget(userId: string, projectId: string) {
+  const [project] = await db
+    .select({
+      id: projects.id,
+      userId: projects.userId,
+      name: projects.name,
+      source: projects.source,
+      repositoryUrl: projects.repositoryUrl,
+      progressPercent: projects.progressPercent,
+    })
+    .from(projects)
+    .where(owned(userId, projectId))
+    .limit(1);
+  return project;
+}
+
 /** The chat needs the project and to know whether its code is indexed. */
 export async function getChatProject(userId: string, projectId: string) {
   const project = await findOwnedProject(userId, projectId);

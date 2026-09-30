@@ -18,6 +18,8 @@ export interface BillingRepository {
    * Throws when the user does not exist.
    */
   loadUserBilling(userId: string): Promise<UserBilling>;
+  /** Plan of the user without a lock; undefined when the user is gone. */
+  findUserBilling(userId: string): Promise<UserBilling | undefined>;
   countProjects(userId: string): Promise<number>;
   countAnalysesSince(userId: string, since: Date): Promise<number>;
   /** `usageId` lets the caller refund exactly this record later. */

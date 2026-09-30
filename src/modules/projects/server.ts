@@ -17,7 +17,7 @@ export {
   setProjectStatus,
   startReanalysis,
 } from "./infrastructure/drizzle-project-lifecycle";
-export { importArchive } from "./infrastructure/import-archive";
+export { importArchive, refreshGitHubSources } from "./infrastructure/import-archive";
 export {
   createReportShare,
   findSharedReport,
@@ -28,6 +28,7 @@ export {
 export {
   findExistingImport,
   findOwnedProject,
+  findReanalysisTarget,
   getChatProject,
   getProjectIssues,
   getProjectProgress,

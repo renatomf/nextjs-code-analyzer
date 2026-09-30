@@ -2,11 +2,12 @@ import "server-only";
 
 import { createHash } from "node:crypto";
 
-import { eq, sql } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 
-import { rateLimits, users } from "@/db/schema";
+import { rateLimits } from "@/db/schema";
 import { db } from "@/lib/db";
-import { getPlanCatalog, limitsFor } from "@/modules/billing";
+import { getPlanCatalog } from "@/modules/billing";
+import { getPlanLimitsFor } from "@/modules/billing/server";
 import { DomainError } from "@/shared/errors";
 
 /**
@@ -41,13 +42,8 @@ export async function assertRateLimit(
 }
 
 export async function assertChatRateLimit(userId: string): Promise<void> {
-  const [user] = await db
-    .select({ plan: users.plan, planStatus: users.planStatus })
-    .from(users)
-    .where(eq(users.id, userId))
-    .limit(1);
   const plans = getPlanCatalog();
-  const limits = limitsFor(plans, user?.plan, user?.planStatus);
+  const limits = await getPlanLimitsFor(userId);
   const max = limits.chatPerHour;
   const freeLabel = plans.free.label;
   const paidLabel = plans.premium.label;
