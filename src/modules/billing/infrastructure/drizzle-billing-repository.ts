@@ -25,6 +25,15 @@ export function createBillingRepository(executor: Executor): BillingRepository {
       return user;
     },
 
+    async findUserBilling(userId) {
+      const [user] = await executor
+        .select({ plan: users.plan, planStatus: users.planStatus })
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+      return user;
+    },
+
     countProjects(userId) {
       return executor.$count(projects, eq(projects.userId, userId));
     },

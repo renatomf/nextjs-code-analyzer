@@ -9,7 +9,7 @@ import {
   createBillingRepository,
   type Executor,
 } from "./infrastructure/drizzle-billing-repository";
-import { getPlanCatalog, type PlanCatalog } from "./index";
+import { getPlanCatalog, limitsFor, type PlanCatalog, type PlanLimits } from "./index";
 
 /**
  * Public API of the billing module — server part (ADR-001): use cases bound
@@ -32,6 +32,15 @@ function depsFor(executor: Executor) {
  */
 export function billingFor(executor: Executor = db) {
   return createQuota(depsFor(executor));
+}
+
+/**
+ * The limits of the user's plan (free when the user is gone), read without
+ * a lock: for rate limits outside the quota transaction.
+ */
+export async function getPlanLimitsFor(userId: string): Promise<PlanLimits> {
+  const user = await createBillingRepository(db).findUserBilling(userId);
+  return limitsFor(getPlanCatalog(), user?.plan, user?.planStatus);
 }
 
 /** `userId` must come from the server session. */
