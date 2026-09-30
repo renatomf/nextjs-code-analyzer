@@ -70,10 +70,12 @@ RUN_LLM_EVAL=1 LLM_EVAL_CASES=nodegoat npm run eval   # only some cases
 
 Quota: Groq's free tier allows 200,000 tokens per day per organization
 (gpt-oss-120b), and a full run uses about 60,000 of them. The limit is the
-organization's, not the key's: evals run with the production key compete
-with real analyses, so use a separate Groq account for them. Failed calls
-are recorded (with the organization id masked), and a case without
-successful runs reports `null`, not a perfect score.
+organization's, not the key's: evals run with the production key would
+compete with real analyses. So the eval never uses it: it reads only
+`GROQ_EVAL_API_KEY` (a key from a separate Groq account, in `.env.local` or
+a CI secret) and refuses to run without it, whatever `GROQ_API_KEY` holds.
+Failed calls are recorded (with the organization id masked), and a case
+without successful runs reports `null`, not a perfect score.
 
 Cases in [llm/cases.ts](llm/cases.ts): planted problems a reviewer should
 find (SQL built from input, a delete route without authorization, N+1 and

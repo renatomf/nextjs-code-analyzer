@@ -63,6 +63,12 @@ async function allCases(): Promise<EvalCase[]> {
 it.skipIf(!enabled)(
   "measures the LLM review",
   async () => {
+    // vitest.eval.config.mts fills GROQ_API_KEY from GROQ_EVAL_API_KEY only.
+    if (!process.env.GROQ_API_KEY) {
+      throw new Error(
+        "RUN_LLM_EVAL needs GROQ_EVAL_API_KEY (a key from a separate Groq account, in .env.local or a CI secret); the production key is never used for evals.",
+      );
+    }
     const evalCases = await allCases();
     const cases = [];
     let first = true;
