@@ -203,6 +203,15 @@ maintainability) · **Low** (cleanup).
 - **Direction:** system prompt that declares the snippets as data only,
   unambiguous delimiters, and prompt-injection cases in the evals.
 - **Phase:** Evals → Security.
+- **Done (delimiting):** [shared/prompt-data.ts](../src/shared/prompt-data.ts).
+  Repository content (code and file paths) goes in data blocks whose
+  markers carry a random 64-bit boundary per request, so the content cannot
+  close its block; the instructions (now `instructions`, not `system`, per
+  the AI SDK deprecation) say the blocks are data, never instructions.
+  Applied to the chat, the explorer's explain and the report review; unit
+  tests with hostile content, verified by mutation. **Still open:**
+  prompt-injection cases in the evals (Phase 7) to measure how the model
+  actually behaves.
 
 ### TD-29 — LLM call has no timeout and output is only bounded by the prompt · Medium
 - **Where:** [report-llm.ts:65-89](../src/lib/analysis/report-llm.ts#L65-L89)

@@ -1,3 +1,5 @@
+import { dataBlock, dataRules, newDataBoundary } from "@/shared/prompt-data";
+
 import { getStructuredLanguageModel } from "@/lib/ai/llm";
 import type { ReportIssue } from "@/lib/analysis/report-types";
 import { generateObject } from "ai";
@@ -18,6 +20,7 @@ const reportSchema = z.object({
   ),
 });
 
+/** The code is untrusted (TD-28): one data block per chunk. */
 function formatChunks(
   chunks: Array<{
     filePath: string;
@@ -25,6 +28,7 @@ function formatChunks(
     startLine: number | null;
     endLine: number | null;
   }>,
+  boundary: string,
 ): string {
   return chunks
     .map((chunk, index) => {
@@ -32,13 +36,11 @@ function formatChunks(
         chunk.startLine && chunk.endLine
           ? `L${chunk.startLine}-L${chunk.endLine}`
           : "lines unknown";
-      return [
-        `### Chunk ${index + 1}`,
-        `File: ${chunk.filePath} (${lines})`,
-        "```",
+      return dataBlock(
+        boundary,
+        `Chunk ${index + 1}. File: ${chunk.filePath} (${lines})`,
         chunk.content.slice(0, 2500),
-        "```",
-      ].join("\n");
+      );
     })
     .join("\n\n");
 }
@@ -73,15 +75,13 @@ export async function runLlmHealthReview(options: {
     usedChars += size;
   }
 
+  const boundary = newDataBoundary();
   const { object } = await generateObject({
     model: getStructuredLanguageModel(),
     schema: reportSchema,
-    prompt: [
+    instructions: [
       "You are an AI senior engineer reviewing a JavaScript/TypeScript codebase.",
       "Find potential issues for the developer to verify — not certified vulnerabilities or proven bottlenecks.",
-      "",
-      `Project: ${options.projectName}`,
-      `Framework: ${options.framework ?? "Unknown"}`,
       "",
       "Cover these categories only: architecture, security, performance.",
       "Severity guide:",
@@ -92,9 +92,14 @@ export async function runLlmHealthReview(options: {
       "",
       "Return at most 15 high-signal issues total.",
       "Use filePath when the snippet supports it; otherwise null.",
+      ...dataRules(boundary),
+    ].join("\n"),
+    prompt: [
+      `Project: ${options.projectName}`,
+      `Framework: ${options.framework ?? "Unknown"}`,
       "",
       "Code snippets:",
-      formatChunks(sampled),
+      formatChunks(sampled, boundary),
     ].join("\n"),
   });
 

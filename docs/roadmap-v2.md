@@ -333,8 +333,9 @@ medido antes e depois.
       modelo falso do E2E: resposta, fontes em ordem, prompt em snapshot,
       isolamento, sem knowledge, limite da pergunta); módulo chat (política
       do prompt no domínio, busca de contexto no `server.ts`); rotas do chat
-      e do explorer sem Drizzle (baseline 12 → 6); próximo: TD-28 (código
-      como dado no prompt). Convenção
+      e do explorer sem Drizzle (baseline 12 → 6); TD-28: código como dado
+      no prompt (blocos com delimitador aleatório por requisição) no chat,
+      no explain e na revisão do relatório; próximo: identity. Convenção
       provisória em [`docs/modules.md`](modules.md).
 - [ ] identity: acesso a dados atrás do módulo.
 - [ ] Queries por módulo para todas as pages (sai o Drizzle de `src/app`).

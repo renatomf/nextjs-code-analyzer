@@ -126,7 +126,11 @@ describe("POST /api/chat (characterization)", () => {
 
     const [call] = mocks.model!.doStreamCalls;
     const system = call.prompt.find((message) => message.role === "system");
-    expect(system?.content).toMatchSnapshot();
+    // The data-block boundary is random per request (TD-28).
+    const content = String(system?.content);
+    const [boundary] = content.match(/<<<DATA ([0-9a-f]{16})/)?.slice(1) ?? [];
+    expect(boundary).toMatch(/^[0-9a-f]{16}$/);
+    expect(content.replaceAll(boundary, "<boundary>")).toMatchSnapshot();
     const user = call.prompt.filter((message) => message.role === "user");
     expect(JSON.stringify(user)).toContain("Explain the project");
   });
