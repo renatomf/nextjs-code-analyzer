@@ -92,7 +92,10 @@ function priority(filePath: string): number {
  * item 2). The budget fits a small part of a real project, so the sample is
  * spread instead of the first files in alphabetical order:
  * - tests are left out (unless there is nothing else);
- * - server logic first, then other logic, UI and configuration;
+ * - files with a risk signal before files without any (a route that only
+ *   renders a page waits behind a DAO that handles passwords);
+ * - within that, server logic first, then other logic, UI and
+ *   configuration, and the riskiest file first;
  * - inside each level, one file per directory in turn, so no folder takes
  *   the whole budget; one chunk of every file before a second of any;
  * - inside a file, the chunks with more risk signals first (input, dangerous
@@ -117,10 +120,17 @@ export function sampleForReview<T extends ReviewedChunk>(
     );
   }
 
-  const files = [...byFile.keys()].sort(
-    (a, b) => priority(a) - priority(b) || a.localeCompare(b),
+  // A file's risk is its riskiest chunk's (the first after the sort above).
+  const fileRisk = new Map(
+    [...byFile].map(([file, fileChunks]) => [file, riskScore(fileChunks[0].content)]),
   );
-  const order = interleaveByDirectory(files);
+  // Files with a risk signal first, by path priority among themselves; files
+  // without any after them. Then the riskiest file first, then by path.
+  const level = (file: string) => (fileRisk.get(file)! > 0 ? 0 : 4) + priority(file);
+  const files = [...byFile.keys()].sort(
+    (a, b) => level(a) - level(b) || fileRisk.get(b)! - fileRisk.get(a)! || a.localeCompare(b),
+  );
+  const order = interleaveByDirectory(files, level);
 
   // Round r takes the r-th best chunk of every file, in that order.
   const queue: T[] = [];
@@ -148,16 +158,17 @@ export function sampleForReview<T extends ReviewedChunk>(
 }
 
 /**
- * Files already sorted by priority; within each priority level, take one
- * file per directory in turn (a, b, c, a, b, ...).
+ * Files already sorted by level; within each level, take one file per
+ * directory in turn (a, b, c, a, b, ...), directories in order of their
+ * first file.
  */
-function interleaveByDirectory(files: string[]): string[] {
+function interleaveByDirectory(files: string[], level: (file: string) => number): string[] {
   const result: string[] = [];
   let start = 0;
   while (start < files.length) {
-    const level = priority(files[start]);
+    const current = level(files[start]);
     let end = start;
-    while (end < files.length && priority(files[end]) === level) end += 1;
+    while (end < files.length && level(files[end]) === current) end += 1;
 
     const byDirectory = new Map<string, string[]>();
     for (const file of files.slice(start, end)) {
