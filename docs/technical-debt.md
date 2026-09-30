@@ -239,6 +239,18 @@ maintainability) · **Low** (cleanup).
   `output: Output.object({ schema })`.
 - **Direction:** migrate together with the AI Gateway work.
 - **Phase:** AI Gateway.
+- **Done (Phase 7):** `generateText` + `Output.object({ schema })`. The
+  request to the provider is unchanged (JSON response format with the
+  schema, so Groq keeps strict `json_schema`): a unit test pins it and
+  passes on both the old and the new code, and fails with `Output.text()`.
+  LLM eval on the real model after the change (`4ada8a2`): recall and
+  evidence 1.00 and 0 failed calls in every case. Stability came out
+  0.47–0.61 (0.60–1.00 at `c7dc7d6`) with an identical request: the
+  expected findings appear in every run, and what varies are extra
+  low-value findings (a project-wide architecture note, a second category
+  for the same file). With 3 runs and 1–4 findings per case, one extra
+  finding moves the Jaccard a lot; a stability gate in CI needs more runs
+  or a stability measure of the expected findings only.
 
 ### TD-31 — Static metrics use regex while we already have an AST · Low
 - **Where:** [metrics.ts:66-108](../src/lib/analysis/metrics.ts#L66-L108)

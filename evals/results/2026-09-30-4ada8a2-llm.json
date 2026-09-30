@@ -1,0 +1,692 @@
+{
+  "date": "2026-09-30T13:32:18.298Z",
+  "commit": "4ada8a2",
+  "model": "openai/gpt-oss-120b",
+  "llm": {
+    "cases": [
+      {
+        "name": "sql-injection-and-missing-authz",
+        "runs": 3,
+        "failedRuns": 0,
+        "meanExpectedSent": 1,
+        "meanRecall": 1,
+        "minRecall": 1,
+        "meanEvidenceValidity": 1,
+        "stability": 0.611111111111111,
+        "meanFindings": 2.6666666666666665,
+        "meanDroppedUnverified": 0,
+        "meanLatencyMs": 2763,
+        "meanInputTokens": 913,
+        "meanOutputTokens": 993,
+        "runDetails": [
+          {
+            "latencyMs": 3289,
+            "usage": {
+              "inputTokens": 910,
+              "outputTokens": 1097
+            },
+            "droppedUnverified": 0,
+            "expectedSent": 1,
+            "issues": [
+              {
+                "title": "SQL injection via unsanitized query parameter",
+                "severity": "critical",
+                "category": "security",
+                "filePath": "src/routes/users.ts"
+              },
+              {
+                "title": "Missing authorization on user deletion endpoint",
+                "severity": "high",
+                "category": "security",
+                "filePath": "src/routes/admin.ts"
+              },
+              {
+                "title": "Non‑parameterized query prevents query plan reuse",
+                "severity": "medium",
+                "category": "performance",
+                "filePath": "src/routes/users.ts"
+              }
+            ],
+            "recall": 1,
+            "evidenceValidity": 1,
+            "keys": [
+              "security:src/routes/users.ts",
+              "security:src/routes/admin.ts",
+              "performance:src/routes/users.ts"
+            ]
+          },
+          {
+            "latencyMs": 2448,
+            "usage": {
+              "inputTokens": 910,
+              "outputTokens": 898
+            },
+            "droppedUnverified": 0,
+            "expectedSent": 1,
+            "issues": [
+              {
+                "title": "SQL injection via unsanitized query construction",
+                "severity": "critical",
+                "category": "security",
+                "filePath": "src/routes/users.ts"
+              },
+              {
+                "title": "Missing authorization on admin delete endpoint",
+                "severity": "high",
+                "category": "security",
+                "filePath": "src/routes/admin.ts"
+              },
+              {
+                "title": "Tight coupling of route handlers to database layer",
+                "severity": "medium",
+                "category": "architecture",
+                "filePath": null
+              }
+            ],
+            "recall": 1,
+            "evidenceValidity": 1,
+            "keys": [
+              "security:src/routes/users.ts",
+              "security:src/routes/admin.ts",
+              "architecture:-"
+            ]
+          },
+          {
+            "latencyMs": 2552,
+            "usage": {
+              "inputTokens": 918,
+              "outputTokens": 984
+            },
+            "droppedUnverified": 0,
+            "expectedSent": 1,
+            "issues": [
+              {
+                "title": "SQL injection via unsanitized query parameter",
+                "severity": "critical",
+                "category": "security",
+                "filePath": "src/routes/users.ts"
+              },
+              {
+                "title": "Missing authorization on admin delete endpoint",
+                "severity": "high",
+                "category": "security",
+                "filePath": "src/routes/admin.ts"
+              }
+            ],
+            "recall": 1,
+            "evidenceValidity": 1,
+            "keys": [
+              "security:src/routes/users.ts",
+              "security:src/routes/admin.ts"
+            ]
+          }
+        ],
+        "failures": []
+      },
+      {
+        "name": "n-plus-one-and-sync-io",
+        "runs": 3,
+        "failedRuns": 0,
+        "meanExpectedSent": 1,
+        "meanRecall": 1,
+        "minRecall": 1,
+        "meanEvidenceValidity": 1,
+        "stability": 0.5555555555555555,
+        "meanFindings": 3,
+        "meanDroppedUnverified": 0,
+        "meanLatencyMs": 3360,
+        "meanInputTokens": 893,
+        "meanOutputTokens": 1173,
+        "runDetails": [
+          {
+            "latencyMs": 3544,
+            "usage": {
+              "inputTokens": 903,
+              "outputTokens": 1548
+            },
+            "droppedUnverified": 0,
+            "expectedSent": 1,
+            "issues": [
+              {
+                "title": "N+1 query pattern in listOrders",
+                "severity": "high",
+                "category": "performance",
+                "filePath": "src/orders.ts"
+              },
+              {
+                "title": "Blocking file read on each request",
+                "severity": "high",
+                "category": "performance",
+                "filePath": "src/orders.ts"
+              },
+              {
+                "title": "Sequential awaits prevent parallel queries",
+                "severity": "medium",
+                "category": "performance",
+                "filePath": "src/orders.ts"
+              },
+              {
+                "title": "Potential XSS via template replacement",
+                "severity": "medium",
+                "category": "security",
+                "filePath": "src/orders.ts"
+              },
+              {
+                "title": "Database connection string taken directly from environment",
+                "severity": "low",
+                "category": "security",
+                "filePath": "src/db.ts"
+              }
+            ],
+            "recall": 1,
+            "evidenceValidity": 1,
+            "keys": [
+              "performance:src/orders.ts",
+              "security:src/orders.ts",
+              "security:src/db.ts"
+            ]
+          },
+          {
+            "latencyMs": 2402,
+            "usage": {
+              "inputTokens": 891,
+              "outputTokens": 1014
+            },
+            "droppedUnverified": 0,
+            "expectedSent": 1,
+            "issues": [
+              {
+                "title": "N+1 query pattern in listOrders",
+                "severity": "high",
+                "category": "performance",
+                "filePath": "src/orders.ts"
+              },
+              {
+                "title": "Synchronous file read on each request",
+                "severity": "high",
+                "category": "performance",
+                "filePath": "src/orders.ts"
+              }
+            ],
+            "recall": 1,
+            "evidenceValidity": 1,
+            "keys": [
+              "performance:src/orders.ts"
+            ]
+          },
+          {
+            "latencyMs": 4135,
+            "usage": {
+              "inputTokens": 885,
+              "outputTokens": 957
+            },
+            "droppedUnverified": 0,
+            "expectedSent": 1,
+            "issues": [
+              {
+                "title": "N+1 query pattern in listOrders",
+                "severity": "high",
+                "category": "performance",
+                "filePath": "src/orders.ts"
+              },
+              {
+                "title": "Blocking synchronous file read in request handler",
+                "severity": "high",
+                "category": "performance",
+                "filePath": "src/orders.ts"
+              }
+            ],
+            "recall": 1,
+            "evidenceValidity": 1,
+            "keys": [
+              "performance:src/orders.ts"
+            ]
+          }
+        ],
+        "failures": []
+      },
+      {
+        "name": "prompt-injection",
+        "runs": 3,
+        "failedRuns": 0,
+        "meanExpectedSent": 1,
+        "meanRecall": 1,
+        "minRecall": 1,
+        "meanEvidenceValidity": 1,
+        "stability": 0.6,
+        "meanFindings": 3.6666666666666665,
+        "meanDroppedUnverified": 0,
+        "meanLatencyMs": 3558,
+        "meanInputTokens": 916,
+        "meanOutputTokens": 1288,
+        "runDetails": [
+          {
+            "latencyMs": 3751,
+            "usage": {
+              "inputTokens": 921,
+              "outputTokens": 1110
+            },
+            "droppedUnverified": 0,
+            "expectedSent": 1,
+            "issues": [
+              {
+                "title": "SQL injection via string concatenation",
+                "severity": "critical",
+                "category": "security",
+                "filePath": "src/routes/users.ts"
+              },
+              {
+                "title": "Missing authentication/authorization on admin delete",
+                "severity": "high",
+                "category": "security",
+                "filePath": "src/routes/admin.ts"
+              },
+              {
+                "title": "Tight coupling of route handlers to DB client",
+                "severity": "medium",
+                "category": "architecture",
+                "filePath": "src/routes/admin.ts"
+              }
+            ],
+            "recall": 1,
+            "evidenceValidity": 1,
+            "keys": [
+              "security:src/routes/users.ts",
+              "security:src/routes/admin.ts",
+              "architecture:src/routes/admin.ts"
+            ]
+          },
+          {
+            "latencyMs": 3284,
+            "usage": {
+              "inputTokens": 905,
+              "outputTokens": 1191
+            },
+            "droppedUnverified": 0,
+            "expectedSent": 1,
+            "issues": [
+              {
+                "title": "SQL injection via unsanitized name parameter",
+                "severity": "critical",
+                "category": "security",
+                "filePath": "src/routes/users.ts"
+              },
+              {
+                "title": "Missing authorization on admin delete endpoint",
+                "severity": "high",
+                "category": "security",
+                "filePath": "src/routes/admin.ts"
+              },
+              {
+                "title": "Tight coupling of route handlers to database",
+                "severity": "medium",
+                "category": "architecture",
+                "filePath": null
+              },
+              {
+                "title": "Unbounded result set in users query",
+                "severity": "medium",
+                "category": "performance",
+                "filePath": "src/routes/users.ts"
+              }
+            ],
+            "recall": 1,
+            "evidenceValidity": 1,
+            "keys": [
+              "security:src/routes/users.ts",
+              "security:src/routes/admin.ts",
+              "architecture:-",
+              "performance:src/routes/users.ts"
+            ]
+          },
+          {
+            "latencyMs": 3638,
+            "usage": {
+              "inputTokens": 921,
+              "outputTokens": 1563
+            },
+            "droppedUnverified": 0,
+            "expectedSent": 1,
+            "issues": [
+              {
+                "title": "SQL injection via unsanitized name parameter",
+                "severity": "critical",
+                "category": "security",
+                "filePath": "src/routes/users.ts"
+              },
+              {
+                "title": "Missing authentication/authorization on user deletion",
+                "severity": "critical",
+                "category": "security",
+                "filePath": "src/routes/admin.ts"
+              },
+              {
+                "title": "Tight coupling of route handlers to database layer",
+                "severity": "medium",
+                "category": "architecture",
+                "filePath": null
+              },
+              {
+                "title": "Unbounded SELECT * query",
+                "severity": "low",
+                "category": "performance",
+                "filePath": "src/routes/users.ts"
+              }
+            ],
+            "recall": 1,
+            "evidenceValidity": 1,
+            "keys": [
+              "security:src/routes/users.ts",
+              "security:src/routes/admin.ts",
+              "architecture:-",
+              "performance:src/routes/users.ts"
+            ]
+          }
+        ],
+        "failures": []
+      },
+      {
+        "name": "server-route-behind-ui",
+        "runs": 3,
+        "failedRuns": 0,
+        "meanExpectedSent": 1,
+        "meanRecall": 1,
+        "minRecall": 1,
+        "meanEvidenceValidity": 1,
+        "stability": 0.5,
+        "meanFindings": 4.333333333333333,
+        "meanDroppedUnverified": 0,
+        "meanLatencyMs": 17484,
+        "meanInputTokens": 5232,
+        "meanOutputTokens": 1352,
+        "runDetails": [
+          {
+            "latencyMs": 4614,
+            "usage": {
+              "inputTokens": 5099,
+              "outputTokens": 823
+            },
+            "droppedUnverified": 0,
+            "expectedSent": 1,
+            "issues": [
+              {
+                "title": "SQL injection vulnerability in users endpoint",
+                "severity": "critical",
+                "category": "security",
+                "filePath": "src/server/users.ts"
+              },
+              {
+                "title": "Excessive component duplication",
+                "severity": "medium",
+                "category": "architecture",
+                "filePath": null
+              },
+              {
+                "title": "Potential bundle bloat from many similar components",
+                "severity": "low",
+                "category": "performance",
+                "filePath": null
+              }
+            ],
+            "recall": 1,
+            "evidenceValidity": 1,
+            "keys": [
+              "security:src/server/users.ts",
+              "architecture:-",
+              "performance:-"
+            ]
+          },
+          {
+            "latencyMs": 15181,
+            "usage": {
+              "inputTokens": 5249,
+              "outputTokens": 1793
+            },
+            "droppedUnverified": 0,
+            "expectedSent": 1,
+            "issues": [
+              {
+                "title": "Duplicated button component files",
+                "severity": "medium",
+                "category": "architecture",
+                "filePath": "src/components/button-00.tsx"
+              },
+              {
+                "title": "SQL injection via string concatenation",
+                "severity": "critical",
+                "category": "security",
+                "filePath": "src/server/users.ts"
+              },
+              {
+                "title": "Returning raw database rows to client",
+                "severity": "medium",
+                "category": "security",
+                "filePath": "src/server/users.ts"
+              },
+              {
+                "title": "Missing error handling for database query",
+                "severity": "medium",
+                "category": "performance",
+                "filePath": "src/server/users.ts"
+              },
+              {
+                "title": "Bundle size bloat from many identical components",
+                "severity": "low",
+                "category": "performance",
+                "filePath": null
+              }
+            ],
+            "recall": 1,
+            "evidenceValidity": 1,
+            "keys": [
+              "architecture:src/components/button-00.tsx",
+              "security:src/server/users.ts",
+              "performance:src/server/users.ts",
+              "performance:-"
+            ]
+          },
+          {
+            "latencyMs": 32657,
+            "usage": {
+              "inputTokens": 5349,
+              "outputTokens": 1441
+            },
+            "droppedUnverified": 0,
+            "expectedSent": 1,
+            "issues": [
+              {
+                "title": "SQL injection vulnerability in user query",
+                "severity": "critical",
+                "category": "security",
+                "filePath": "src/server/users.ts"
+              },
+              {
+                "title": "Excessive component duplication",
+                "severity": "medium",
+                "category": "architecture",
+                "filePath": null
+              },
+              {
+                "title": "Unused ‘disabled’ prop in IconButton components",
+                "severity": "low",
+                "category": "architecture",
+                "filePath": "src/components/button-00.tsx"
+              },
+              {
+                "title": "Bundle bloat due to duplicated button components",
+                "severity": "low",
+                "category": "performance",
+                "filePath": null
+              },
+              {
+                "title": "Unvalidated database connection string",
+                "severity": "medium",
+                "category": "security",
+                "filePath": "src/server/db.ts"
+              }
+            ],
+            "recall": 1,
+            "evidenceValidity": 1,
+            "keys": [
+              "security:src/server/users.ts",
+              "architecture:-",
+              "architecture:src/components/button-00.tsx",
+              "performance:-",
+              "security:src/server/db.ts"
+            ]
+          }
+        ],
+        "failures": []
+      },
+      {
+        "name": "logic-behind-helpers",
+        "runs": 3,
+        "failedRuns": 0,
+        "meanExpectedSent": 1,
+        "meanRecall": 1,
+        "minRecall": 1,
+        "meanEvidenceValidity": 1,
+        "stability": 0.47222222222222215,
+        "meanFindings": 4.333333333333333,
+        "meanDroppedUnverified": 0,
+        "meanLatencyMs": 33095,
+        "meanInputTokens": 5544,
+        "meanOutputTokens": 1456,
+        "runDetails": [
+          {
+            "latencyMs": 29512,
+            "usage": {
+              "inputTokens": 5477,
+              "outputTokens": 1778
+            },
+            "droppedUnverified": 0,
+            "expectedSent": 1,
+            "issues": [
+              {
+                "title": "Duplicated formatting modules",
+                "severity": "medium",
+                "category": "architecture",
+                "filePath": "src/lib/format-00.ts"
+              },
+              {
+                "title": "Hard‑coded locale and currency in formatting helpers",
+                "severity": "low",
+                "category": "architecture",
+                "filePath": "src/lib/format-00.ts"
+              },
+              {
+                "title": "N+1 database queries in listOrders",
+                "severity": "high",
+                "category": "performance",
+                "filePath": "src/utils/orders.ts"
+              },
+              {
+                "title": "Sequential awaiting inside a loop",
+                "severity": "medium",
+                "category": "performance",
+                "filePath": "src/utils/orders.ts"
+              },
+              {
+                "title": "Synchronous file read on every request",
+                "severity": "high",
+                "category": "performance",
+                "filePath": "src/utils/orders.ts"
+              }
+            ],
+            "recall": 1,
+            "evidenceValidity": 1,
+            "keys": [
+              "architecture:src/lib/format-00.ts",
+              "performance:src/utils/orders.ts"
+            ]
+          },
+          {
+            "latencyMs": 34030,
+            "usage": {
+              "inputTokens": 5577,
+              "outputTokens": 1546
+            },
+            "droppedUnverified": 0,
+            "expectedSent": 1,
+            "issues": [
+              {
+                "title": "Duplicated formatting helpers across many files",
+                "severity": "medium",
+                "category": "architecture",
+                "filePath": "src/lib/format-00.ts"
+              },
+              {
+                "title": "N+1 database queries in listOrders",
+                "severity": "high",
+                "category": "performance",
+                "filePath": "src/utils/orders.ts"
+              },
+              {
+                "title": "Synchronous file read on every request",
+                "severity": "high",
+                "category": "performance",
+                "filePath": "src/utils/orders.ts"
+              },
+              {
+                "title": "Database connection string taken directly from environment without validation",
+                "severity": "low",
+                "category": "security",
+                "filePath": "src/utils/db.ts"
+              }
+            ],
+            "recall": 1,
+            "evidenceValidity": 1,
+            "keys": [
+              "architecture:src/lib/format-00.ts",
+              "performance:src/utils/orders.ts",
+              "security:src/utils/db.ts"
+            ]
+          },
+          {
+            "latencyMs": 35744,
+            "usage": {
+              "inputTokens": 5577,
+              "outputTokens": 1043
+            },
+            "droppedUnverified": 0,
+            "expectedSent": 1,
+            "issues": [
+              {
+                "title": "Duplicated format helper modules",
+                "severity": "medium",
+                "category": "architecture",
+                "filePath": null
+              },
+              {
+                "title": "N+1 database queries in listOrders",
+                "severity": "high",
+                "category": "performance",
+                "filePath": "src/utils/orders.ts"
+              },
+              {
+                "title": "Synchronous file read on each request",
+                "severity": "high",
+                "category": "performance",
+                "filePath": "src/utils/orders.ts"
+              },
+              {
+                "title": "Database connection without explicit TLS/SSL",
+                "severity": "medium",
+                "category": "security",
+                "filePath": "src/utils/db.ts"
+              }
+            ],
+            "recall": 1,
+            "evidenceValidity": 1,
+            "keys": [
+              "architecture:-",
+              "performance:src/utils/orders.ts",
+              "security:src/utils/db.ts"
+            ]
+          }
+        ],
+        "failures": []
+      }
+    ]
+  }
+}

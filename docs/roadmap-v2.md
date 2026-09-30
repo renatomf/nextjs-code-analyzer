@@ -543,7 +543,8 @@ Vem antes da ingestão assíncrona: job em segundo plano sem log é caixa preta.
      para a Fase 3.)
   7. Timeout e limites aplicados no servidor (TD-29, ✅ feito com o 5:
      timeout de 120 s, no máximo 10 achados e textos com tamanho máximo);
-     migrar para `generateText` + `Output.object` (TD-30).
+     migrar para `generateText` + `Output.object` (TD-30, ✅ feito, sem
+     mudar o pedido ao provedor).
 
 **Se sobrar**
 
