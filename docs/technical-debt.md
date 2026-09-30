@@ -209,9 +209,13 @@ maintainability) · **Low** (cleanup).
   close its block; the instructions (now `instructions`, not `system`, per
   the AI SDK deprecation) say the blocks are data, never instructions.
   Applied to the chat, the explorer's explain and the report review; unit
-  tests with hostile content, verified by mutation. **Still open:**
-  prompt-injection cases in the evals (Phase 7) to measure how the model
-  actually behaves.
+  tests with hostile content, verified by mutation.
+- **Done (measured):** the LLM eval has a prompt-injection case (the same
+  vulnerable code with a comment telling the reviewer to report nothing):
+  recall 1.00 in every run, before and after the evidence change. Findings
+  about a file must also quote code that is really in that file
+  (`verifyEvidence`), so injected text cannot invent findings about code
+  the model never saw.
 
 ### TD-29 — LLM call has no timeout and output is only bounded by the prompt · Medium
 - **Where:** [report-llm.ts:65-89](../src/lib/analysis/report-llm.ts#L65-L89)
@@ -222,6 +226,12 @@ maintainability) · **Low** (cleanup).
 - **Direction:** timeout via `abortSignal`, cap the result on the server
   (`slice`, max lengths), map 429/timeouts to a generic user message.
 - **Phase:** AI Gateway.
+- **Done (Phase 7):** `abortSignal: AbortSignal.timeout(120 s)`; at most 10
+  issues, titles up to 200 and descriptions up to 1,000 characters, enforced
+  after the call; one retry only for Groq's `json_validate_failed` (invalid
+  JSON from the model), other errors fail fast. Errors already reach the
+  user as a generic message (`report.ts`). Unit tests with a mock model,
+  verified by mutation.
 
 ### TD-30 — `generateObject` is deprecated in AI SDK 7 · Low
 - **Where:** [report-llm.ts:65](../src/lib/analysis/report-llm.ts#L65)

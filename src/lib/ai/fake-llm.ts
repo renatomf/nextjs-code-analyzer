@@ -19,6 +19,7 @@ const FAKE_REPORT = {
       severity: "low",
       category: "architecture",
       filePath: null,
+      quote: null,
     },
   ],
 };

@@ -12,6 +12,11 @@ export {
   type IssueSeverity,
   type Occurrence,
 } from "./domain/finding";
+export {
+  verifyEvidence,
+  type ClaimedIssue,
+  type ReviewedChunk,
+} from "./domain/evidence";
 export { buildReportFindings, groupFindings } from "./domain/grouping";
 export {
   computeDeterministicMetrics,

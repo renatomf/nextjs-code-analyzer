@@ -506,8 +506,18 @@ Vem antes da ingestão assíncrona: job em segundo plano sem log é caixa preta.
      (`scoreFromIssues`). Feito com o 3 na
      [ADR-010](decisions/010-score-formula.md): Code Quality 0 → 45, Testing
      0 → 10, nota determinística 53 → 64, 22 → 4 linhas no relatório.
-  5. Achados high/critical exigem arquivo + trecho como evidência; prompt mais
+  5. ✅ Achados high/critical exigem arquivo + trecho como evidência; prompt mais
      restritivo; código tratado como dado, não como instrução (TD-28).
+     Feito: o LLM cita a linha de código de cada achado e `verifyEvidence`
+     (determinístico, sem um segundo modelo) descarta o que não está no
+     arquivo citado; achado sem arquivo fica no máximo "medium";
+     temperatura 0; prompt pede poucos achados precisos, sem afirmar o que
+     falta no projeto a partir de uma amostra. Eval do LLM `bf17f41` →
+     depois: recall 1,00 → 1,00 (inclusive com injeção de prompt),
+     evidência 0,97 → 1,00, estabilidade 0,44–0,63 → 0,78–0,83, achados
+     6,0–8,3 → 3,3–3,7 por caso. A citação de várias linhas fez o modelo
+     gerar JSON inválido (Groq `json_validate_failed`, 2 de 9 chamadas):
+     citação de uma linha + 1 nova tentativa só para esse erro → 0 de 9.
   6. ✅ Heurísticas determinísticas: não medir componentes React só por
      linhas, critério melhor para "área crítica". Feito: componente medido
      pela lógica até o último `return` de JSX; "área crítica" = arquivo de
@@ -519,8 +529,9 @@ Vem antes da ingestão assíncrona: job em segundo plano sem log é caixa preta.
      indireto (via `server.ts`) só com o grafo de imports (v2.1). (As correções objetivas —
      regex do TD-31, `src/test/`, segredos em fixtures — foram antecipadas
      para a Fase 3.)
-  7. Timeout e limites aplicados no servidor (TD-29); migrar para
-     `generateText` + `Output.object` (TD-30).
+  7. Timeout e limites aplicados no servidor (TD-29, ✅ feito com o 5:
+     timeout de 120 s, no máximo 10 achados e textos com tamanho máximo);
+     migrar para `generateText` + `Output.object` (TD-30).
 
 **Se sobrar**
 

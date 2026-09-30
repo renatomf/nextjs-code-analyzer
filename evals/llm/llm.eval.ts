@@ -40,21 +40,31 @@ it.skipIf(!enabled)(
           a.filePath.localeCompare(b.filePath) || (a.startLine ?? 0) - (b.startLine ?? 0),
       );
       const runs = [];
+      const failures: Array<{ error: string; responseBody?: string }> = [];
 
       for (let run = 0; run < RUNS; run += 1) {
         if (!first) await sleep(PAUSE_MS);
         first = false;
         const started = Date.now();
-        const review = await runLlmHealthReview({
-          projectName: evalCase.name,
-          framework: null,
-          chunks: chunks.slice(0, 80),
-        });
+        let review: Awaited<ReturnType<typeof runLlmHealthReview>>;
+        try {
+          review = await runLlmHealthReview({
+            projectName: evalCase.name,
+            framework: null,
+            chunks: chunks.slice(0, 80),
+          });
+        } catch (error) {
+          // A failed call is a result too (reliability), not the end of the eval.
+          const body = (error as { responseBody?: string }).responseBody;
+          failures.push({ error: String(error), responseBody: body?.slice(0, 4000) });
+          continue;
+        }
         const found = new Set(review.issues.map((issue) => key(issue.category, issue.filePath)));
         const withFile = review.issues.filter((issue) => issue.filePath);
         runs.push({
           latencyMs: Date.now() - started,
           usage: review.usage,
+          droppedUnverified: review.droppedUnverified,
           issues: review.issues.map(({ title, severity, category, filePath }) => ({
             title,
             severity,
@@ -85,15 +95,18 @@ it.skipIf(!enabled)(
       cases.push({
         name: evalCase.name,
         runs: runs.length,
+        failedRuns: failures.length,
         meanRecall: mean(runs.map((r) => r.recall)),
-        minRecall: Math.min(...runs.map((r) => r.recall)),
+        minRecall: runs.length === 0 ? 0 : Math.min(...runs.map((r) => r.recall)),
         meanEvidenceValidity: mean(runs.map((r) => r.evidenceValidity)),
         stability: mean(pairs),
         meanFindings: mean(runs.map((r) => r.issues.length)),
+        meanDroppedUnverified: mean(runs.map((r) => r.droppedUnverified)),
         meanLatencyMs: Math.round(mean(runs.map((r) => r.latencyMs))),
         meanInputTokens: Math.round(mean(runs.map((r) => r.usage.inputTokens ?? 0))),
         meanOutputTokens: Math.round(mean(runs.map((r) => r.usage.outputTokens ?? 0))),
         runDetails: runs,
+        failures,
       });
     }
 
@@ -117,7 +130,7 @@ it.skipIf(!enabled)(
           (c) =>
             `  ${c.name}: recall ${c.meanRecall.toFixed(2)} (min ${c.minRecall.toFixed(2)}), ` +
             `evidence ${c.meanEvidenceValidity.toFixed(2)}, stability ${c.stability.toFixed(2)}, ` +
-            `${c.meanFindings.toFixed(1)} findings, ${c.meanLatencyMs} ms, ${c.meanInputTokens}+${c.meanOutputTokens} tokens`,
+            `${c.failedRuns} failed, ${c.meanFindings.toFixed(1)} findings (${c.meanDroppedUnverified.toFixed(1)} dropped), ${c.meanLatencyMs} ms, ${c.meanInputTokens}+${c.meanOutputTokens} tokens`,
         ),
       ].join("\n"),
     );

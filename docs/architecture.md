@@ -90,7 +90,9 @@ Página de progresso (`useAnalysisProgress`) → `POST /api/projects/:id/analyze
 → `analysisStart` decide e `claimAnalysis` faz o claim atômico (projects) →
 pipeline: chunking (Tree-sitter) → `storeKnowledge` (ingestion) → métricas
 e regras (analysis) → revisão do LLM com o código em blocos de dados
-(TD-28) → `linearPenaltyPolicy` → `reports`. Tudo dentro da request
+(TD-28) → `verifyEvidence` (achado do LLM só fica com trecho que existe no
+arquivo citado) → `groupFindings` + `diminishingPenaltyPolicy` (ADR-010) →
+`reports`. Tudo dentro da request
 (`maxDuration` 300 s) até a Fase 5.
 
 ### Chat (RAG)
