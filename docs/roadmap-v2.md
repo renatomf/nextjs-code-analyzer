@@ -97,7 +97,7 @@ caracterização da análise em snapshot). As Fases 4 a 6 não dependem da 7.
 
 **Obrigatório**
 
-- [x] `docs/architecture.md` descrevendo **como está**, não como deveria ser:
+- [x] `docs/architecture.md` (hoje [architecture-baseline.md](architecture-baseline.md)) descrevendo **como está**, não como deveria ser:
   - C4 nível 1 e 2 (usuário, Next.js, Neon/pgvector, Groq, GitHub, Stripe,
     Hugging Face hub).
   - Fluxos: importação (GitHub/ZIP → `project_files`), análise
@@ -292,7 +292,11 @@ medido antes e depois.
 8. **identity:** acesso a dados atrás do módulo.
 9. **Front** (ver [Front e estado](#front-e-estado)).
 10. **Fechamento:** `architecture.md` do "depois", comparação com o
-    baseline, retro.
+    baseline, retro. Feito: [architecture.md](architecture.md) (o "antes"
+    em [architecture-baseline.md](architecture-baseline.md)),
+    [results-phase-3.md](results-phase-3.md) e
+    [retros/phase-3.md](retros/phase-3.md) (a escrever pelo autor). Falta
+    medir em produção o score do próprio repo e a duração da análise.
 
 **Metas medidas (mesmo script do baseline)**
 
@@ -308,7 +312,9 @@ medido antes e depois.
 - [x] [ADR-001](decisions/001-modular-monolith.md) — monólito modular com
       Clean Architecture seletiva.
 - [x] [`docs/glossary.md`](glossary.md) (linguagem ubíqua).
-- [ ] Módulos billing, projects, ingestion, analysis e chat migrados.
+- [x] Módulos billing, projects, ingestion, analysis e chat migrados
+      (analysis: domínio, regras e nota; a geração do relatório migra com o
+      `LlmReviewer` na Fase 7 — ver [architecture.md](architecture.md)).
       Progresso: **billing concluído** — planos e cota (`withQuota`),
       Stripe atrás de uma camada anticorrupção, chamadores migrados e
       `src/lib/billing` removido; TD-24 resolvido; regras da cota na

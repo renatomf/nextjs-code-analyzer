@@ -1,154 +1,151 @@
-# Arquitetura atual (baseline)
+# Arquitetura atual
 
-Retrato de **como o sistema é hoje** (fim da Fase 2 do
-[roadmap-v2.md](roadmap-v2.md)), não de como deveria ser. É o "antes" da
-Fase 3 (monólito modular + Clean Architecture). Medições em
-[baseline.md](baseline.md); dívidas em [technical-debt.md](technical-debt.md).
+Retrato de **como o sistema é hoje** (fim da Fase 3 do
+[roadmap-v2.md](roadmap-v2.md)): um monólito modular com Clean Architecture
+e DDD aplicados só onde há regra de negócio ([ADR-001](decisions/001-modular-monolith.md)).
+O "antes" está em [architecture-baseline.md](architecture-baseline.md); a
+comparação medida, em [results-phase-3.md](results-phase-3.md). Convenções
+dos módulos em [modules.md](modules.md); linguagem em [glossary.md](glossary.md).
 
 ## C4 — nível 1: contexto
 
-```mermaid
-flowchart LR
-  user([Desenvolvedor])
-  app[codedriven<br/>Next.js na Vercel]
-  neon[(Neon Postgres<br/>+ pgvector)]
-  groq[Groq<br/>LLM]
-  hf[Hugging Face Hub<br/>modelo de embeddings]
-  gh[GitHub<br/>OAuth + zipball]
-  google[Google<br/>OAuth]
-  stripe[Stripe<br/>checkout + webhook]
+Igual ao baseline: o app (Next.js na Vercel) fala com Neon Postgres +
+pgvector, Groq (LLM), Hugging Face Hub (modelo de embeddings no cold start),
+GitHub (OAuth e zipball), Google (OAuth) e Stripe (checkout e webhook
+assinado).
 
-  user -->|HTTPS| app
-  app -->|SQL/TLS| neon
-  app -->|relatório, chat, explain| groq
-  app -->|download do modelo no cold start| hf
-  app -->|login, lista e download de repos| gh
-  app -->|login| google
-  app <-->|checkout / webhook assinado| stripe
-```
-
-## C4 — nível 2: contêineres
+## C4 — nível 2: contêineres e camadas
 
 ```mermaid
 flowchart TB
   subgraph vercel[Vercel — plano Hobby]
-    pages[Server Components<br/>pages em src/app]
-    actions[Server Actions<br/>src/lib/actions]
-    routes[Route Handlers<br/>src/app/api]
-    proxy[proxy.ts<br/>Auth.js: protege /dashboard, /projects, /settings]
-    subgraph heavy[Funções com ONNX runtime]
-      analyze[/api/projects/:id/analyze/]
-      chat[/api/chat/]
-    end
+    delivery["Entrega<br/>pages, route handlers (src/app)<br/>server actions (src/lib/actions)"]
+    modules["Módulos (src/modules)<br/>billing · projects · ingestion<br/>analysis · chat · identity"]
+    lib["src/lib<br/>integrações e o que ainda não migrou<br/>(NextAuth, pipeline, arquivos, GitHub)"]
+    shared["src/shared<br/>logger, redação, erros, env, prompt-data"]
   end
-  neon[(Neon: branch main = produção<br/>branch preview = previews, schema-only)]
+  neon[(Neon Postgres + pgvector)]
 
-  pages --> neon
-  actions --> neon
-  routes --> neon
-  analyze --> neon
-  chat --> neon
+  delivery --> modules
+  delivery --> lib
+  modules --> lib
+  modules --> shared
+  lib --> shared
+  modules --> neon
+  lib --> neon
 ```
 
-- **Um único app Next.js 16** (App Router): pages, server actions e route
-  handlers no mesmo deploy. Não há serviço separado nem fila.
-- **Limite do plano Hobby:** no máximo 12 funções por deploy. O runtime ONNX
-  (46 MB) só vai para `analyze` e `chat` via `outputFileTracingIncludes`;
-  qualquer embedding precisa passar por essas duas rotas (TD-05).
-- **Ambientes:** Production usa o branch `main` do Neon; Preview usa o
-  branch `preview` (só schema) e segredos próprios (TD-36).
+- **A entrega não toca o banco:** nenhum arquivo de `src/app` importa o
+  cliente do Drizzle nem o schema (era 12). Pages e rotas chamam as APIs
+  públicas dos módulos.
+- **Mesmo deploy, mesmos limites:** um app Next.js 16, no máximo 12 funções
+  (Hobby); o runtime ONNX só em `analyze` e `chat`. Sem fila (Fase 5).
 
-## Organização do código
+## Módulos
 
-| Pasta | Conteúdo | Linhas (sem testes) |
-|---|---|---|
-| `src/app/` | pages, layouts, route handlers | 3.014 (30 arquivos) |
-| `src/components/` | UI por feature + `shared/` + `ui/` (shadcn, 998 linhas) | 4.235 (46 arquivos) |
-| `src/lib/` | regras de negócio, acesso a dados, integrações | 4.871 (41 arquivos) |
-| `src/db/schema.ts` | schema Drizzle (10 tabelas) | 248 |
+Cada módulo expõe `index.ts` (puro: tipos e regras, importável até por
+componentes de cliente) e `server.ts` (`server-only`: tudo que usa banco,
+rede ou modelo). O interior (`domain/`, `application/`, `infrastructure/`)
+é privado.
 
-Total: 121 arquivos de produção e 23 de teste (medido em 2026-09-29).
+| Módulo | Domínio (puro) | Application / portas | Infraestrutura |
+|---|---|---|---|
+| **billing** | planos, limites, cota (dia UTC, carência do `past_due`), `entitlementFor` | `createQuota` + porta `BillingRepository` | repositório Drizzle, `withQuota` (lock + checagem + uso numa transação), Stripe atrás de uma camada anticorrupção (`translate.ts`) |
+| **projects** | ciclo de vida (`analysisStart`, `ACTIVE_STATUSES`, `STALE_AFTER_SECONDS`), link público (`isShareActive`, `redactForPublic`) | — | todas as escritas de status num arquivo, queries das pages, importação (`importArchive`), links públicos (só o hash do token) |
+| **ingestion** | `EMBEDDING_DIMENSIONS` (fonte única), `ChunkDraft` | `storeKnowledge` + portas `Embedder` e `VectorStore` | ONNX (MiniLM q8, revisão fixada), pgvector |
+| **analysis** | `Finding` (com evidência opcional), uma `Rule` por heurística, `ScoringPolicy` (`linearPenaltyPolicy`) | — | a geração do relatório ainda está em `src/lib/analysis/report.ts` |
+| **chat** | política do prompt (código como dado), extração da pergunta | — | busca de contexto via ingestion |
+| **identity** | — (dados e integração) | — | conta, conexão com o GitHub (páginas só recebem um booleano), cadastro, credenciais, o que cada login registra |
 
-`src/lib/` mistura regra de negócio e infraestrutura por tipo técnico, não por
-domínio: `actions/` (server actions), `analysis/` (pipeline, métricas,
-relatório, RAG), `billing/`, `files/`, `ai/`, e módulos soltos (`auth.ts`,
-`db.ts`, `github.ts`, `encryption.ts`, `rate-limit.ts`).
+**Portas** só onde há duas implementações ou um teste precisa de fake:
+`Embedder`, `VectorStore` e `BillingRepository`. `LlmProvider` nasce com o
+Ollama (v2.2); `AnalysisRunner`, com a fila (Fase 5).
 
-## Mapa de acoplamento
+## Regras verificadas no CI (`npm run lint:arch`)
 
-Quem importa cada dependência de infraestrutura **diretamente**:
+`dependency-cruiser`, bloqueando o merge; **baseline de violações: 0**.
 
-| Dependência | Arquivos | Destaque |
-|---|---|---|
-| Drizzle client (`@/lib/db`) | 27 | **12 em `src/app`**: 6 pages e 6 route handlers consultam o banco direto |
-| Schema (`@/db/schema`) | 30 | inclusive um componente (`project-status-badge.tsx`, via `import type`, sem acoplamento em runtime) |
-| `auth()` | 27 | cada page, action e rota checa a sessão por conta própria |
-| GitHub API (`@/lib/github`) | 6 | incluindo a page `projects/new` e o componente `repo-picker` |
-| LLM (`@/lib/ai/llm`) | 3 | chat, explain e relatório; sem interface, Groq direto (ou o fake do E2E) |
-| Embeddings | 2 | `vector-store` e `chat-rag` |
-| Stripe | 4 | webhook, actions de billing e sincronização |
-
-Consequências que a Fase 3 ataca:
-
-- Não há camada entre a entrega (pages/rotas) e o banco: a regra de
-  "projeto do usuário" (`eq(projects.userId, …)`) se repete em dezenas de
-  consultas. Os testes de IDOR (Fase 2) protegem, mas não evitam a repetição.
-- Trocar LLM, embeddings ou origem do código exige mexer em quem chama; não
-  há porta (`LlmProvider`, `Embedder`, `SourceProvider`).
-- O estado do projeto (`queued → processing → completed/failed`) muda em
-  vários lugares (rota `analyze`, actions, pipeline) sem um dono único.
+- `domain/` não importa application, infrastructure, `src/lib`, `src/db`
+  nem frameworks.
+- `application/` não importa infrastructure nem Drizzle/Stripe/Next.
+- Fora de um módulo, só `index.ts` e `server.ts`.
+- `index.ts` não importa banco nem `server-only`.
+- Sem React dentro de módulos; sem ciclos; produção não importa testes.
+- `src/app` e `src/components` não importam o banco (imports de tipo são
+  permitidos).
 
 ## Fluxos principais
 
 ### Importação (GitHub ou ZIP)
 
-1. Server action (`lib/actions/github.ts`) checa sessão, rate limit e limites
-   do plano **dentro de uma transação com lock** na linha do usuário.
-2. Cria o projeto, registra o uso da cota.
-3. Baixa o zipball do GitHub (token cifrado com AES-256-GCM) ou lê o upload.
-4. `extractFromZipBuffer`: zip-slip, symlinks, zip bomb, limites, arquivos
-   sensíveis e `.gitignore` do repositório analisado.
-5. Grava os arquivos em `project_files` (Postgres) e deixa o projeto `queued`.
-
-Tudo **dentro da request** (sem job em segundo plano — TD-10).
+Server action (sessão, zod, duplicado) → download do GitHub fora da cota →
+`importArchive` (projects): `withQuota` do billing cria o projeto e registra
+o uso numa transação → extração segura → arquivos gravados → projeto
+`queued`. Arquivo inválido é erro do usuário e continua cobrado; falha nossa
+devolve a análise (ADR-003, TD-12).
 
 ### Análise
 
-1. A página de progresso chama `POST /api/projects/:id/analyze`.
-2. A rota faz o "claim" atômico do projeto (evita duas análises simultâneas)
-   e roda `runFullProjectAnalysis` **na própria request** (`maxDuration` 300 s).
-3. Pipeline: chunking com Tree-sitter → embeddings locais (MiniLM q8, ONNX) →
-   `code_chunks` (pgvector) → métricas determinísticas + LLM (Groq,
-   `generateObject`) → `reports`.
-4. O cliente acompanha por polling em `/api/projects/:id/status`.
+Página de progresso (`useAnalysisProgress`) → `POST /api/projects/:id/analyze`
+→ `analysisStart` decide e `claimAnalysis` faz o claim atômico (projects) →
+pipeline: chunking (Tree-sitter) → `storeKnowledge` (ingestion) → métricas
+e regras (analysis) → revisão do LLM com o código em blocos de dados
+(TD-28) → `linearPenaltyPolicy` → `reports`. Tudo dentro da request
+(`maxDuration` 300 s) até a Fase 5.
 
 ### Chat (RAG)
 
-`POST /api/chat`: sessão → zod → projeto do usuário → rate limit → embedding
-da pergunta → busca vetorial (top 8, escopo por usuário) → `streamText` com
-o contexto → resposta em streaming com as fontes.
+`POST /api/chat`: sessão → zod → `getChatProject` (projects: dono +
+knowledge) → rate limit → `retrieveChatContext` (chat → ingestion, escopo
+por dono) → prompt com as fontes em blocos de dados → `streamText` → fontes
+no fim do stream.
+
+### Link público do relatório
+
+O dono gera um link (7 dias, 30 dias ou sem expiração, revogável) → só o
+SHA-256 do token vai para o banco → `/r/<token>` (fora do login, rate limit
+por IP, `noindex`, `no-referrer`) mostra só o relatório, com segredos
+redigidos.
 
 ### Billing
 
-Checkout do Stripe (server action) → retorno em Settings sincroniza a sessão
-pelo servidor → **webhook assinado** (`/api/stripe/webhook`) mantém o plano
-em dia (cancelamento, falha de pagamento). Eventos de assinatura buscam o
-estado atual no Stripe (idempotente, sem tabela de eventos).
+Checkout, portal e webhook passam pelo módulo; o webhook verifica a
+assinatura e busca o estado atual da assinatura no Stripe (idempotente).
 
 ## Segurança (resumo)
 
 - Sessão checada no servidor em toda page, action e rota; toda consulta de
-  dados do usuário filtra por `userId` (testado contra Postgres real).
-- Tokens do GitHub cifrados (AES-256-GCM, AAD = id do dono); estado OAuth
-  assinado e com expiração.
-- Rate limit em Postgres (login, registro, chat, análise, billing).
-- Erros genéricos para o cliente; código privado servido com `no-store`.
-- TLS para o banco (ver TD-38); previews isolados de produção (TD-36).
+  dados do usuário filtra por `userId`, com testes de IDOR em Postgres real
+  (projetos, arquivos, chunks, relatório, links públicos, conexão com o
+  GitHub).
+- Tokens do GitHub cifrados (AES-256-GCM, vinculados ao dono); páginas só
+  recebem um booleano.
+- Senhas só como hash bcrypt; senha não verificada descartada quando um
+  provedor OAuth prova o e-mail; tempo de login igual para e-mail
+  inexistente.
+- Código do repositório tratado como dado nos prompts (delimitador
+  aleatório por requisição).
+- Rate limit em Postgres; erros genéricos para o cliente; código privado
+  com `no-store`.
+
+## O que ainda não está nos módulos
+
+| Onde | O que é | Quando |
+|---|---|---|
+| `src/lib/analysis/report.ts`, `report-llm.ts`, `pipeline.ts` | geração do relatório e orquestração da análise | com o `LlmReviewer` (Fase 7) e o `AnalysisRunner` (Fase 5) |
+| `src/lib/files/*`, `chunking.ts` | extração, armazenamento de arquivos, chunking (Tree-sitter) | quando o pipeline migrar |
+| `src/lib/actions/analysis.ts` | `requireOwnedProject` ainda consulta o projeto direto | próximo ajuste no projects (trivial) |
+| `src/lib/rate-limit.ts` | limitador em Postgres (lê o plano para o chat) | infraestrutura compartilhada |
+| `src/lib/auth.ts` | configuração do NextAuth (adapter do Drizzle) | integração, fica |
+
+Arquivos de produção com acesso ao banco ou ao Drizzle: 18 (eram 27), 11
+deles dentro dos módulos ([results-phase-3.md](results-phase-3.md)).
 
 ## Qualidade e entrega
 
-- **CI (obrigatório para merge):** lint, typecheck, migrations em sincronia
-  com o schema, 156 testes unitários, build; 10 testes de integração em
-  Postgres descartável; E2E do fluxo completo na build de produção; varredura
-  OSV de dependências.
-- **Deploy:** Vercel, a cada merge na `main`; preview por PR.
+- **CI (obrigatório para merge):** `lint:arch`, lint, typecheck, migrations
+  em sincronia com o schema, testes unitários e de componente, build;
+  integração em Postgres descartável; E2E do fluxo completo (inclusive o
+  link público) na build de produção; OSV.
+- **Deploy:** Vercel a cada merge na `main`; preview por PR com banco e
+  segredos próprios.
