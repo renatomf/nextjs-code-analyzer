@@ -145,6 +145,13 @@ maintainability) · **Low** (cleanup).
   `customer.subscription.updated/deleted` and `invoice.payment_failed`; the
   Settings sync should also downgrade when no active subscription is found.
 - **Phase:** Test safety net (billing correctness).
+- **Done:** `POST /api/stripe/webhook` (PR #13) verifies the signature on the
+  raw body; for subscription events it fetches the **current** subscription
+  from Stripe instead of deduping by `event.id`, so retries, duplicates and
+  out-of-order deliveries converge on the real state (a failed payment
+  arrives as `customer.subscription.updated` → `past_due`). The Settings
+  sync downgrades when no live subscription is found. Now in the billing
+  module; pinned by the webhook, handler and sync tests.
 
 ### TD-38 — Database TLS verification depends on `sslmode` in the URL · Medium
 - **Where:** [db.ts](../src/lib/db.ts), production `DATABASE_URL` (Vercel)
@@ -309,6 +316,10 @@ maintainability) · **Low** (cleanup).
 - **Direction:** job runner with timeouts, or a reaper that fails projects
   stuck longer than N minutes.
 - **Phase:** Ingestion async.
+- **Partial:** an **analysis** stuck in `processing` is claimable again after
+  `STALE_AFTER_SECONDS` (360 s), so the progress page restarts it. A stuck
+  **import** is only resolved when someone opens the progress page (the
+  claim then fails it for lack of files). The job runner (Phase 5) closes it.
 
 ### TD-12 — Failed imports still consume the daily quota · Medium
 - **Where:** [actions/github.ts:79-97](../src/lib/actions/github.ts#L79-L97)
@@ -520,6 +531,12 @@ maintainability) · **Low** (cleanup).
 - **Direction:** characterization tests for these first; CI running lint,
   typecheck and tests on every PR.
 - **Phase:** Test safety net.
+- **Done (Phases 2-3):** CI required for merge (lint, architecture rules,
+  typecheck, unit + component, build, integration on a disposable Postgres,
+  E2E, OSV); 270 unit/component and 98 integration tests on 2026-09-30,
+  including IDOR, characterization snapshots and mutation-checked nets.
+  **Still missing:** a dedicated test of the rate limiter itself (window and
+  reset); today it is only exercised through the chat.
 
 ### TD-39 — TypeScript 7 and ESLint 10 not adopted · Low
 - **Where:** [dependabot.yml](../.github/dependabot.yml) ignores their

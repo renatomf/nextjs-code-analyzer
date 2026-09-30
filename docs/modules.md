@@ -1,9 +1,10 @@
-# Convenção dos módulos (provisória)
+# Convenção dos módulos
 
 Como os módulos de `src/modules/` são organizados, segundo a
-[ADR-001](decisions/001-modular-monolith.md). **Provisória:** nasceu no piloto
-(billing) e só vira definitiva — numa ADR-002 — depois do segundo módulo
-(projects), que tem um aggregate de verdade.
+[ADR-001](decisions/001-modular-monolith.md). Nasceu provisória no piloto
+(billing) e virou definitiva na
+[ADR-002](decisions/002-module-convention.md), depois dos seis módulos da
+Fase 3. Abaixo, o detalhe e as decisões de cada módulo.
 
 ## Estrutura
 
