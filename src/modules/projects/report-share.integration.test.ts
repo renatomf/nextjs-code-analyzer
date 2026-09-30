@@ -126,6 +126,65 @@ describe("findSharedReport", () => {
     expect(JSON.stringify(report)).not.toContain(STRIPE_LIKE);
     expect(report?.issues[0].description).toContain("[REDACTED]");
   });
+
+  it("shares the evidence's lines but never the quoted code", async () => {
+    const projectId = await sharedProject("share-evidence");
+    const quoted = "const rows = await db.query(sql + name);";
+    await db
+      .update(reports)
+      .set({
+        issues: [
+          {
+            title: "SQL built from input",
+            description: "The query concatenates a request parameter.",
+            severity: "critical",
+            category: "security",
+            filePath: "src/routes/users.ts",
+            evidence: { startLine: 12, endLine: 12, snippet: quoted },
+          },
+        ],
+      })
+      .where(eq(reports.projectId, projectId));
+    const share = await createReportShare(alice, projectId, "7d");
+
+    const report = await findSharedReport(share!.token);
+
+    expect(report?.issues[0].evidence).toEqual({ startLine: 12, endLine: 12 });
+    expect(JSON.stringify(report)).not.toContain(quoted);
+  });
+
+  it("redacts secrets inside the occurrences of a grouped finding", async () => {
+    const projectId = await sharedProject("share-redact-grouped");
+    const occurrence = (file: string) => ({
+      filePath: file,
+      severity: "critical" as const,
+      title: "Potential hardcoded secret",
+      description: `${file} sets apiKey = '${STRIPE_LIKE}'.`,
+    });
+    await db
+      .update(reports)
+      .set({
+        issues: [
+          {
+            title: "Potential hardcoded secrets (2)",
+            description: "Possible credentials in the source.",
+            severity: "critical",
+            category: "security",
+            filePath: "src/a.ts",
+            rule: "hardcoded-secret",
+            occurrences: [occurrence("src/a.ts"), occurrence("src/b.ts")],
+          },
+        ],
+      })
+      .where(eq(reports.projectId, projectId));
+    const share = await createReportShare(alice, projectId, "7d");
+
+    const report = await findSharedReport(share!.token);
+
+    expect(JSON.stringify(report)).not.toContain(STRIPE_LIKE);
+    expect(report?.issues[0].occurrences).toHaveLength(2);
+    expect(report?.issues[0].occurrences?.[1].description).toContain("[REDACTED]");
+  });
 });
 
 describe("revokeReportShare", () => {

@@ -148,12 +148,27 @@ export async function findSharedReport(token: string): Promise<SharedReport | nu
     summaries: Object.fromEntries(
       Object.entries(summaries).map(([category, text]) => [category, redactForPublic(text)]),
     ),
+    // Explicit fields only: anything new must pass through redaction here.
     issues: row.issues.map((issue) => ({
       title: redactForPublic(issue.title),
       description: redactForPublic(issue.description),
       severity: issue.severity,
       category: issue.category,
       filePath: issue.filePath,
+      // Line numbers only: the quoted code (snippet) stays private.
+      ...(issue.evidence
+        ? { evidence: { startLine: issue.evidence.startLine, endLine: issue.evidence.endLine } }
+        : {}),
+      ...(issue.occurrences
+        ? {
+            occurrences: issue.occurrences.map((occurrence) => ({
+              filePath: occurrence.filePath,
+              severity: occurrence.severity,
+              title: redactForPublic(occurrence.title),
+              description: redactForPublic(occurrence.description),
+            })),
+          }
+        : {}),
     })),
   };
 }

@@ -10,13 +10,22 @@ export type IssueCategory =
   | "testing";
 
 /**
- * Where in the code a finding comes from. Optional: today no rule or LLM
- * review fills it; Phase 7 requires it for high/critical findings.
+ * Where in the code a finding comes from. The LLM review fills it for every
+ * finding about a file (verifyEvidence); the deterministic rules do not yet.
+ * Public report links get the lines only, never the snippet.
  */
 export type Evidence = {
   startLine: number;
   endLine: number;
   snippet?: string;
+};
+
+/** One place where a grouped finding occurs, with its own details. */
+export type Occurrence = {
+  filePath: string | null;
+  severity: IssueSeverity;
+  title: string;
+  description: string;
 };
 
 export type Finding = {
@@ -26,6 +35,14 @@ export type Finding = {
   category: IssueCategory;
   filePath: string | null;
   evidence?: Evidence;
+  /** Id of the deterministic rule that produced it (none for the LLM). */
+  rule?: string;
+  /**
+   * Set when the same problem was found in several places (ADR-010): the
+   * finding stands for all of them, the most severe first. `filePath` is the
+   * first occurrence's.
+   */
+  occurrences?: Occurrence[];
 };
 
 export const SEVERITY_ORDER: Record<IssueSeverity, number> = {

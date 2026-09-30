@@ -12,9 +12,9 @@ import type {
 } from "@/lib/analysis/report-types";
 import { db } from "@/lib/db";
 import {
+  buildReportFindings,
   computeDeterministicMetrics,
-  linearPenaltyPolicy,
-  sortFindings,
+  diminishingPenaltyPolicy,
 } from "@/modules/analysis";
 import { setProjectStatus } from "@/modules/projects/server";
 
@@ -61,8 +61,9 @@ export async function generateProjectReport(
       })
       .from(codeChunks)
       .where(eq(codeChunks.projectId, projectId))
-      .orderBy(asc(codeChunks.filePath), asc(codeChunks.startLine))
-      .limit(80);
+      // All of them: the reviewer's sample is spread over the whole project
+      // (sampleForReview), not the first files in alphabetical order.
+      .orderBy(asc(codeChunks.filePath), asc(codeChunks.startLine));
 
     if (chunks.length === 0) {
       throw new DomainError(
@@ -76,9 +77,10 @@ export async function generateProjectReport(
       chunks,
     });
 
-    const issues = sortFindings([...metrics.issues, ...llm.issues]);
+    // One finding per problem, most severe first (ADR-010).
+    const issues = buildReportFindings(metrics.issues, llm.issues);
 
-    const { categoryScores, healthScore } = linearPenaltyPolicy({
+    const { categoryScores, healthScore } = diminishingPenaltyPolicy({
       measures: metrics,
       findings: issues,
     });

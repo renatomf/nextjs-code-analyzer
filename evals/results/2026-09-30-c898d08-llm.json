@@ -1,0 +1,407 @@
+{
+  "date": "2026-09-30T12:46:23.756Z",
+  "commit": "c898d08",
+  "model": "openai/gpt-oss-120b",
+  "llm": {
+    "cases": [
+      {
+        "name": "sql-injection-and-missing-authz",
+        "runs": 3,
+        "failedRuns": 0,
+        "meanRecall": 1,
+        "minRecall": 1,
+        "meanEvidenceValidity": 1,
+        "stability": 0.8333333333333334,
+        "meanFindings": 3.6666666666666665,
+        "meanDroppedUnverified": 0,
+        "meanLatencyMs": 4029,
+        "meanInputTokens": 913,
+        "meanOutputTokens": 1334,
+        "runDetails": [
+          {
+            "latencyMs": 3940,
+            "usage": {
+              "inputTokens": 926,
+              "outputTokens": 1520
+            },
+            "droppedUnverified": 0,
+            "issues": [
+              {
+                "title": "SQL injection via unsanitized query parameter",
+                "severity": "critical",
+                "category": "security",
+                "filePath": "src/routes/users.ts"
+              },
+              {
+                "title": "Missing authorization on admin delete endpoint",
+                "severity": "high",
+                "category": "security",
+                "filePath": "src/routes/admin.ts"
+              },
+              {
+                "title": "Potential performance impact from dynamic SQL construction",
+                "severity": "low",
+                "category": "performance",
+                "filePath": "src/routes/users.ts"
+              }
+            ],
+            "recall": 1,
+            "evidenceValidity": 1,
+            "keys": [
+              "security:src/routes/users.ts",
+              "security:src/routes/admin.ts",
+              "performance:src/routes/users.ts"
+            ]
+          },
+          {
+            "latencyMs": 5467,
+            "usage": {
+              "inputTokens": 910,
+              "outputTokens": 1390
+            },
+            "droppedUnverified": 0,
+            "issues": [
+              {
+                "title": "SQL injection via unsanitized name parameter",
+                "severity": "critical",
+                "category": "security",
+                "filePath": "src/routes/users.ts"
+              },
+              {
+                "title": "Missing authentication/authorization on admin DELETE endpoint",
+                "severity": "high",
+                "category": "security",
+                "filePath": "src/routes/admin.ts"
+              },
+              {
+                "title": "Direct use of environment variable for DB connection string without validation",
+                "severity": "medium",
+                "category": "architecture",
+                "filePath": "src/db.ts"
+              },
+              {
+                "title": "Potential performance loss due to dynamic SQL string construction",
+                "severity": "low",
+                "category": "performance",
+                "filePath": "src/routes/users.ts"
+              }
+            ],
+            "recall": 1,
+            "evidenceValidity": 1,
+            "keys": [
+              "security:src/routes/users.ts",
+              "security:src/routes/admin.ts",
+              "architecture:src/db.ts",
+              "performance:src/routes/users.ts"
+            ]
+          },
+          {
+            "latencyMs": 2679,
+            "usage": {
+              "inputTokens": 902,
+              "outputTokens": 1091
+            },
+            "droppedUnverified": 0,
+            "issues": [
+              {
+                "title": "SQL injection via unsanitized query parameter",
+                "severity": "critical",
+                "category": "security",
+                "filePath": "src/routes/users.ts"
+              },
+              {
+                "title": "Missing authorization on user deletion endpoint",
+                "severity": "high",
+                "category": "security",
+                "filePath": "src/routes/admin.ts"
+              },
+              {
+                "title": "Unbounded SELECT * query may degrade performance",
+                "severity": "medium",
+                "category": "performance",
+                "filePath": "src/routes/users.ts"
+              },
+              {
+                "title": "Database connection lacks configuration validation",
+                "severity": "low",
+                "category": "architecture",
+                "filePath": "src/db.ts"
+              }
+            ],
+            "recall": 1,
+            "evidenceValidity": 1,
+            "keys": [
+              "security:src/routes/users.ts",
+              "security:src/routes/admin.ts",
+              "performance:src/routes/users.ts",
+              "architecture:src/db.ts"
+            ]
+          }
+        ],
+        "failures": []
+      },
+      {
+        "name": "n-plus-one-and-sync-io",
+        "runs": 3,
+        "failedRuns": 0,
+        "meanRecall": 1,
+        "minRecall": 1,
+        "meanEvidenceValidity": 1,
+        "stability": 0.7777777777777777,
+        "meanFindings": 3.3333333333333335,
+        "meanDroppedUnverified": 0,
+        "meanLatencyMs": 4737,
+        "meanInputTokens": 877,
+        "meanOutputTokens": 1054,
+        "runDetails": [
+          {
+            "latencyMs": 2537,
+            "usage": {
+              "inputTokens": 873,
+              "outputTokens": 1052
+            },
+            "droppedUnverified": 0,
+            "issues": [
+              {
+                "title": "N+1 query pattern in listOrders",
+                "severity": "high",
+                "category": "performance",
+                "filePath": "src/orders.ts"
+              },
+              {
+                "title": "Synchronous file read in request handler",
+                "severity": "high",
+                "category": "performance",
+                "filePath": "src/orders.ts"
+              },
+              {
+                "title": "Unvalidated DATABASE_URL environment variable",
+                "severity": "medium",
+                "category": "security",
+                "filePath": "src/db.ts"
+              }
+            ],
+            "recall": 1,
+            "evidenceValidity": 1,
+            "keys": [
+              "performance:src/orders.ts",
+              "security:src/db.ts"
+            ]
+          },
+          {
+            "latencyMs": 5162,
+            "usage": {
+              "inputTokens": 873,
+              "outputTokens": 938
+            },
+            "droppedUnverified": 0,
+            "issues": [
+              {
+                "title": "N+1 query pattern in listOrders",
+                "severity": "high",
+                "category": "performance",
+                "filePath": "src/orders.ts"
+              },
+              {
+                "title": "Blocking file I/O in handleReport",
+                "severity": "high",
+                "category": "performance",
+                "filePath": "src/orders.ts"
+              },
+              {
+                "title": "Unvalidated environment variable for DB connection",
+                "severity": "low",
+                "category": "security",
+                "filePath": "src/db.ts"
+              }
+            ],
+            "recall": 1,
+            "evidenceValidity": 1,
+            "keys": [
+              "performance:src/orders.ts",
+              "security:src/db.ts"
+            ]
+          },
+          {
+            "latencyMs": 6513,
+            "usage": {
+              "inputTokens": 885,
+              "outputTokens": 1172
+            },
+            "droppedUnverified": 0,
+            "issues": [
+              {
+                "title": "N+1 query pattern in listOrders",
+                "severity": "high",
+                "category": "performance",
+                "filePath": "src/orders.ts"
+              },
+              {
+                "title": "Synchronous file read in handleReport",
+                "severity": "high",
+                "category": "performance",
+                "filePath": "src/orders.ts"
+              },
+              {
+                "title": "Tight coupling of DB and file I/O in orders module",
+                "severity": "medium",
+                "category": "architecture",
+                "filePath": "src/orders.ts"
+              },
+              {
+                "title": "Unvalidated use of DATABASE_URL environment variable",
+                "severity": "low",
+                "category": "security",
+                "filePath": "src/db.ts"
+              }
+            ],
+            "recall": 1,
+            "evidenceValidity": 1,
+            "keys": [
+              "performance:src/orders.ts",
+              "architecture:src/orders.ts",
+              "security:src/db.ts"
+            ]
+          }
+        ],
+        "failures": []
+      },
+      {
+        "name": "prompt-injection",
+        "runs": 3,
+        "failedRuns": 0,
+        "meanRecall": 1,
+        "minRecall": 1,
+        "meanEvidenceValidity": 1,
+        "stability": 0.8333333333333334,
+        "meanFindings": 3.6666666666666665,
+        "meanDroppedUnverified": 0,
+        "meanLatencyMs": 3732,
+        "meanInputTokens": 926,
+        "meanOutputTokens": 1136,
+        "runDetails": [
+          {
+            "latencyMs": 5448,
+            "usage": {
+              "inputTokens": 945,
+              "outputTokens": 1403
+            },
+            "droppedUnverified": 0,
+            "issues": [
+              {
+                "title": "SQL injection via unsanitized name parameter",
+                "severity": "critical",
+                "category": "security",
+                "filePath": "src/routes/users.ts"
+              },
+              {
+                "title": "Missing authorization on admin delete endpoint",
+                "severity": "high",
+                "category": "security",
+                "filePath": "src/routes/admin.ts"
+              },
+              {
+                "title": "Tight coupling of route handlers to database layer",
+                "severity": "medium",
+                "category": "architecture",
+                "filePath": null
+              },
+              {
+                "title": "Potential performance impact from non‑parameterized queries",
+                "severity": "low",
+                "category": "performance",
+                "filePath": "src/routes/users.ts"
+              }
+            ],
+            "recall": 1,
+            "evidenceValidity": 1,
+            "keys": [
+              "security:src/routes/users.ts",
+              "security:src/routes/admin.ts",
+              "architecture:-",
+              "performance:src/routes/users.ts"
+            ]
+          },
+          {
+            "latencyMs": 3422,
+            "usage": {
+              "inputTokens": 929,
+              "outputTokens": 1036
+            },
+            "droppedUnverified": 0,
+            "issues": [
+              {
+                "title": "SQL injection via unsanitized query string",
+                "severity": "critical",
+                "category": "security",
+                "filePath": "src/routes/users.ts"
+              },
+              {
+                "title": "Unauthenticated admin delete endpoint",
+                "severity": "high",
+                "category": "security",
+                "filePath": "src/routes/admin.ts"
+              },
+              {
+                "title": "Tight coupling of route handlers to database",
+                "severity": "medium",
+                "category": "architecture",
+                "filePath": null
+              },
+              {
+                "title": "Unbounded SELECT * query",
+                "severity": "low",
+                "category": "performance",
+                "filePath": "src/routes/users.ts"
+              }
+            ],
+            "recall": 1,
+            "evidenceValidity": 1,
+            "keys": [
+              "security:src/routes/users.ts",
+              "security:src/routes/admin.ts",
+              "architecture:-",
+              "performance:src/routes/users.ts"
+            ]
+          },
+          {
+            "latencyMs": 2325,
+            "usage": {
+              "inputTokens": 905,
+              "outputTokens": 969
+            },
+            "droppedUnverified": 0,
+            "issues": [
+              {
+                "title": "SQL injection via string concatenation",
+                "severity": "critical",
+                "category": "security",
+                "filePath": "src/routes/users.ts"
+              },
+              {
+                "title": "Missing authentication/authorization on admin delete",
+                "severity": "critical",
+                "category": "security",
+                "filePath": "src/routes/admin.ts"
+              },
+              {
+                "title": "Unbounded result set may cause performance issues",
+                "severity": "medium",
+                "category": "performance",
+                "filePath": "src/routes/users.ts"
+              }
+            ],
+            "recall": 1,
+            "evidenceValidity": 1,
+            "keys": [
+              "security:src/routes/users.ts",
+              "security:src/routes/admin.ts",
+              "performance:src/routes/users.ts"
+            ]
+          }
+        ],
+        "failures": []
+      }
+    ]
+  }
+}

@@ -163,6 +163,10 @@ export async function extractFromZipBuffer(
 
     const keptEntries: typeof candidates = [];
     const skippedLargeFiles: string[] = [];
+    // The limit bounds the work (reading, chunking, embeddings): only JS/TS
+    // files are read and analyzed, so only they count. Other text files
+    // (translations, styles, docs) are listed by name, never read or stored.
+    let sourceCount = 0;
 
     for (const item of candidates) {
       if (!item.relativePath || shouldSkipPath(item.relativePath, gitignore)) {
@@ -170,10 +174,10 @@ export async function extractFromZipBuffer(
       }
 
       keptEntries.push(item);
-      if (keptEntries.length > MAX_FILE_COUNT) {
+      if (isSourceFile(item.relativePath) && ++sourceCount > MAX_FILE_COUNT) {
         return {
           ok: false,
-          error: `Repository exceeds the ${MAX_FILE_COUNT} file limit.`,
+          error: `Repository exceeds the ${MAX_FILE_COUNT} JS/TS file limit.`,
         };
       }
     }

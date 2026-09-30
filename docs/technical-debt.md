@@ -216,9 +216,13 @@ maintainability) · **Low** (cleanup).
   close its block; the instructions (now `instructions`, not `system`, per
   the AI SDK deprecation) say the blocks are data, never instructions.
   Applied to the chat, the explorer's explain and the report review; unit
-  tests with hostile content, verified by mutation. **Still open:**
-  prompt-injection cases in the evals (Phase 7) to measure how the model
-  actually behaves.
+  tests with hostile content, verified by mutation.
+- **Done (measured):** the LLM eval has a prompt-injection case (the same
+  vulnerable code with a comment telling the reviewer to report nothing):
+  recall 1.00 in every run, before and after the evidence change. Findings
+  about a file must also quote code that is really in that file
+  (`verifyEvidence`), so injected text cannot invent findings about code
+  the model never saw.
 
 ### TD-29 — LLM call has no timeout and output is only bounded by the prompt · Medium
 - **Where:** [report-llm.ts:65-89](../src/lib/analysis/report-llm.ts#L65-L89)
@@ -229,6 +233,12 @@ maintainability) · **Low** (cleanup).
 - **Direction:** timeout via `abortSignal`, cap the result on the server
   (`slice`, max lengths), map 429/timeouts to a generic user message.
 - **Phase:** AI Gateway.
+- **Done (Phase 7):** `abortSignal: AbortSignal.timeout(120 s)`; at most 10
+  issues, titles up to 200 and descriptions up to 1,000 characters, enforced
+  after the call; one retry only for Groq's `json_validate_failed` (invalid
+  JSON from the model), other errors fail fast. Errors already reach the
+  user as a generic message (`report.ts`). Unit tests with a mock model,
+  verified by mutation.
 
 ### TD-30 — `generateObject` is deprecated in AI SDK 7 · Low
 - **Where:** [report-llm.ts:65](../src/lib/analysis/report-llm.ts#L65)
@@ -236,6 +246,18 @@ maintainability) · **Low** (cleanup).
   `output: Output.object({ schema })`.
 - **Direction:** migrate together with the AI Gateway work.
 - **Phase:** AI Gateway.
+- **Done (Phase 7):** `generateText` + `Output.object({ schema })`. The
+  request to the provider is unchanged (JSON response format with the
+  schema, so Groq keeps strict `json_schema`): a unit test pins it and
+  passes on both the old and the new code, and fails with `Output.text()`.
+  LLM eval on the real model after the change (`4ada8a2`): recall and
+  evidence 1.00 and 0 failed calls in every case. Stability came out
+  0.47–0.61 (0.60–1.00 at `c7dc7d6`) with an identical request: the
+  expected findings appear in every run, and what varies are extra
+  low-value findings (a project-wide architecture note, a second category
+  for the same file). With 3 runs and 1–4 findings per case, one extra
+  finding moves the Jaccard a lot; a stability gate in CI needs more runs
+  or a stability measure of the expected findings only.
 
 ### TD-31 — Static metrics use regex while we already have an AST · Low
 - **Where:** [metrics.ts:66-108](../src/lib/analysis/metrics.ts#L66-L108)
@@ -266,9 +288,12 @@ maintainability) · **Low** (cleanup).
   multi-line parameters, are still found); `test/` and `tests/` folders at
   any depth are tests; fixtures and mocks (`fixtures/`, `__fixtures__/`,
   `__mocks__/`) are not scanned for secrets. Pinned by unit tests and by
-  the characterization snapshots. **Still open (Phase 7):** React
-  components sized by lines, the "critical area" keyword rule, coverage by
-  file-name matching, and the uncapped penalty.
+  the characterization snapshots. **Done in Phase 7:** React components
+  sized by their logic, not their markup; "critical area" = logic file with
+  the whole keyword in its path; files imported by tests count as tested;
+  the penalty is diminishing (ADR-010). **Still open:** indirect tests
+  (a test that reaches a file through another module) need the full import
+  graph (v2.1 Code Intelligence).
 
 ---
 

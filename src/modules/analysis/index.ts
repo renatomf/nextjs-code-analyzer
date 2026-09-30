@@ -10,12 +10,25 @@ export {
   type Finding,
   type IssueCategory,
   type IssueSeverity,
+  type Occurrence,
 } from "./domain/finding";
+export {
+  verifyEvidence,
+  type ClaimedIssue,
+  type ReviewedChunk,
+} from "./domain/evidence";
+export { buildReportFindings, groupFindings } from "./domain/grouping";
 export {
   computeDeterministicMetrics,
   type DeterministicMetrics,
   type SourceFile,
 } from "./domain/metrics";
+export { REVIEW_PROMPT, REVIEW_PROMPT_VERSION, reviewInstructions } from "./domain/review-prompt";
+export {
+  REVIEW_BUDGET,
+  sampleForReview,
+  type ReviewBudget,
+} from "./domain/sampling";
 export {
   DETERMINISTIC_RULES,
   type ProjectMeasures,
@@ -23,6 +36,8 @@ export {
 } from "./domain/rules";
 export {
   SEVERITY_PENALTY,
+  diminishingPenaltyPolicy,
+  findingPenalty,
   linearPenaltyPolicy,
   scoreFromIssues,
   type CategoryScores,

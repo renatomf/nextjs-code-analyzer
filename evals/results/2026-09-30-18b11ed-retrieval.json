@@ -1,0 +1,1583 @@
+{
+  "date": "2026-09-30T17:57:12.334Z",
+  "commit": "18b11ed",
+  "k": 8,
+  "retrieval": {
+    "cases": [
+      {
+        "repo": "nodegoat",
+        "chunks": 93,
+        "questions": 7,
+        "recallAtK": 1,
+        "hitAt1": 0.7142857142857143,
+        "mrr": 0.8214285714285714,
+        "details": [
+          {
+            "question": "How are user passwords checked at login?",
+            "expectedFiles": [
+              "app/data/user-dao.js",
+              "app/routes/session.js"
+            ],
+            "rank": 1,
+            "retrieved": [
+              {
+                "filePath": "app/routes/session.js",
+                "lines": [
+                  55,
+                  80
+                ],
+                "score": 0.2753
+              },
+              {
+                "filePath": "app/data/user-dao.js",
+                "lines": [
+                  49,
+                  85
+                ],
+                "score": 0.2752
+              },
+              {
+                "filePath": "app/routes/session.js",
+                "lines": [
+                  141,
+                  189
+                ],
+                "score": 0.2692
+              },
+              {
+                "filePath": "app/routes/session.js",
+                "lines": [
+                  78,
+                  108
+                ],
+                "score": 0.2634
+              },
+              {
+                "filePath": "app/data/user-dao.js",
+                "lines": [
+                  4,
+                  52
+                ],
+                "score": 0.2556
+              },
+              {
+                "filePath": "test/e2e/integration/signup_spec.js",
+                "lines": [
+                  68,
+                  76
+                ],
+                "score": 0.2415
+              },
+              {
+                "filePath": "test/e2e/integration/login_spec.js",
+                "lines": [
+                  56,
+                  92
+                ],
+                "score": 0.24
+              },
+              {
+                "filePath": "app/data/profile-dao.js",
+                "lines": [
+                  89,
+                  111
+                ],
+                "score": 0.2345
+              }
+            ]
+          },
+          {
+            "question": "Where are the pre-tax, after-tax and roth contributions parsed from the form?",
+            "expectedFiles": [
+              "app/routes/contributions.js"
+            ],
+            "rank": 1,
+            "retrieved": [
+              {
+                "filePath": "app/routes/contributions.js",
+                "lines": [
+                  50,
+                  78
+                ],
+                "score": 0.3
+              },
+              {
+                "filePath": "app/data/contributions-dao.js",
+                "lines": [
+                  44,
+                  84
+                ],
+                "score": 0.2914
+              },
+              {
+                "filePath": "app/routes/contributions.js",
+                "lines": [
+                  7,
+                  56
+                ],
+                "score": 0.2334
+              },
+              {
+                "filePath": "app/data/contributions-dao.js",
+                "lines": [
+                  4,
+                  50
+                ],
+                "score": 0.2224
+              },
+              {
+                "filePath": "app/routes/contributions.js",
+                "lines": [
+                  1,
+                  4
+                ],
+                "score": 0.1658
+              },
+              {
+                "filePath": "test/security/profile-test.js",
+                "lines": [
+                  214,
+                  245
+                ],
+                "score": 0.1652
+              },
+              {
+                "filePath": "config/env/development.js",
+                "lines": [
+                  1,
+                  14
+                ],
+                "score": 0.1425
+              },
+              {
+                "filePath": "test/security/profile-test.js",
+                "lines": [
+                  121,
+                  159
+                ],
+                "score": 0.137
+              }
+            ]
+          },
+          {
+            "question": "How are allocations filtered by the stock threshold?",
+            "expectedFiles": [
+              "app/data/allocations-dao.js"
+            ],
+            "rank": 1,
+            "retrieved": [
+              {
+                "filePath": "app/data/allocations-dao.js",
+                "lines": [
+                  4,
+                  57
+                ],
+                "score": 0.3244
+              },
+              {
+                "filePath": "app/data/allocations-dao.js",
+                "lines": [
+                  49,
+                  88
+                ],
+                "score": 0.3094
+              },
+              {
+                "filePath": "artifacts/db-reset.js",
+                "lines": [
+                  106,
+                  135
+                ],
+                "score": 0.2623
+              },
+              {
+                "filePath": "app/data/allocations-dao.js",
+                "lines": [
+                  82,
+                  112
+                ],
+                "score": 0.2517
+              },
+              {
+                "filePath": "app/routes/allocations.js",
+                "lines": [
+                  1,
+                  32
+                ],
+                "score": 0.2128
+              },
+              {
+                "filePath": "app/routes/session.js",
+                "lines": [
+                  1,
+                  5
+                ],
+                "score": 0.1952
+              },
+              {
+                "filePath": "app/assets/js/chart/chart-data-morris.js",
+                "lines": [
+                  2,
+                  52
+                ],
+                "score": 0.1422
+              },
+              {
+                "filePath": "app/assets/js/chart/chart-data-morris.js",
+                "lines": [
+                  92,
+                  120
+                ],
+                "score": 0.1185
+              }
+            ]
+          },
+          {
+            "question": "Where is the redirect for the learning resources link handled?",
+            "expectedFiles": [
+              "app/routes/index.js"
+            ],
+            "rank": 2,
+            "retrieved": [
+              {
+                "filePath": "app/assets/js/tour/redirects-steps.js",
+                "lines": [
+                  3,
+                  29
+                ],
+                "score": 0.4715
+              },
+              {
+                "filePath": "app/routes/index.js",
+                "lines": [
+                  51,
+                  83
+                ],
+                "score": 0.4048
+              },
+              {
+                "filePath": "test/e2e/integration/learn_spec.js",
+                "lines": [
+                  3,
+                  20
+                ],
+                "score": 0.3964
+              },
+              {
+                "filePath": "test/e2e/integration/general_spec.js",
+                "lines": [
+                  3,
+                  60
+                ],
+                "score": 0.3409
+              },
+              {
+                "filePath": "test/e2e/integration/tutorial_spec.js",
+                "lines": [
+                  59,
+                  73
+                ],
+                "score": 0.3115
+              },
+              {
+                "filePath": "test/e2e/integration/research_spec.js",
+                "lines": [
+                  3,
+                  46
+                ],
+                "score": 0.2745
+              },
+              {
+                "filePath": "test/e2e/integration/tutorial_spec.js",
+                "lines": [
+                  3,
+                  65
+                ],
+                "score": 0.2647
+              },
+              {
+                "filePath": "app/routes/index.js",
+                "lines": [
+                  1,
+                  9
+                ],
+                "score": 0.2607
+              }
+            ]
+          },
+          {
+            "question": "How does the research page fetch stock data from another server?",
+            "expectedFiles": [
+              "app/routes/research.js"
+            ],
+            "rank": 1,
+            "retrieved": [
+              {
+                "filePath": "app/routes/research.js",
+                "lines": [
+                  1,
+                  36
+                ],
+                "score": 0.3605
+              },
+              {
+                "filePath": "test/e2e/integration/research_spec.js",
+                "lines": [
+                  3,
+                  46
+                ],
+                "score": 0.2154
+              },
+              {
+                "filePath": "test/e2e/integration/tutorial_spec.js",
+                "lines": [
+                  59,
+                  73
+                ],
+                "score": 0.2009
+              },
+              {
+                "filePath": "app/routes/index.js",
+                "lines": [
+                  11,
+                  55
+                ],
+                "score": 0.1967
+              },
+              {
+                "filePath": "app/routes/index.js",
+                "lines": [
+                  51,
+                  83
+                ],
+                "score": 0.1923
+              },
+              {
+                "filePath": "test/security/profile-test.js",
+                "lines": [
+                  264,
+                  290
+                ],
+                "score": 0.1751
+              },
+              {
+                "filePath": "test/security/profile-test.js",
+                "lines": [
+                  47,
+                  80
+                ],
+                "score": 0.1707
+              },
+              {
+                "filePath": "test/e2e/integration/general_spec.js",
+                "lines": [
+                  3,
+                  60
+                ],
+                "score": 0.1593
+              }
+            ]
+          },
+          {
+            "question": "Where is the session cookie configured?",
+            "expectedFiles": [
+              "server.js"
+            ],
+            "rank": 4,
+            "retrieved": [
+              {
+                "filePath": "app/routes/session.js",
+                "lines": [
+                  105,
+                  146
+                ],
+                "score": 0.4143
+              },
+              {
+                "filePath": "app/routes/session.js",
+                "lines": [
+                  78,
+                  108
+                ],
+                "score": 0.4055
+              },
+              {
+                "filePath": "app/routes/index.js",
+                "lines": [
+                  11,
+                  55
+                ],
+                "score": 0.3885
+              },
+              {
+                "filePath": "server.js",
+                "lines": [
+                  70,
+                  128
+                ],
+                "score": 0.3719
+              },
+              {
+                "filePath": "app/routes/session.js",
+                "lines": [
+                  8,
+                  60
+                ],
+                "score": 0.3557
+              },
+              {
+                "filePath": "app/routes/session.js",
+                "lines": [
+                  228,
+                  275
+                ],
+                "score": 0.3385
+              },
+              {
+                "filePath": "test/security/profile-test.js",
+                "lines": [
+                  152,
+                  188
+                ],
+                "score": 0.3281
+              },
+              {
+                "filePath": "test/e2e/integration/learn_spec.js",
+                "lines": [
+                  3,
+                  20
+                ],
+                "score": 0.3279
+              }
+            ]
+          },
+          {
+            "question": "How is the user's social security number saved in the profile?",
+            "expectedFiles": [
+              "app/data/profile-dao.js"
+            ],
+            "rank": 1,
+            "retrieved": [
+              {
+                "filePath": "app/data/profile-dao.js",
+                "lines": [
+                  89,
+                  111
+                ],
+                "score": 0.3405
+              },
+              {
+                "filePath": "app/routes/profile.js",
+                "lines": [
+                  87,
+                  109
+                ],
+                "score": 0.277
+              },
+              {
+                "filePath": "app/data/profile-dao.js",
+                "lines": [
+                  37,
+                  99
+                ],
+                "score": 0.26
+              },
+              {
+                "filePath": "app/data/contributions-dao.js",
+                "lines": [
+                  44,
+                  84
+                ],
+                "score": 0.2271
+              },
+              {
+                "filePath": "test/security/profile-test.js",
+                "lines": [
+                  25,
+                  37
+                ],
+                "score": 0.2191
+              },
+              {
+                "filePath": "app/routes/index.js",
+                "lines": [
+                  11,
+                  55
+                ],
+                "score": 0.2078
+              },
+              {
+                "filePath": "test/e2e/integration/signup_spec.js",
+                "lines": [
+                  68,
+                  76
+                ],
+                "score": 0.1935
+              },
+              {
+                "filePath": "app/routes/profile.js",
+                "lines": [
+                  8,
+                  54
+                ],
+                "score": 0.1918
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "repo": "juice-shop",
+        "chunks": 2031,
+        "questions": 7,
+        "recallAtK": 0.2857142857142857,
+        "hitAt1": 0,
+        "mrr": 0.04421768707482993,
+        "details": [
+          {
+            "question": "How does the product search query the database?",
+            "expectedFiles": [
+              "routes/search.ts"
+            ],
+            "rank": null,
+            "retrieved": [
+              {
+                "filePath": "data/static/codefixes/chatbotGreedyInjectionChallenge_1.ts",
+                "lines": [
+                  1,
+                  18
+                ],
+                "score": 0.3867
+              },
+              {
+                "filePath": "data/static/codefixes/chatbotGreedyInjectionChallenge_2_correct.ts",
+                "lines": [
+                  1,
+                  18
+                ],
+                "score": 0.379
+              },
+              {
+                "filePath": "data/static/codefixes/chatbotGreedyInjectionChallenge_3.ts",
+                "lines": [
+                  1,
+                  18
+                ],
+                "score": 0.379
+              },
+              {
+                "filePath": "routes/chat.ts",
+                "lines": [
+                  82,
+                  99
+                ],
+                "score": 0.379
+              },
+              {
+                "filePath": "data/static/codefixes/dbSchemaChallenge_1.ts",
+                "lines": [
+                  1,
+                  17
+                ],
+                "score": 0.3771
+              },
+              {
+                "filePath": "data/static/codefixes/dbSchemaChallenge_2_correct.ts",
+                "lines": [
+                  1,
+                  19
+                ],
+                "score": 0.3733
+              },
+              {
+                "filePath": "data/static/codefixes/unionSqlInjectionChallenge_2_correct.ts",
+                "lines": [
+                  1,
+                  19
+                ],
+                "score": 0.3733
+              },
+              {
+                "filePath": "data/static/codefixes/chatbotGreedyInjectionChallenge_4.ts",
+                "lines": [
+                  1,
+                  17
+                ],
+                "score": 0.357
+              }
+            ]
+          },
+          {
+            "question": "How is a user authenticated at login?",
+            "expectedFiles": [
+              "routes/login.ts"
+            ],
+            "rank": null,
+            "retrieved": [
+              {
+                "filePath": "frontend/src/hacking-instructor/challenges/exposedCredentials.ts",
+                "lines": [
+                  57,
+                  75
+                ],
+                "score": 0.3242
+              },
+              {
+                "filePath": "frontend/src/app/oauth/oauth.component.spec.ts",
+                "lines": [
+                  95,
+                  108
+                ],
+                "score": 0.3157
+              },
+              {
+                "filePath": "models/user.ts",
+                "lines": [
+                  20,
+                  34
+                ],
+                "score": 0.2997
+              },
+              {
+                "filePath": "test/api/2fa.test.ts",
+                "lines": [
+                  319,
+                  346
+                ],
+                "score": 0.2958
+              },
+              {
+                "filePath": "routes/2fa.ts",
+                "lines": [
+                  58,
+                  86
+                ],
+                "score": 0.2954
+              },
+              {
+                "filePath": "test/api/user-profile.test.ts",
+                "lines": [
+                  15,
+                  23
+                ],
+                "score": 0.2869
+              },
+              {
+                "filePath": "test/api/password.test.ts",
+                "lines": [
+                  92,
+                  104
+                ],
+                "score": 0.2847
+              },
+              {
+                "filePath": "data/static/codefixes/loginAdminChallenge_1.ts",
+                "lines": [
+                  27,
+                  39
+                ],
+                "score": 0.2744
+              }
+            ]
+          },
+          {
+            "question": "How are product reviews updated?",
+            "expectedFiles": [
+              "routes/updateProductReviews.ts"
+            ],
+            "rank": null,
+            "retrieved": [
+              {
+                "filePath": "frontend/src/app/product-details/product-details.component.ts",
+                "lines": [
+                  86,
+                  105
+                ],
+                "score": 0.4446
+              },
+              {
+                "filePath": "data/static/codefixes/forgedReviewChallenge_3.ts",
+                "lines": [
+                  1,
+                  14
+                ],
+                "score": 0.4219
+              },
+              {
+                "filePath": "data/static/codefixes/noSqlReviewsChallenge_2.ts",
+                "lines": [
+                  1,
+                  14
+                ],
+                "score": 0.4219
+              },
+              {
+                "filePath": "data/static/codefixes/forgedReviewChallenge_2_correct.ts",
+                "lines": [
+                  1,
+                  15
+                ],
+                "score": 0.3978
+              },
+              {
+                "filePath": "data/static/codefixes/forgedReviewChallenge_1.ts",
+                "lines": [
+                  1,
+                  15
+                ],
+                "score": 0.3964
+              },
+              {
+                "filePath": "frontend/src/app/product-details/product-details.component.ts",
+                "lines": [
+                  78,
+                  106
+                ],
+                "score": 0.3779
+              },
+              {
+                "filePath": "data/static/codefixes/noSqlReviewsChallenge_3_correct.ts",
+                "lines": [
+                  1,
+                  20
+                ],
+                "score": 0.3705
+              },
+              {
+                "filePath": "data/static/codefixes/noSqlReviewsChallenge_1.ts",
+                "lines": [
+                  1,
+                  20
+                ],
+                "score": 0.3524
+              }
+            ]
+          },
+          {
+            "question": "How is a redirect URL checked against the allowlist?",
+            "expectedFiles": [
+              "lib/insecurity.ts",
+              "routes/redirect.ts"
+            ],
+            "rank": 6,
+            "retrieved": [
+              {
+                "filePath": "data/static/codefixes/redirectCryptoCurrencyChallenge_1.ts",
+                "lines": [
+                  1,
+                  17
+                ],
+                "score": 0.5179
+              },
+              {
+                "filePath": "data/static/codefixes/redirectCryptoCurrencyChallenge_3_correct.ts",
+                "lines": [
+                  1,
+                  15
+                ],
+                "score": 0.513
+              },
+              {
+                "filePath": "data/static/codefixes/redirectCryptoCurrencyChallenge_2.ts",
+                "lines": [
+                  1,
+                  17
+                ],
+                "score": 0.4914
+              },
+              {
+                "filePath": "data/static/codefixes/redirectCryptoCurrencyChallenge_4.ts",
+                "lines": [
+                  1,
+                  17
+                ],
+                "score": 0.4893
+              },
+              {
+                "filePath": "data/static/codefixes/redirectChallenge_2.ts",
+                "lines": [
+                  1,
+                  18
+                ],
+                "score": 0.4741
+              },
+              {
+                "filePath": "routes/redirect.ts",
+                "lines": [
+                  12,
+                  32
+                ],
+                "score": 0.4697
+              },
+              {
+                "filePath": "test/cypress/e2e/redirect.spec.ts",
+                "lines": [
+                  1,
+                  35
+                ],
+                "score": 0.4529
+              },
+              {
+                "filePath": "data/static/codefixes/redirectChallenge_1.ts",
+                "lines": [
+                  1,
+                  18
+                ],
+                "score": 0.4468
+              }
+            ]
+          },
+          {
+            "question": "How are passwords hashed before they are stored?",
+            "expectedFiles": [
+              "models/user.ts",
+              "lib/insecurity.ts"
+            ],
+            "rank": null,
+            "retrieved": [
+              {
+                "filePath": "data/static/codefixes/weakPasswordChallenge_3.ts",
+                "lines": [
+                  4,
+                  11
+                ],
+                "score": 0.4295
+              },
+              {
+                "filePath": "data/static/codefixes/weakPasswordChallenge_1_correct.ts",
+                "lines": [
+                  4,
+                  8
+                ],
+                "score": 0.4257
+              },
+              {
+                "filePath": "data/static/codefixes/weakPasswordChallenge_2.ts",
+                "lines": [
+                  4,
+                  12
+                ],
+                "score": 0.4201
+              },
+              {
+                "filePath": "data/static/codefixes/weakPasswordChallenge_4.ts",
+                "lines": [
+                  4,
+                  7
+                ],
+                "score": 0.4062
+              },
+              {
+                "filePath": "frontend/src/app/Services/user.service.ts",
+                "lines": [
+                  12,
+                  16
+                ],
+                "score": 0.3965
+              },
+              {
+                "filePath": "frontend/src/hacking-instructor/challenges/exposedCredentials.ts",
+                "lines": [
+                  57,
+                  75
+                ],
+                "score": 0.2939
+              },
+              {
+                "filePath": "frontend/src/app/password-strength/password-strength.component.ts",
+                "lines": [
+                  51,
+                  65
+                ],
+                "score": 0.2923
+              },
+              {
+                "filePath": "frontend/src/app/password-strength/password-strength.component.ts",
+                "lines": [
+                  18,
+                  66
+                ],
+                "score": 0.2811
+              }
+            ]
+          },
+          {
+            "question": "How does the chatbot generate discount coupons?",
+            "expectedFiles": [
+              "routes/chat.ts"
+            ],
+            "rank": 7,
+            "retrieved": [
+              {
+                "filePath": "data/static/codefixes/chatbotPromptInjectionChallenge_3.ts",
+                "lines": [
+                  1,
+                  14
+                ],
+                "score": 0.4832
+              },
+              {
+                "filePath": "data/static/codefixes/chatbotGreedyInjectionChallenge_1.ts",
+                "lines": [
+                  16,
+                  30
+                ],
+                "score": 0.4421
+              },
+              {
+                "filePath": "data/static/codefixes/chatbotGreedyInjectionChallenge_4.ts",
+                "lines": [
+                  14,
+                  25
+                ],
+                "score": 0.4383
+              },
+              {
+                "filePath": "data/static/codefixes/chatbotPromptInjectionChallenge_1.ts",
+                "lines": [
+                  1,
+                  10
+                ],
+                "score": 0.428
+              },
+              {
+                "filePath": "data/static/codefixes/chatbotGreedyInjectionChallenge_2_correct.ts",
+                "lines": [
+                  14,
+                  25
+                ],
+                "score": 0.3992
+              },
+              {
+                "filePath": "data/static/codefixes/chatbotGreedyInjectionChallenge_3.ts",
+                "lines": [
+                  14,
+                  25
+                ],
+                "score": 0.3992
+              },
+              {
+                "filePath": "routes/chat.ts",
+                "lines": [
+                  95,
+                  106
+                ],
+                "score": 0.3992
+              },
+              {
+                "filePath": "frontend/src/app/chatbot/chatbot.component.ts",
+                "lines": [
+                  17,
+                  17
+                ],
+                "score": 0.3969
+              }
+            ]
+          },
+          {
+            "question": "Where is the rate limit for password resets configured?",
+            "expectedFiles": [
+              "server.ts"
+            ],
+            "rank": null,
+            "retrieved": [
+              {
+                "filePath": "data/static/codefixes/resetPasswordMortyChallenge_4_correct.ts",
+                "lines": [
+                  3,
+                  6
+                ],
+                "score": 0.5162
+              },
+              {
+                "filePath": "data/static/codefixes/resetPasswordMortyChallenge_1.ts",
+                "lines": [
+                  2,
+                  6
+                ],
+                "score": 0.4713
+              },
+              {
+                "filePath": "data/static/codefixes/resetPasswordMortyChallenge_3.ts",
+                "lines": [
+                  3,
+                  7
+                ],
+                "score": 0.4687
+              },
+              {
+                "filePath": "data/static/codefixes/resetPasswordMortyChallenge_2.ts",
+                "lines": [
+                  3,
+                  7
+                ],
+                "score": 0.4601
+              },
+              {
+                "filePath": "frontend/src/app/forgot-password/forgot-password.component.spec.ts",
+                "lines": [
+                  100,
+                  137
+                ],
+                "score": 0.4436
+              },
+              {
+                "filePath": "frontend/src/app/change-password/change-password.component.ts",
+                "lines": [
+                  116,
+                  144
+                ],
+                "score": 0.4254
+              },
+              {
+                "filePath": "frontend/src/app/forgot-password/forgot-password.component.ts",
+                "lines": [
+                  121,
+                  145
+                ],
+                "score": 0.4169
+              },
+              {
+                "filePath": "frontend/src/app/forgot-password/forgot-password.component.ts",
+                "lines": [
+                  109,
+                  134
+                ],
+                "score": 0.394
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "repo": "this-repository",
+        "chunks": 697,
+        "questions": 7,
+        "recallAtK": 0.42857142857142855,
+        "hitAt1": 0,
+        "mrr": 0.16666666666666666,
+        "details": [
+          {
+            "question": "How is the plan quota enforced when a project is created?",
+            "expectedFiles": [
+              "src/modules/billing/server.ts"
+            ],
+            "rank": null,
+            "retrieved": [
+              {
+                "filePath": "src/modules/billing/domain/quota.ts",
+                "lines": [
+                  30,
+                  56
+                ],
+                "score": 0.4843
+              },
+              {
+                "filePath": "src/modules/billing/index.ts",
+                "lines": [
+                  11,
+                  26
+                ],
+                "score": 0.3783
+              },
+              {
+                "filePath": "src/modules/billing/application/quota.ts",
+                "lines": [
+                  10,
+                  45
+                ],
+                "score": 0.3596
+              },
+              {
+                "filePath": "src/modules/billing/application/quota.ts",
+                "lines": [
+                  48,
+                  67
+                ],
+                "score": 0.2942
+              },
+              {
+                "filePath": "src/modules/billing/domain/plan.ts",
+                "lines": [
+                  74,
+                  95
+                ],
+                "score": 0.2697
+              },
+              {
+                "filePath": "src/lib/actions/github.ts",
+                "lines": [
+                  130,
+                  138
+                ],
+                "score": 0.269
+              },
+              {
+                "filePath": "src/db/schema.ts",
+                "lines": [
+                  162,
+                  193
+                ],
+                "score": 0.2413
+              },
+              {
+                "filePath": "src/lib/actions/github.ts",
+                "lines": [
+                  24,
+                  49
+                ],
+                "score": 0.2399
+              }
+            ]
+          },
+          {
+            "question": "How is the Stripe webhook signature verified?",
+            "expectedFiles": [
+              "src/modules/billing/infrastructure/stripe/webhook.ts",
+              "src/app/api/stripe/webhook/route.ts"
+            ],
+            "rank": 2,
+            "retrieved": [
+              {
+                "filePath": "src/app/api/stripe/webhook/route.test.ts",
+                "lines": [
+                  44,
+                  54
+                ],
+                "score": 0.6129
+              },
+              {
+                "filePath": "src/app/api/stripe/webhook/route.ts",
+                "lines": [
+                  5,
+                  46
+                ],
+                "score": 0.5805
+              },
+              {
+                "filePath": "src/modules/billing/infrastructure/stripe/webhook.ts",
+                "lines": [
+                  9,
+                  46
+                ],
+                "score": 0.5269
+              },
+              {
+                "filePath": "src/app/api/stripe/webhook/route.test.ts",
+                "lines": [
+                  4,
+                  42
+                ],
+                "score": 0.484
+              },
+              {
+                "filePath": "src/modules/billing/infrastructure/stripe/client.ts",
+                "lines": [
+                  4,
+                  45
+                ],
+                "score": 0.4416
+              },
+              {
+                "filePath": "src/modules/billing/server.ts",
+                "lines": [
+                  86,
+                  112
+                ],
+                "score": 0.4233
+              },
+              {
+                "filePath": "src/modules/billing/server.ts",
+                "lines": [
+                  115,
+                  138
+                ],
+                "score": 0.4203
+              },
+              {
+                "filePath": "src/modules/billing/server.ts",
+                "lines": [
+                  140,
+                  142
+                ],
+                "score": 0.3905
+              }
+            ]
+          },
+          {
+            "question": "How are public report links created and revoked?",
+            "expectedFiles": [
+              "src/modules/projects/infrastructure/drizzle-report-shares.ts"
+            ],
+            "rank": 3,
+            "retrieved": [
+              {
+                "filePath": "src/app/r/[token]/page.tsx",
+                "lines": [
+                  66,
+                  89
+                ],
+                "score": 0.2587
+              },
+              {
+                "filePath": "src/components/projects/analysis-progress.tsx",
+                "lines": [
+                  177,
+                  189
+                ],
+                "score": 0.2574
+              },
+              {
+                "filePath": "src/modules/projects/infrastructure/drizzle-report-shares.ts",
+                "lines": [
+                  71,
+                  102
+                ],
+                "score": 0.2533
+              },
+              {
+                "filePath": "src/lib/actions/report-share.ts",
+                "lines": [
+                  57,
+                  72
+                ],
+                "score": 0.2402
+              },
+              {
+                "filePath": "src/modules/projects/report-share.integration.test.ts",
+                "lines": [
+                  190,
+                  210
+                ],
+                "score": 0.2283
+              },
+              {
+                "filePath": "src/app/(app)/settings/page.tsx",
+                "lines": [
+                  243,
+                  265
+                ],
+                "score": 0.224
+              },
+              {
+                "filePath": "src/modules/projects/infrastructure/drizzle-report-shares.ts",
+                "lines": [
+                  104,
+                  112
+                ],
+                "score": 0.2158
+              },
+              {
+                "filePath": "src/modules/projects/infrastructure/drizzle-report-shares.ts",
+                "lines": [
+                  154,
+                  174
+                ],
+                "score": 0.1992
+              }
+            ]
+          },
+          {
+            "question": "How is repository code kept from acting as instructions in the prompt?",
+            "expectedFiles": [
+              "src/shared/prompt-data.ts"
+            ],
+            "rank": null,
+            "retrieved": [
+              {
+                "filePath": "src/components/projects/repo-picker.tsx",
+                "lines": [
+                  25,
+                  67
+                ],
+                "score": 0.3091
+              },
+              {
+                "filePath": "src/components/settings/disconnect-github-button.tsx",
+                "lines": [
+                  10,
+                  45
+                ],
+                "score": 0.3001
+              },
+              {
+                "filePath": "src/lib/reanalysis-github.integration.test.ts",
+                "lines": [
+                  181,
+                  195
+                ],
+                "score": 0.2931
+              },
+              {
+                "filePath": "evals/repos/repos.ts",
+                "lines": [
+                  16,
+                  37
+                ],
+                "score": 0.2809
+              },
+              {
+                "filePath": "src/modules/identity/github-connection.integration.test.ts",
+                "lines": [
+                  74,
+                  92
+                ],
+                "score": 0.2791
+              },
+              {
+                "filePath": "src/components/projects/repo-picker.tsx",
+                "lines": [
+                  61,
+                  84
+                ],
+                "score": 0.2778
+              },
+              {
+                "filePath": "evals/repos/repos.ts",
+                "lines": [
+                  201,
+                  223
+                ],
+                "score": 0.2588
+              },
+              {
+                "filePath": "src/lib/github.ts",
+                "lines": [
+                  300,
+                  343
+                ],
+                "score": 0.2567
+              }
+            ]
+          },
+          {
+            "question": "How are the LLM's findings checked against the code they quote?",
+            "expectedFiles": [
+              "src/modules/analysis/domain/evidence.ts"
+            ],
+            "rank": null,
+            "retrieved": [
+              {
+                "filePath": "src/modules/analysis/domain/finding.ts",
+                "lines": [
+                  3,
+                  46
+                ],
+                "score": 0.3735
+              },
+              {
+                "filePath": "src/lib/analysis/report-llm.ts",
+                "lines": [
+                  114,
+                  147
+                ],
+                "score": 0.3176
+              },
+              {
+                "filePath": "src/lib/analysis/report-llm.ts",
+                "lines": [
+                  83,
+                  115
+                ],
+                "score": 0.3105
+              },
+              {
+                "filePath": "src/modules/analysis/domain/grouping.ts",
+                "lines": [
+                  46,
+                  48
+                ],
+                "score": 0.3078
+              },
+              {
+                "filePath": "src/lib/analysis/report-llm.ts",
+                "lines": [
+                  10,
+                  43
+                ],
+                "score": 0.2953
+              },
+              {
+                "filePath": "src/lib/ai/llm.test.ts",
+                "lines": [
+                  16,
+                  34
+                ],
+                "score": 0.2905
+              },
+              {
+                "filePath": "src/lib/analysis/report-generation.integration.test.ts",
+                "lines": [
+                  15,
+                  50
+                ],
+                "score": 0.2892
+              },
+              {
+                "filePath": "src/app/r/[token]/page.tsx",
+                "lines": [
+                  66,
+                  89
+                ],
+                "score": 0.289
+              }
+            ]
+          },
+          {
+            "question": "How is the GitHub access token encrypted before it is stored?",
+            "expectedFiles": [
+              "src/lib/encryption.ts",
+              "src/modules/identity/infrastructure/drizzle-github-connection.ts"
+            ],
+            "rank": null,
+            "retrieved": [
+              {
+                "filePath": "src/lib/auth.ts",
+                "lines": [
+                  128,
+                  156
+                ],
+                "score": 0.5005
+              },
+              {
+                "filePath": "src/lib/github.ts",
+                "lines": [
+                  154,
+                  168
+                ],
+                "score": 0.4704
+              },
+              {
+                "filePath": "src/modules/identity/github-connection.integration.test.ts",
+                "lines": [
+                  45,
+                  79
+                ],
+                "score": 0.3862
+              },
+              {
+                "filePath": "src/lib/github.test.ts",
+                "lines": [
+                  13,
+                  26
+                ],
+                "score": 0.3736
+              },
+              {
+                "filePath": "src/lib/github.ts",
+                "lines": [
+                  10,
+                  44
+                ],
+                "score": 0.3496
+              },
+              {
+                "filePath": "src/modules/identity/github-connection.integration.test.ts",
+                "lines": [
+                  74,
+                  92
+                ],
+                "score": 0.3323
+              },
+              {
+                "filePath": "evals/repos/repos.ts",
+                "lines": [
+                  93,
+                  108
+                ],
+                "score": 0.3309
+              },
+              {
+                "filePath": "src/lib/project-import.integration.test.ts",
+                "lines": [
+                  205,
+                  214
+                ],
+                "score": 0.3283
+              }
+            ]
+          },
+          {
+            "question": "Which code chunks does the LLM reviewer receive?",
+            "expectedFiles": [
+              "src/modules/analysis/domain/sampling.ts"
+            ],
+            "rank": 3,
+            "retrieved": [
+              {
+                "filePath": "src/lib/analysis/report-llm.ts",
+                "lines": [
+                  83,
+                  115
+                ],
+                "score": 0.4044
+              },
+              {
+                "filePath": "evals/analysis/analysis.eval.ts",
+                "lines": [
+                  188,
+                  205
+                ],
+                "score": 0.3856
+              },
+              {
+                "filePath": "src/modules/analysis/domain/sampling.ts",
+                "lines": [
+                  4,
+                  49
+                ],
+                "score": 0.3612
+              },
+              {
+                "filePath": "src/lib/limits.ts",
+                "lines": [
+                  5,
+                  50
+                ],
+                "score": 0.3564
+              },
+              {
+                "filePath": "src/lib/analysis/report-llm.ts",
+                "lines": [
+                  114,
+                  147
+                ],
+                "score": 0.3408
+              },
+              {
+                "filePath": "src/lib/ai/fake-llm.ts",
+                "lines": [
+                  8,
+                  32
+                ],
+                "score": 0.3349
+              },
+              {
+                "filePath": "evals/analysis/analysis.eval.ts",
+                "lines": [
+                  107,
+                  129
+                ],
+                "score": 0.3331
+              },
+              {
+                "filePath": "evals/repos/repos.ts",
+                "lines": [
+                  16,
+                  37
+                ],
+                "score": 0.3296
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "totals": {
+      "questions": 21,
+      "recallAtK": 0.5714285714285714,
+      "hitAt1": 0.23809523809523808,
+      "mrr": 0.3441043083900227
+    }
+  }
+}

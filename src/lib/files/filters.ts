@@ -1,9 +1,12 @@
 import {
   ALWAYS_EXCLUDE_DIR_NAMES,
   ALWAYS_EXCLUDE_FILE_NAMES,
+  MINIFIED_FILE_PATTERN,
   SENSITIVE_FILE_EXTENSIONS,
   SENSITIVE_FILE_NAMES,
   SOURCE_EXTENSIONS,
+  STATIC_DIR_NAMES,
+  VENDOR_DIR_NAME,
 } from "@/lib/limits";
 import ignore from "ignore";
 import path from "path";
@@ -77,6 +80,15 @@ export function isSourceFile(filePath: string): boolean {
  * Must be called for every entry before it is read, written to disk,
  * chunked or sent to the LLM. Unsafe paths are always skipped.
  */
+/** `vendor/` at the root or under a static-files folder (see VENDOR_DIR_NAME). */
+function isThirdPartyVendorDir(parts: string[]): boolean {
+  return parts.some(
+    (part, index) =>
+      part === VENDOR_DIR_NAME &&
+      (index === 0 || parts.slice(0, index).some((folder) => STATIC_DIR_NAMES.has(folder))),
+  );
+}
+
 export function shouldSkipPath(
   relativePath: string,
   gitignore?: ReturnType<typeof ignore>,
@@ -88,9 +100,11 @@ export function shouldSkipPath(
   // Case-insensitive: archives built on Windows/macOS may vary the casing.
   const parts = normalized.toLowerCase().split("/");
   if (parts.some((part) => ALWAYS_EXCLUDE_DIR_NAMES.has(part))) return true;
+  if (isThirdPartyVendorDir(parts)) return true;
 
   const baseName = parts[parts.length - 1] ?? "";
   if (ALWAYS_EXCLUDE_FILE_NAMES.has(baseName)) return true;
+  if (MINIFIED_FILE_PATTERN.test(baseName)) return true;
   if (isSensitiveFile(baseName)) return true;
   if (isBinaryOrNonText(normalized)) return true;
   if (gitignore?.ignores(normalized)) return true;

@@ -119,4 +119,56 @@ describe("computeDeterministicMetrics", () => {
       ),
     ).toBe(true);
   });
+
+  // Phase 7, item 6: heuristics measured by the eval (evals/analysis).
+  describe("heuristics", () => {
+    const body = (n: number, line: (i: number) => string) =>
+      Array.from({ length: n }, (_, i) => line(i)).join("\n");
+
+    it("sizes a React component by its logic, not its markup", () => {
+      const markupOnly = ["export function Page() {", "  return (", body(110, (i) => `    <p>${i}</p>`), "  );", "}"].join("\n");
+      const logicHeavy = ["export function Form() {", body(90, (i) => `  const s${i} = useS(${i});`), "  return <form />;", "}"].join("\n");
+
+      const metrics = computeDeterministicMetrics([
+        { relativePath: "src/Page.tsx", content: markupOnly },
+        { relativePath: "src/Form.tsx", content: logicHeavy },
+      ]);
+
+      expect(metrics.complexFunctions.map((fn) => fn.name)).toEqual(["Form"]);
+    });
+
+    it("counts a file imported by a test as tested (relative and @/ imports)", () => {
+      const metrics = computeDeterministicMetrics([
+        { relativePath: "src/lib/auth/session.ts", content: "export const s = 1;\n" },
+        { relativePath: "src/lib/billing/index.ts", content: "export const b = 1;\n" },
+        {
+          relativePath: "tests/a.test.ts",
+          content: 'import { s } from "@/lib/auth/session";\nimport { b } from "../src/lib/billing";\n',
+        },
+      ]);
+
+      expect(metrics.testedSourceApproxPercent).toBe(100);
+      expect(metrics.untestedCriticalPaths).toEqual([]);
+    });
+
+    it("matches critical areas on whole words of logic files only", () => {
+      const metrics = computeDeterministicMetrics([
+        { relativePath: "src/lib/oauth-client.ts", content: "export const o = 1;\n" },
+        { relativePath: "src/components/auth/login-form.tsx", content: "export const f = 1;\n" },
+        { relativePath: "src/lib/authTokens.ts", content: "export const t = 1;\n" },
+      ]);
+
+      expect(metrics.untestedCriticalPaths).toEqual(["src/lib/authTokens.ts"]);
+    });
+
+    it("does not take prose with spaces for a secret", () => {
+      const quote = (text: string) => ['"', text, '"'].join("");
+      const metrics = computeDeterministicMetrics([
+        { relativePath: "src/copy.ts", content: `const copy = { token: ${quote("Paste your token here")} };\n` },
+        { relativePath: "src/keys.ts", content: `const token = ${quote("abcd1234efgh5678")};\n` },
+      ]);
+
+      expect(metrics.secretHits.map((hit) => hit.filePath)).toEqual(["src/keys.ts"]);
+    });
+  });
 });

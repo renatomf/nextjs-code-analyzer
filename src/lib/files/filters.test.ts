@@ -53,8 +53,44 @@ describe("shouldSkipPath", () => {
     expect(shouldSkipPath("src/")).toBe(true);
   });
 
+  it.each([
+    ".yarn/sdks/typescript/lib/tsserver.js",
+    ".nuxt/components.d.ts",
+    ".output/server/index.mjs",
+    ".svelte-kit/generated/root.js",
+    "apps/web/.cache/bundle.js",
+    ".claude/hooks/format.js",
+    ".cursor/rules/check.ts",
+    ".vscode/extension.js",
+    ".husky/commit-msg.js",
+    "app/assets/vendor/bootstrap/bootstrap-tour.js",
+    "public/vendor/pdf.worker.js",
+    "vendor/autoload.js",
+    "lib/third_party/parser.ts",
+    "public/bower_components/angular/angular.js",
+    "app/assets/js/jquery.min.js",
+    "static/chart.MIN.js",
+  ])("skips tool folders, generated output and third-party code: %s", (path) => {
+    expect(shouldSkipPath(path)).toBe(true);
+  });
+
   it("keeps normal source paths", () => {
     expect(shouldSkipPath("src/lib/utils.ts")).toBe(false);
+    // Folders that may hold real code stay in.
+    expect(shouldSkipPath("docs/examples/client.ts")).toBe(false);
+    expect(shouldSkipPath(".github/scripts/release.js")).toBe(false);
+    // Only a real ".min.js" suffix is minified.
+    expect(shouldSkipPath("src/lib/admin.js")).toBe(false);
+    expect(shouldSkipPath("src/utils/min.ts")).toBe(false);
+  });
+
+  it.each([
+    "src/modules/vendor/service.ts",
+    "src/app/vendor/[id]/page.tsx",
+    "app/vendor/orders.ts",
+    "src/vendor.ts",
+  ])("keeps `vendor` as a domain word in the app's code: %s", (path) => {
+    expect(shouldSkipPath(path)).toBe(false);
   });
 
   it("skips secret-bearing files in any folder and casing", () => {

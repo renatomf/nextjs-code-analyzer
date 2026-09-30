@@ -481,30 +481,179 @@ Vem antes da ingestão assíncrona: job em segundo plano sem log é caixa preta.
 - [ ] `evals/` com dataset versionado: este repo, OWASP Juice Shop e 2 ou 3
       repositórios pequenos com violações conhecidas e anotadas, mais casos
       de prompt injection (TD-28).
+      Progresso: OWASP NodeGoat (commit fixo, lido como importação do
+      GitHub, baixado para `evals/.cache`), 9 vulnerabilidades ativas
+      anotadas por arquivo e linha. Baseline determinístico: 50 arquivos,
+      286 chunks, 7 achados (1 falso positivo: "Large file" num arquivo de
+      terceiros em `app/assets/vendor/`); só **2 de 9** linhas vulneráveis
+      entram na amostra do revisor. Causas: bibliotecas de terceiros
+      (`vendor/`, `*.min.js`) ocupam 3 vagas, e o amostrador pega só o
+      primeiro chunk de cada arquivo, enquanto o NodeGoat escreve cada
+      arquivo como uma função grande. Eval do LLM do NodeGoat pendente: a
+      cota diária do Groq (200 mil tokens por organização) acabou nas
+      rodadas de hoje. Próximos PRs, cada um com antes × depois: excluir
+      código de terceiros; escolher dentro do arquivo os chunks que tocam
+      entrada ou chamadas perigosas. Falta: Juice Shop e outros.
+      ✅ Código de terceiros excluído (`third_party/`, `third-party/`,
+      `bower_components/`, `*.min.js`, e `vendor/` só na raiz ou dentro de
+      `assets/`/`public/`/`static/`, porque em `src/modules/vendor/` é
+      palavra de domínio): NodeGoat 50 → 44
+      arquivos, 286 → 93 chunks (−67% de embeddings e armazenamento), 7 → 6
+      achados (sai o falso positivo); linhas na amostra seguem 2/9 (a causa
+      principal é a escolha dentro do arquivo, próximo PR).
+      ✅ Dentro de cada arquivo, os chunks com mais sinais de risco primeiro
+      (entrada não confiável, chamadas perigosas, autenticação/sessão:
+      categorias genéricas do OWASP para JS/TS, não as linhas do NodeGoat),
+      depois por linha; o primeiro chunk costuma ser só os imports.
+      NodeGoat: linhas vulneráveis na amostra 2/9 → **4/9**. Custo medido:
+      chunks arriscados são maiores, então cabem menos arquivos no mesmo
+      orçamento (este repo 24 → 18 arquivos; saem, entre outros,
+      `checkout.ts` e `drizzle-project-queries.ts`, entra `db.ts`). No
+      NodeGoat faltam os DAOs (`app/data/`): os chunks das rotas esgotam o
+      orçamento antes. Próxima alavanca: ordenar também os arquivos por
+      risco, ou enviar só o trecho arriscado de chunks grandes. Eval do LLM
+      pendente da cota do Groq.
+      ✅ Arquivos com sinal de risco antes dos sem nenhum (respeitando a
+      prioridade por caminho entre eles), o mais arriscado primeiro:
+      NodeGoat 4/9 → **5/9** (entra `user-dao.js`, senhas em texto puro).
+      Este repo mostrou um viés dos sinais: só conheciam Express e SQL cru,
+      e consulta via ORM (Drizzle/Prisma), NextAuth e `process.env`
+      pontuavam zero, então `proxy.ts` e os repositórios saíam da amostra.
+      Sinais ampliados com acesso a dados via ORM, bibliotecas de
+      autenticação e segredos/configuração (categorias do OWASP para
+      qualquer stack): NodeGoat segue 5/9; este repo 17 arquivos, com
+      `proxy.ts`, `auth.ts`, rotas de API, webhook e checkout. Faltam no
+      NodeGoat os outros DAOs, a regex do ReDoS e o `autoescape`, por
+      orçamento. Próximo passo: o eval do LLM, para saber se o recall
+      acompanha a amostra, antes de mexer mais nela.
+      OWASP Juice Shop (TypeScript, Express + Angular) no dataset: a
+      resposta vem dos marcadores `vuln-code-snippet vuln-line` do próprio
+      projeto (8 arquivos), removidos antes da análise porque nomeiam a
+      falha. O importador rejeitava o Juice Shop (1.163 arquivos de texto
+      contra o limite de 1.000): o limite passou a contar só os arquivos
+      JS/TS, os únicos lidos, analisados e guardados (640 no Juice Shop).
+      Baseline: 633 arquivos, 2.031 chunks, 24 achados; só **1 de 8**
+      arquivos vulneráveis na amostra do revisor. Causa: componentes do
+      frontend Angular (`payment.component.ts`, `two-factor-auth-...`)
+      ganham prioridade de servidor pelo nome do caminho e têm muitos
+      sinais, e tiram a vaga das rotas do backend. Próximo PR: UI
+      (`*.component.ts`, `frontend/`, `client/`) não ganha prioridade de
+      servidor pelo nome. A medir em produção: se a ingestão de 2 mil
+      chunks cabe nos 300 s da Vercel.
+      ✅ Código do navegador sem prioridade de servidor pelo nome
+      (componentes Angular `*.component.ts`, pasta `frontend/` ou `client/`
+      na raiz): Juice Shop 1/8 → **2/8** (entra `routes/login.ts`, SQL
+      injection no login); NodeGoat e este repo sem mudança. Arquivos em
+      `static/`, `public/` ou `assets/` também (servidos ou dados, não
+      código do servidor): o número não mudou (2/8), mas as variantes de
+      `data/static/codefixes/` saíram e a amostra ficou só com backend. O
+      limite agora é estrutural: ~60 rotas no Juice Shop, cabem 13 no
+      orçamento de 16 mil caracteres. Avançar pede mais orçamento por
+      análise (várias chamadas em lotes ou outro provedor, ADR-011),
+      decisão de custo/cota a tomar depois do eval do LLM.
 - [ ] `npm run eval` → `evals/results/<data>.json`: precisão/recall dos
       achados, falsos positivos, groundedness do chat, recall do retrieval,
       latência, tokens e custo.
+      Progresso: harness da análise determinística (casos anotados + este
+      repo lido como importação do GitHub). **Baseline da Fase 7**
+      (2026-09-30, `a853a30`): precisão 0,67, recall 1,00, 3 falsos
+      positivos (componente React por linhas, `oauth-icons` como área
+      crítica, texto de UI com "token"); este repo: 22 achados, Code
+      Quality 0 e Testing 0. Eval do LLM (opt-in, 3 execuções por caso):
+      baseline `bf17f41` — recall 1,00 (inclusive com injeção de prompt),
+      evidência 0,97, estabilidade 0,44–0,63, 6–8 achados em projetos de 2–3
+      arquivos. Retrieval do chat: 21 perguntas (NodeGoat, Juice Shop, este
+      repo) escritas antes da primeira medição, com os arquivos que as
+      respondem; mesmo chunking e modelo de embedding da produção, busca
+      exata como o pgvector sem índice. Baseline `18b11ed`: recall@8 0,57
+      (NodeGoat 1,00; Juice Shop 0,29; este repo 0,43), hit@1 0,24, MRR
+      0,34, com gate no CI. No Juice Shop, as variantes de
+      `data/static/codefixes/` (cópias quase idênticas do código) e os
+      tutoriais tomam as primeiras posições; neste repo, conceitos vizinhos
+      disputam a vaga (`finding.ts` × `evidence.ts`). Próximas alavancas,
+      cada uma com antes × depois: remover chunks quase duplicados, dar
+      menos peso a arquivos servidos/dados, busca híbrida (palavra-chave +
+      embedding). Falta: groundedness da resposta (usa o LLM).
 - [ ] Prompts em arquivos versionados; PR que altera prompt ou retrieval roda
       o eval e falha se a qualidade cair.
-- [ ] **Dogfooding:** o analisador roda no próprio repo a cada PR e publica
+      Progresso: os 3 prompts em módulos próprios (`analysis/domain/
+      review-prompt.ts`, `chat/domain/prompt.ts`, `chat/domain/
+      explain-prompt.ts`), o texto enviado provado idêntico por snapshot
+      antes × depois; versão = hash do texto fixo. `evals/prompts.lock.json`
+      registra a versão de cada prompt e o resultado de eval que a mediu, e
+      o CI falha se um prompt muda sem o lock (o CI não tem chave do LLM,
+      então não roda o eval do prompt ele mesmo). Retrieval: o eval roda no
+      CI com gate. Falta: o CI rodar o eval do LLM e falhar se a qualidade
+      cair (precisa de uma chave de LLM no CI, conta Groq separada).
+- [x] **Dogfooding:** o analisador roda no próprio repo a cada PR e publica
       score e achados; gráfico do score ao longo das fases no README.
-- [ ] Melhorias, cada uma num PR com eval antes × depois:
-  1. Excluir `.claude` e outras pastas de ferramenta/docs em
-     `ALWAYS_EXCLUDE_DIR_NAMES` (`src/lib/limits.ts`).
-  2. Amostrar chunks do projeto inteiro no relatório, em vez dos 80 primeiros
-     em ordem alfabética (`report.ts`).
-  3. Agrupar achados repetidos (uma linha "Critical area may lack tests" com a
+      Progresso: job `eval` no CI (parte determinística, sem LLM, sem custo
+      nem segredo) analisa este repo e o NodeGoat a cada PR, publica os
+      números no resumo do job e falha se a qualidade cair: precisão e
+      recall dos casos anotados ≥ 1,00 e linhas vulneráveis do NodeGoat na
+      amostra ≥ 5/9 (limites só sobem). ✅ Gráfico no README
+      (`npm run eval:chart` → `docs/assets/dogfooding.svg`): a nota
+      determinística deste repo em cada resultado versionado, 53 → 69, com a
+      mesma medida na fórmula v1 tracejada para separar o efeito da fórmula
+      (ADR-010) do efeito das correções da análise. Antes da Fase 7 não há medida comparável (a nota 30 do baseline é
+      de um relatório completo, com as categorias do LLM): ela é citada no
+      texto, não plotada.
+- [x] Melhorias, cada uma num PR com eval antes × depois:
+  1. ✅ Excluir `.claude` e outras pastas de ferramenta/docs em
+     `ALWAYS_EXCLUDE_DIR_NAMES` (`src/lib/limits.ts`). Feito: pastas de
+     editor/agente (`.claude`, `.cursor`, `.vscode`, `.idea`, `.husky`) e
+     saída gerada de outros frameworks e ferramentas (`.nuxt`, `.output`,
+     `.svelte-kit`, `.docusaurus`, `.expo`, `.cache`, `.parcel-cache`,
+     `.yarn`). `docs/`, `out/` e `.github` ficam, porque podem ter código
+     real. Neste repo não muda nada (`.claude` só tem `.md`); o ganho é
+     em repositórios importados.
+  2. ✅ Amostrar chunks do projeto inteiro no relatório, em vez dos 80 primeiros
+     em ordem alfabética (`report.ts`). Feito: `sampleForReview` (puro, no
+     módulo analysis) tira os testes, põe lógica de servidor primeiro
+     (API, rotas, actions, auth, db...), depois outra lógica, UI e
+     configuração/tipos, e alterna uma pasta por vez, no mesmo orçamento
+     (16 mil caracteres, 24 chunks). Neste repo, o revisor via 14 chunks
+     de 5 arquivos em 3 pastas (config, specs E2E e evals, nenhum código da
+     aplicação) → 24 chunks de 24 arquivos em 24 pastas (rotas de API,
+     auth, webhook do Stripe, actions, módulos), 0 testes. Eval do LLM, 2
+     casos novos com o arquivo problemático atrás de 30 arquivos que vêm
+     antes na ordem alfabética: arquivo enviado 0/1 → 1/1, recall 0 → 1,00
+     nas 3 execuções; casos antigos seguem com recall 1,00. Custo: com a
+     amostra cheia, ~5,5 mil tokens de entrada e 15–30 s por chamada
+     (dentro do timeout de 120 s e do limite por minuto do Groq).
+  3. ✅ Agrupar achados repetidos (uma linha "Critical area may lack tests" com a
      lista de arquivos).
-  4. Score com penalidade limitada por regra ou decrescente
-     (`scoreFromIssues`).
-  5. Achados high/critical exigem arquivo + trecho como evidência; prompt mais
+  4. ✅ Score com penalidade limitada por regra ou decrescente
+     (`scoreFromIssues`). Feito com o 3 na
+     [ADR-010](decisions/010-score-formula.md): Code Quality 0 → 45, Testing
+     0 → 10, nota determinística 53 → 64, 22 → 4 linhas no relatório.
+  5. ✅ Achados high/critical exigem arquivo + trecho como evidência; prompt mais
      restritivo; código tratado como dado, não como instrução (TD-28).
-  6. Heurísticas determinísticas: não medir componentes React só por
-     linhas, critério melhor para "área crítica". (As correções objetivas —
+     Feito: o LLM cita a linha de código de cada achado e `verifyEvidence`
+     (determinístico, sem um segundo modelo) descarta o que não está no
+     arquivo citado; achado sem arquivo fica no máximo "medium";
+     temperatura 0; prompt pede poucos achados precisos, sem afirmar o que
+     falta no projeto a partir de uma amostra. Eval do LLM `bf17f41` →
+     depois: recall 1,00 → 1,00 (inclusive com injeção de prompt),
+     evidência 0,97 → 1,00, estabilidade 0,44–0,63 → 0,78–0,83, achados
+     6,0–8,3 → 3,3–3,7 por caso. A citação de várias linhas fez o modelo
+     gerar JSON inválido (Groq `json_validate_failed`, 2 de 9 chamadas):
+     citação de uma linha + 1 nova tentativa só para esse erro → 0 de 9.
+  6. ✅ Heurísticas determinísticas: não medir componentes React só por
+     linhas, critério melhor para "área crítica". Feito: componente medido
+     pela lógica até o último `return` de JSX; "área crítica" = arquivo de
+     lógica (não tela) com a palavra inteira no caminho; arquivo importado
+     por um teste conta como testado (`@/` e relativo); valor com espaço
+     não é segredo. Eval: precisão 0,57 → 1,00 com recall 1,00 (casos
+     ampliados com problemas reais que não podem sumir); este repo 22 → 17
+     achados, nota determinística 64 → 68. Limite conhecido: teste
+     indireto (via `server.ts`) só com o grafo de imports (v2.1). (As correções objetivas —
      regex do TD-31, `src/test/`, segredos em fixtures — foram antecipadas
      para a Fase 3.)
-  7. Timeout e limites aplicados no servidor (TD-29); migrar para
-     `generateText` + `Output.object` (TD-30).
+  7. Timeout e limites aplicados no servidor (TD-29, ✅ feito com o 5:
+     timeout de 120 s, no máximo 10 achados e textos com tamanho máximo);
+     migrar para `generateText` + `Output.object` (TD-30, ✅ feito, sem
+     mudar o pedido ao provedor).
 
 **Se sobrar**
 

@@ -89,8 +89,11 @@ devolve a análise (ADR-003, TD-12).
 Página de progresso (`useAnalysisProgress`) → `POST /api/projects/:id/analyze`
 → `analysisStart` decide e `claimAnalysis` faz o claim atômico (projects) →
 pipeline: chunking (Tree-sitter) → `storeKnowledge` (ingestion) → métricas
-e regras (analysis) → revisão do LLM com o código em blocos de dados
-(TD-28) → `linearPenaltyPolicy` → `reports`. Tudo dentro da request
+e regras (analysis) → `sampleForReview` (amostra espalhada pelo projeto) →
+revisão do LLM com o código em blocos de dados
+(TD-28) → `verifyEvidence` (achado do LLM só fica com trecho que existe no
+arquivo citado) → `groupFindings` + `diminishingPenaltyPolicy` (ADR-010) →
+`reports`. Tudo dentro da request
 (`maxDuration` 300 s) até a Fase 5.
 
 ### Chat (RAG)
@@ -134,11 +137,10 @@ assinatura e busca o estado atual da assinatura no Stripe (idempotente).
 |---|---|---|
 | `src/lib/analysis/report.ts`, `report-llm.ts`, `pipeline.ts` | geração do relatório e orquestração da análise | com o `LlmReviewer` (Fase 7) e o `AnalysisRunner` (Fase 5) |
 | `src/lib/files/*`, `chunking.ts` | extração, armazenamento de arquivos, chunking (Tree-sitter) | quando o pipeline migrar |
-| `src/lib/actions/analysis.ts` | `requireOwnedProject` ainda consulta o projeto direto | próximo ajuste no projects (trivial) |
-| `src/lib/rate-limit.ts` | limitador em Postgres (lê o plano para o chat) | infraestrutura compartilhada |
+| `src/lib/rate-limit.ts` | limitador em Postgres (tabela `rate_limits`); o plano vem do billing | infraestrutura compartilhada |
 | `src/lib/auth.ts` | configuração do NextAuth (adapter do Drizzle) | integração, fica |
 
-Arquivos de produção com acesso ao banco ou ao Drizzle: 18 (eram 27), 11
+Arquivos de produção com acesso ao banco ou ao Drizzle: 17 (eram 27), 11
 deles dentro dos módulos ([results-phase-3.md](results-phase-3.md)).
 
 ## Qualidade e entrega

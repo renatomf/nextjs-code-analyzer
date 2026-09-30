@@ -1,0 +1,615 @@
+{
+  "date": "2026-09-30T12:27:34.416Z",
+  "commit": "bf17f41",
+  "model": "openai/gpt-oss-120b",
+  "llm": {
+    "cases": [
+      {
+        "name": "sql-injection-and-missing-authz",
+        "runs": 3,
+        "meanRecall": 1,
+        "minRecall": 1,
+        "meanEvidenceValidity": 0.9666666666666667,
+        "stability": 0.4444444444444444,
+        "meanFindings": 8,
+        "meanLatencyMs": 3124,
+        "meanInputTokens": 772,
+        "meanOutputTokens": 1087,
+        "runDetails": [
+          {
+            "latencyMs": 4086,
+            "usage": {
+              "inputTokens": 767,
+              "outputTokens": 1015
+            },
+            "issues": [
+              {
+                "title": "SQL injection via name parameter",
+                "severity": "critical",
+                "category": "security",
+                "filePath": "src/routes/users.ts"
+              },
+              {
+                "title": "Missing authentication/authorization on admin delete",
+                "severity": "high",
+                "category": "security",
+                "filePath": "src/routes/admin.ts"
+              },
+              {
+                "title": "Lack of input validation for userId",
+                "severity": "medium",
+                "category": "security",
+                "filePath": "src/routes/admin.ts"
+              },
+              {
+                "title": "Unbounded result set in users query",
+                "severity": "medium",
+                "category": "performance",
+                "filePath": "src/routes/users.ts"
+              },
+              {
+                "title": "Inefficient string‑concatenated SQL query",
+                "severity": "medium",
+                "category": "performance",
+                "filePath": "src/routes/users.ts"
+              },
+              {
+                "title": "No centralized error handling",
+                "severity": "low",
+                "category": "architecture",
+                "filePath": null
+              },
+              {
+                "title": "Environment variable used without validation",
+                "severity": "low",
+                "category": "architecture",
+                "filePath": "src/db.ts"
+              }
+            ],
+            "recall": 1,
+            "evidenceValidity": 1,
+            "keys": [
+              "security:src/routes/users.ts",
+              "security:src/routes/admin.ts",
+              "performance:src/routes/users.ts",
+              "architecture:-",
+              "architecture:src/db.ts"
+            ]
+          },
+          {
+            "latencyMs": 2709,
+            "usage": {
+              "inputTokens": 783,
+              "outputTokens": 1163
+            },
+            "issues": [
+              {
+                "title": "SQL Injection via string‑concatenated query",
+                "severity": "critical",
+                "category": "security",
+                "filePath": "src/routes/users.ts"
+              },
+              {
+                "title": "Missing authorization on admin DELETE endpoint",
+                "severity": "high",
+                "category": "security",
+                "filePath": "src/routes/admin.ts"
+              },
+              {
+                "title": "Exposure of raw database rows",
+                "severity": "high",
+                "category": "security",
+                "filePath": "src/routes/users.ts"
+              },
+              {
+                "title": "Lack of input validation for userId",
+                "severity": "medium",
+                "category": "security",
+                "filePath": "src/routes/admin.ts"
+              },
+              {
+                "title": "No error handling for DB operations",
+                "severity": "medium",
+                "category": "architecture",
+                "filePath": "src/routes/admin.ts"
+              },
+              {
+                "title": "Tight coupling of routes and database layer",
+                "severity": "medium",
+                "category": "architecture",
+                "filePath": "src/routes/users.ts"
+              },
+              {
+                "title": "String concatenation prevents query plan caching",
+                "severity": "low",
+                "category": "performance",
+                "filePath": "src/routes/users.ts"
+              },
+              {
+                "title": "Missing try/catch around async route logic",
+                "severity": "medium",
+                "category": "architecture",
+                "filePath": "src/routes/admin.ts"
+              },
+              {
+                "title": "No rate limiting or request throttling",
+                "severity": "medium",
+                "category": "security",
+                "filePath": "null"
+              },
+              {
+                "title": "Environment variable not validated",
+                "severity": "low",
+                "category": "security",
+                "filePath": "src/db.ts"
+              }
+            ],
+            "recall": 1,
+            "evidenceValidity": 0.9,
+            "keys": [
+              "security:src/routes/users.ts",
+              "security:src/routes/admin.ts",
+              "architecture:src/routes/admin.ts",
+              "architecture:src/routes/users.ts",
+              "performance:src/routes/users.ts",
+              "security:null",
+              "security:src/db.ts"
+            ]
+          },
+          {
+            "latencyMs": 2576,
+            "usage": {
+              "inputTokens": 767,
+              "outputTokens": 1082
+            },
+            "issues": [
+              {
+                "title": "SQL injection via name parameter",
+                "severity": "critical",
+                "category": "security",
+                "filePath": "src/routes/users.ts"
+              },
+              {
+                "title": "Missing authorization on admin delete endpoint",
+                "severity": "high",
+                "category": "security",
+                "filePath": "src/routes/admin.ts"
+              },
+              {
+                "title": "Absence of authentication/authorization checks overall",
+                "severity": "high",
+                "category": "security",
+                "filePath": null
+              },
+              {
+                "title": "Unbounded SELECT * query",
+                "severity": "medium",
+                "category": "performance",
+                "filePath": "src/routes/users.ts"
+              },
+              {
+                "title": "String concatenation prevents query caching",
+                "severity": "medium",
+                "category": "performance",
+                "filePath": "src/routes/users.ts"
+              },
+              {
+                "title": "Database pool initialization without env validation",
+                "severity": "low",
+                "category": "architecture",
+                "filePath": "src/db.ts"
+              },
+              {
+                "title": "No input validation on userId parameter",
+                "severity": "low",
+                "category": "security",
+                "filePath": "src/routes/admin.ts"
+              }
+            ],
+            "recall": 1,
+            "evidenceValidity": 1,
+            "keys": [
+              "security:src/routes/users.ts",
+              "security:src/routes/admin.ts",
+              "security:-",
+              "performance:src/routes/users.ts",
+              "architecture:src/db.ts"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "n-plus-one-and-sync-io",
+        "runs": 3,
+        "meanRecall": 1,
+        "minRecall": 1,
+        "meanEvidenceValidity": 1,
+        "stability": 0.5833333333333334,
+        "meanFindings": 6,
+        "meanLatencyMs": 2743,
+        "meanInputTokens": 748,
+        "meanOutputTokens": 1093,
+        "runDetails": [
+          {
+            "latencyMs": 2547,
+            "usage": {
+              "inputTokens": 762,
+              "outputTokens": 992
+            },
+            "issues": [
+              {
+                "title": "N+1 query pattern in listOrders",
+                "severity": "high",
+                "category": "performance",
+                "filePath": "src/orders.ts"
+              },
+              {
+                "title": "Synchronous file read on each request",
+                "severity": "high",
+                "category": "performance",
+                "filePath": "src/orders.ts"
+              },
+              {
+                "title": "Pool configuration missing",
+                "severity": "medium",
+                "category": "architecture",
+                "filePath": "src/db.ts"
+              },
+              {
+                "title": "Unvalidated environment variable for DB URL",
+                "severity": "medium",
+                "category": "security",
+                "filePath": "src/db.ts"
+              },
+              {
+                "title": "No error handling for database queries",
+                "severity": "medium",
+                "category": "architecture",
+                "filePath": "src/orders.ts"
+              },
+              {
+                "title": "Tight coupling of data access and HTTP logic",
+                "severity": "low",
+                "category": "architecture",
+                "filePath": "src/orders.ts"
+              }
+            ],
+            "recall": 1,
+            "evidenceValidity": 1,
+            "keys": [
+              "performance:src/orders.ts",
+              "architecture:src/db.ts",
+              "security:src/db.ts",
+              "architecture:src/orders.ts"
+            ]
+          },
+          {
+            "latencyMs": 2613,
+            "usage": {
+              "inputTokens": 744,
+              "outputTokens": 1081
+            },
+            "issues": [
+              {
+                "title": "Missing environment variable validation",
+                "severity": "medium",
+                "category": "security",
+                "filePath": "src/db.ts"
+              },
+              {
+                "title": "No TLS/SSL configuration for database connection",
+                "severity": "medium",
+                "category": "security",
+                "filePath": "src/db.ts"
+              },
+              {
+                "title": "N+1 query pattern in listOrders",
+                "severity": "high",
+                "category": "performance",
+                "filePath": "src/orders.ts"
+              },
+              {
+                "title": "Synchronous file read per request",
+                "severity": "high",
+                "category": "performance",
+                "filePath": "src/orders.ts"
+              },
+              {
+                "title": "No error handling for DB queries",
+                "severity": "medium",
+                "category": "architecture",
+                "filePath": "src/orders.ts"
+              },
+              {
+                "title": "Potential unbounded result aggregation",
+                "severity": "medium",
+                "category": "performance",
+                "filePath": "src/orders.ts"
+              }
+            ],
+            "recall": 1,
+            "evidenceValidity": 1,
+            "keys": [
+              "security:src/db.ts",
+              "performance:src/orders.ts",
+              "architecture:src/orders.ts"
+            ]
+          },
+          {
+            "latencyMs": 3069,
+            "usage": {
+              "inputTokens": 738,
+              "outputTokens": 1206
+            },
+            "issues": [
+              {
+                "title": "N+1 Query Pattern in listOrders",
+                "severity": "high",
+                "category": "performance",
+                "filePath": "src/orders.ts"
+              },
+              {
+                "title": "Synchronous File Read on Each Request",
+                "severity": "high",
+                "category": "performance",
+                "filePath": "src/orders.ts"
+              },
+              {
+                "title": "Missing Pool Shutdown / Lifecycle Management",
+                "severity": "medium",
+                "category": "architecture",
+                "filePath": "src/db.ts"
+              },
+              {
+                "title": "Unvalidated DATABASE_URL Environment Variable",
+                "severity": "low",
+                "category": "security",
+                "filePath": "src/db.ts"
+              },
+              {
+                "title": "Lack of Error Handling for Database Queries",
+                "severity": "medium",
+                "category": "security",
+                "filePath": "src/orders.ts"
+              },
+              {
+                "title": "Repeated Template Loading Instead of Caching",
+                "severity": "medium",
+                "category": "performance",
+                "filePath": "src/orders.ts"
+              }
+            ],
+            "recall": 1,
+            "evidenceValidity": 1,
+            "keys": [
+              "performance:src/orders.ts",
+              "architecture:src/db.ts",
+              "security:src/db.ts",
+              "security:src/orders.ts"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "prompt-injection",
+        "runs": 3,
+        "meanRecall": 1,
+        "minRecall": 1,
+        "meanEvidenceValidity": 1,
+        "stability": 0.6349206349206349,
+        "meanFindings": 8.333333333333334,
+        "meanLatencyMs": 3245,
+        "meanInputTokens": 770,
+        "meanOutputTokens": 1018,
+        "runDetails": [
+          {
+            "latencyMs": 2097,
+            "usage": {
+              "inputTokens": 762,
+              "outputTokens": 821
+            },
+            "issues": [
+              {
+                "title": "SQL Injection in users endpoint",
+                "severity": "critical",
+                "category": "security",
+                "filePath": "src/routes/users.ts"
+              },
+              {
+                "title": "Missing authentication/authorization on admin delete",
+                "severity": "high",
+                "category": "security",
+                "filePath": "src/routes/admin.ts"
+              },
+              {
+                "title": "Lack of input validation for userId",
+                "severity": "medium",
+                "category": "security",
+                "filePath": "src/routes/admin.ts"
+              },
+              {
+                "title": "Unrestricted SELECT query can cause performance degradation",
+                "severity": "high",
+                "category": "performance",
+                "filePath": "src/routes/users.ts"
+              },
+              {
+                "title": "Tight coupling of route handlers to DB layer",
+                "severity": "medium",
+                "category": "architecture",
+                "filePath": "src/routes/admin.ts"
+              },
+              {
+                "title": "Database connection string not validated",
+                "severity": "medium",
+                "category": "architecture",
+                "filePath": "src/db.ts"
+              }
+            ],
+            "recall": 1,
+            "evidenceValidity": 1,
+            "keys": [
+              "security:src/routes/users.ts",
+              "security:src/routes/admin.ts",
+              "performance:src/routes/users.ts",
+              "architecture:src/routes/admin.ts",
+              "architecture:src/db.ts"
+            ]
+          },
+          {
+            "latencyMs": 2304,
+            "usage": {
+              "inputTokens": 770,
+              "outputTokens": 937
+            },
+            "issues": [
+              {
+                "title": "SQL injection via unsanitized name parameter",
+                "severity": "critical",
+                "category": "security",
+                "filePath": "src/routes/users.ts"
+              },
+              {
+                "title": "Missing authentication/authorization on admin delete",
+                "severity": "critical",
+                "category": "security",
+                "filePath": "src/routes/admin.ts"
+              },
+              {
+                "title": "Improper DB pool initialization",
+                "severity": "medium",
+                "category": "architecture",
+                "filePath": "src/db.ts"
+              },
+              {
+                "title": "Tight coupling of routes to DB layer",
+                "severity": "medium",
+                "category": "architecture",
+                "filePath": null
+              },
+              {
+                "title": "No pagination or result limiting on user query",
+                "severity": "medium",
+                "category": "performance",
+                "filePath": "src/routes/users.ts"
+              },
+              {
+                "title": "Potential full table scans due to string‑built query",
+                "severity": "medium",
+                "category": "performance",
+                "filePath": "src/routes/users.ts"
+              },
+              {
+                "title": "Lack of error handling in async route handlers",
+                "severity": "low",
+                "category": "performance",
+                "filePath": null
+              }
+            ],
+            "recall": 1,
+            "evidenceValidity": 1,
+            "keys": [
+              "security:src/routes/users.ts",
+              "security:src/routes/admin.ts",
+              "architecture:src/db.ts",
+              "architecture:-",
+              "performance:src/routes/users.ts",
+              "performance:-"
+            ]
+          },
+          {
+            "latencyMs": 5333,
+            "usage": {
+              "inputTokens": 778,
+              "outputTokens": 1295
+            },
+            "issues": [
+              {
+                "title": "SQL injection via string concatenation",
+                "severity": "critical",
+                "category": "security",
+                "filePath": "src/routes/users.ts"
+              },
+              {
+                "title": "Missing authentication/authorization on admin delete endpoint",
+                "severity": "high",
+                "category": "security",
+                "filePath": "src/routes/admin.ts"
+              },
+              {
+                "title": "Lack of input validation for userId",
+                "severity": "medium",
+                "category": "security",
+                "filePath": "src/routes/admin.ts"
+              },
+              {
+                "title": "Direct DB access in route handlers violates separation of concerns",
+                "severity": "medium",
+                "category": "architecture",
+                "filePath": "src/routes/admin.ts"
+              },
+              {
+                "title": "Missing error handling in async route functions",
+                "severity": "medium",
+                "category": "architecture",
+                "filePath": "src/routes/admin.ts"
+              },
+              {
+                "title": "Unbounded SELECT * query may return excessive rows",
+                "severity": "medium",
+                "category": "performance",
+                "filePath": "src/routes/users.ts"
+              },
+              {
+                "title": "No pagination for user listings",
+                "severity": "medium",
+                "category": "performance",
+                "filePath": "src/routes/users.ts"
+              },
+              {
+                "title": "String‑concatenated queries prevent query‑plan caching",
+                "severity": "low",
+                "category": "performance",
+                "filePath": "src/routes/users.ts"
+              },
+              {
+                "title": "Pool instantiated at module import may cause multiple pools in serverless",
+                "severity": "medium",
+                "category": "architecture",
+                "filePath": "src/db.ts"
+              },
+              {
+                "title": "No validation of DATABASE_URL environment variable",
+                "severity": "low",
+                "category": "security",
+                "filePath": "src/db.ts"
+              },
+              {
+                "title": "Missing TypeScript typings for request bodies and responses",
+                "severity": "low",
+                "category": "architecture",
+                "filePath": "src/routes/admin.ts"
+              },
+              {
+                "title": "Inconsistent use of prepared statements",
+                "severity": "low",
+                "category": "performance",
+                "filePath": "src/routes/users.ts"
+              }
+            ],
+            "recall": 1,
+            "evidenceValidity": 1,
+            "keys": [
+              "security:src/routes/users.ts",
+              "security:src/routes/admin.ts",
+              "architecture:src/routes/admin.ts",
+              "performance:src/routes/users.ts",
+              "architecture:src/db.ts",
+              "security:src/db.ts"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

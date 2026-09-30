@@ -1,4 +1,5 @@
 import { dataBlock, dataRules } from "@/shared/prompt-data";
+import { promptVersion } from "@/shared/prompt-version";
 
 /**
  * Chat prompt policy and message handling. Pure: retrieval lives in
@@ -19,6 +20,22 @@ export type ChatSource = {
   endLine: number | null;
   score: number;
 };
+
+/**
+ * The chat prompt's fixed text (roadmap Phase 7: prompts in versioned
+ * files): the role, then the rules. A change gives a new
+ * CHAT_PROMPT_VERSION, which evals/prompts.lock.json must record.
+ */
+export const CHAT_PROMPT = [
+  "You are an AI senior engineer helping a developer understand a codebase.",
+  "Answer using the retrieved source snippets below as your primary evidence.",
+  "Cite files inline like `src/path/file.ts:L12-L40` when relevant.",
+  "If the sources are insufficient, say what is missing instead of inventing details.",
+  "Be concrete and concise. Prefer explanations tied to real code.",
+  "Do not claim to have run the code or verified runtime behavior.",
+] as const;
+
+export const CHAT_PROMPT_VERSION = promptVersion(CHAT_PROMPT);
 
 /**
  * The retrieved code is untrusted (TD-28): each source goes in a data block
@@ -44,17 +61,14 @@ export function buildChatSystemPrompt(options: {
     })
     .join("\n\n");
 
+  const [role, ...rules] = CHAT_PROMPT;
   return [
-    "You are an AI senior engineer helping a developer understand a codebase.",
+    role,
     `Project: ${options.projectName}`,
     `Detected framework: ${options.framework ?? "Unknown"}`,
     "",
     "Rules:",
-    "- Answer using the retrieved source snippets below as your primary evidence.",
-    "- Cite files inline like `src/path/file.ts:L12-L40` when relevant.",
-    "- If the sources are insufficient, say what is missing instead of inventing details.",
-    "- Be concrete and concise. Prefer explanations tied to real code.",
-    "- Do not claim to have run the code or verified runtime behavior.",
+    ...rules.map((rule) => `- ${rule}`),
     ...dataRules(options.boundary).map((rule) => `- ${rule}`),
     "",
     "Retrieved code sources:",

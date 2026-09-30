@@ -1,0 +1,17 @@
+{
+  "review": {
+    "version": "9c8ef776",
+    "measuredBy": "evals/results/2026-09-30-4ada8a2-llm.json",
+    "note": "Same 15 lines at 4ada8a2 (hashed from that commit's report-llm.ts); that eval predates the promptVersions field."
+  },
+  "chat": {
+    "version": "86e19fe0",
+    "measuredBy": null,
+    "note": "No LLM eval of the chat answers yet (groundedness is pending); retrieval is measured without the prompt."
+  },
+  "explain": {
+    "version": "bfefbf95",
+    "measuredBy": null,
+    "note": "No eval of the explorer's explanation yet."
+  }
+}

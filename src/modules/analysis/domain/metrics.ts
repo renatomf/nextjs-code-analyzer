@@ -1,4 +1,5 @@
 import type { Finding } from "./finding";
+import { isTestFile, pathWords } from "./paths";
 import { DETERMINISTIC_RULES, type ProjectMeasures } from "./rules";
 
 // Pure (no Node APIs): the module's public API is also imported by the UI.
@@ -24,7 +25,9 @@ const SECRET_PATTERNS: Array<{ hint: string; regex: RegExp }> = [
   {
     hint: "Hardcoded API key / token assignment",
     regex:
-      /\b(api[_-]?key|secret|token|password|private[_-]?key)\b\s*[:=]\s*['"][^'"]{8,}['"]/i,
+      // No whitespace in the value: credentials are single tokens; UI copy
+      // such as `token: "Paste your access token"` is prose.
+      /\b(api[_-]?key|secret|token|password|private[_-]?key)\b\s*[:=]\s*['"][^'"\s]{8,}['"]/i,
   },
   {
     hint: "JWT-like secret literal",
@@ -35,22 +38,6 @@ const SECRET_PATTERNS: Array<{ hint: string; regex: RegExp }> = [
     regex: /AKIA[0-9A-Z]{16}/,
   },
 ];
-
-/** Last path segment; stored paths always use "/". */
-function basename(filePath: string): string {
-  return filePath.slice(filePath.lastIndexOf("/") + 1);
-}
-
-function isTestFile(filePath: string): boolean {
-  const base = basename(filePath).toLowerCase();
-  return (
-    base.includes(".test.") ||
-    base.includes(".spec.") ||
-    filePath.includes("__tests__/") ||
-    // `test/` and `tests/` folders, at the root or nested (`src/test/`).
-    /(^|\/)tests?\//.test(filePath)
-  );
-}
 
 /** Test data (fixtures, mocks): fake secrets there are expected. */
 function isTestSupportFile(filePath: string): boolean {
@@ -76,6 +63,41 @@ function isArrowFunctionStart(lines: string[], start: number): boolean {
   const arrow = text.indexOf("=>");
   const semicolon = text.indexOf(";");
   return arrow !== -1 && (semicolon === -1 || arrow < semicolon);
+}
+
+/** A React component: PascalCase function in a .jsx/.tsx file. */
+function isComponent(filePath: string, name: string): boolean {
+  return /\.[jt]sx$/i.test(filePath) && /^[A-Z]/.test(name);
+}
+
+/**
+ * A component is sized by its logic (hooks, handlers) up to its last JSX
+ * `return`, not by its markup: 100 lines of JSX are not complexity.
+ */
+function componentLogicLines(lines: string[], start: number, end: number): number {
+  for (let k = end; k > start; k -= 1) {
+    if (/^\s*return\s*[(<]/.test(lines[k] ?? "")) return k - start + 1;
+  }
+  return end - start + 1;
+}
+
+// `from "x"`, `import "x"`, `import("x")`, `require("x")` (not vi.mock strings).
+const IMPORT_SPECIFIER = /(?:\bfrom\s+|\bimport\s+|\bimport\s*\(\s*|\brequire\s*\(\s*)["']([^"']+)["']/g;
+
+/**
+ * Source path (without extension) a test imports, or null for packages.
+ * Resolves relative imports and the `@/` alias (`src/`, the Next.js default).
+ */
+function resolveImport(testPath: string, specifier: string): string | null {
+  if (specifier.startsWith("@/")) return stripExt(`src/${specifier.slice(2)}`);
+  if (!specifier.startsWith("./") && !specifier.startsWith("../")) return null;
+  const parts = testPath.split("/").slice(0, -1);
+  for (const part of specifier.split("/")) {
+    if (part === "" || part === ".") continue;
+    if (part === "..") parts.pop();
+    else parts.push(part);
+  }
+  return stripExt(parts.join("/"));
 }
 
 function findComplexFunctions(
@@ -121,7 +143,9 @@ function findComplexFunctions(
       if (started && depth <= 0) break;
     }
 
-    const fnLines = j - i + 1;
+    const fnLines = isComponent(filePath, name)
+      ? componentLogicLines(lines, i, j)
+      : j - i + 1;
     if (fnLines >= COMPLEX_FUNCTION_LINES) {
       results.push({ name, lines: fnLines });
     }
@@ -160,35 +184,42 @@ export function computeDeterministicMetrics(
   const testedBases = new Set(
     testFiles.map((file) => guessSourceFromTest(file.relativePath)),
   );
-  let matchedSources = 0;
-  for (const file of sourceFiles) {
-    const base = stripExt(file.relativePath);
-    if (
-      [...testedBases].some(
-        (tested) => tested.endsWith(base) || base.endsWith(tested),
-      )
-    ) {
-      matchedSources += 1;
+  // Files a test imports count as tested too (tests often live apart).
+  const importedByTests = new Set<string>();
+  for (const test of testFiles) {
+    for (const [, specifier] of test.content.matchAll(IMPORT_SPECIFIER)) {
+      const resolved = resolveImport(test.relativePath, specifier);
+      if (resolved) importedByTests.add(resolved.replace(/\/index$/, ""));
     }
   }
+  const isTested = (filePath: string) => {
+    const base = stripExt(filePath);
+    return (
+      importedByTests.has(base) ||
+      importedByTests.has(base.replace(/\/index$/, "")) ||
+      [...testedBases].some((tested) => tested.endsWith(base) || base.endsWith(tested))
+    );
+  };
+
+  const matchedSources = sourceFiles.filter((file) => isTested(file.relativePath)).length;
 
   const testedSourceApproxPercent =
     sourceFiles.length === 0
       ? 0
       : Math.round((matchedSources / sourceFiles.length) * 100);
 
+  // Security/payment logic (not screens: .jsx/.tsx components render, the
+  // checks run in .ts/.js), matched on whole words of the path, so
+  // `oauth-icons.ts` is not an "auth" area.
   const criticalKeywords = ["auth", "payment", "billing", "password", "token"];
   const untestedCriticalPaths = sourceFiles
     .filter((file) => {
-      const lower = file.relativePath.toLowerCase();
-      const looksCritical = criticalKeywords.some((keyword) =>
-        lower.includes(keyword),
+      if (/\.[jt]sx$/i.test(file.relativePath)) return false;
+      const words = pathWords(file.relativePath);
+      const looksCritical = criticalKeywords.some(
+        (keyword) => words.includes(keyword) || words.includes(`${keyword}s`),
       );
-      if (!looksCritical) return false;
-      const base = stripExt(file.relativePath);
-      return ![...testedBases].some(
-        (tested) => tested.endsWith(base) || base.endsWith(tested),
-      );
+      return looksCritical && !isTested(file.relativePath);
     })
     .map((file) => file.relativePath)
     .slice(0, 12);
@@ -220,7 +251,9 @@ export function computeDeterministicMetrics(
     untestedCriticalPaths,
     secretHits,
   };
-  const issues = DETERMINISTIC_RULES.flatMap((rule) => rule.findings(measures));
+  const issues = DETERMINISTIC_RULES.flatMap((rule) =>
+    rule.findings(measures).map((finding) => ({ ...finding, rule: rule.id })),
+  );
 
   return {
     ...measures,

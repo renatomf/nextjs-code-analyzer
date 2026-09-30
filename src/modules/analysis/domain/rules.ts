@@ -17,11 +17,17 @@ export type ProjectMeasures = {
  */
 export type Rule = {
   id: string;
+  /** Title and description of the finding that groups several occurrences. */
+  group: { title: string; description: string };
   findings(measures: ProjectMeasures): Finding[];
 };
 
 export const largeFileRule: Rule = {
   id: "large-file",
+  group: {
+    title: "Large files",
+    description: "These files are unusually large and may be harder to maintain. Consider splitting responsibilities.",
+  },
   findings: ({ largeFiles }) =>
     largeFiles.slice(0, 10).map((file) => ({
       title: `Large file (${file.lines} lines)`,
@@ -34,6 +40,10 @@ export const largeFileRule: Rule = {
 
 export const complexFunctionRule: Rule = {
   id: "complex-function",
+  group: {
+    title: "Complex functions",
+    description: "These functions appear long and may have high complexity. Consider extracting helpers.",
+  },
   findings: ({ complexFunctions }) =>
     complexFunctions.slice(0, 12).map((fn) => ({
       title: `Complex function ${fn.name} (${fn.lines} lines)`,
@@ -46,6 +56,10 @@ export const complexFunctionRule: Rule = {
 
 export const lowTestCoverageRule: Rule = {
   id: "low-test-coverage",
+  group: {
+    title: "Low test file coverage signal",
+    description: "Few source files appear to have nearby test files. This is a file-matching proxy, not runtime coverage.",
+  },
   findings: ({ testedSourceApproxPercent }) =>
     testedSourceApproxPercent < 40
       ? [
@@ -62,6 +76,10 @@ export const lowTestCoverageRule: Rule = {
 
 export const untestedCriticalPathRule: Rule = {
   id: "untested-critical-path",
+  group: {
+    title: "Critical areas may lack tests",
+    description: "No nearby test file was found for these paths that look security/payment related.",
+  },
   findings: ({ untestedCriticalPaths }) =>
     untestedCriticalPaths.slice(0, 8).map((filePath) => ({
       title: "Critical area may lack tests",
@@ -74,6 +92,10 @@ export const untestedCriticalPathRule: Rule = {
 
 export const hardcodedSecretRule: Rule = {
   id: "hardcoded-secret",
+  group: {
+    title: "Potential hardcoded secrets",
+    description: "Possible credentials in the source. Treat each as a potential issue to review, not a confirmed vulnerability.",
+  },
   findings: ({ secretHits }) =>
     secretHits.slice(0, 10).map((hit) => ({
       title: "Potential hardcoded secret",
