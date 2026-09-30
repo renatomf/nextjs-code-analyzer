@@ -70,6 +70,16 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      {
+        // Public shared reports: the token is in the URL. Later entries
+        // override the same key above (Referrer-Policy).
+        source: "/r/:token",
+        headers: [
+          { key: "Referrer-Policy", value: "no-referrer" },
+          { key: "X-Robots-Tag", value: "noindex, nofollow" },
+          { key: "Cache-Control", value: "private, no-store" },
+        ],
+      },
     ];
   },
 };
