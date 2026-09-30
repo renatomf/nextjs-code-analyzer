@@ -18,8 +18,10 @@ import { abstains, citations, refersTo } from "./grounding";
 //   RUN_LLM_EVAL=1 npm run eval
 // The chat as production runs it (same retrieval, prompt and model), checked
 // without a second model: deterministic checks on the answer.
-// - citation validity: files the answer cites must be among the snippets it
-//   received (citing anything else is invented);
+// - citation validity: project files the answer cites must be among the
+//   snippets it received (a real file it never saw is an ungrounded claim);
+//   names that exist nowhere in the project are reported apart: a check
+//   cannot tell an invented path from a suggestion ("look for schema.js");
 // - cites the answer: when an expected file was retrieved, the answer cites it;
 // - abstention: on a question the project cannot answer (a subject absent
 //   from it, checked by search), the answer says the sources fall short.
@@ -29,6 +31,8 @@ const enabled = process.env.RUN_LLM_EVAL === "1";
 // Keeps a run within the free tier's daily tokens (~4.5k per question).
 const PER_REPO = Number(process.env.CHAT_EVAL_QUESTIONS_PER_REPO ?? 3);
 const PAUSE_MS = Number(process.env.LLM_EVAL_PAUSE_MS ?? 40_000);
+// Comma-separated repositories, to spend less of the daily quota.
+const ONLY = process.env.LLM_EVAL_CASES?.split(",").map((name) => name.trim());
 
 /** Subjects absent from each repository (no file mentions them). */
 const UNANSWERABLE: Record<string, string> = {
@@ -59,7 +63,9 @@ it.skipIf(!enabled)(
     const repos = [];
     let first = true;
 
-    for (const retrievalCase of RETRIEVAL_CASES) {
+    const selected = RETRIEVAL_CASES.filter((c) => !ONLY || ONLY.includes(c.repo));
+    if (selected.length === 0) throw new Error(`No repository named ${ONLY?.join(", ")}`);
+    for (const retrievalCase of selected) {
       const search = await buildIndex(await filesOf(retrievalCase.repo));
       const questions = [
         ...retrievalCase.questions.slice(0, PER_REPO).map((q) => ({ ...q, answerable: true })),
@@ -107,8 +113,12 @@ it.skipIf(!enabled)(
           retrievedFiles,
           expectedRetrieved,
           cited,
-          citationValidity:
-            cited.length === 0 ? 1 : cited.filter((c) => c.kind === "retrieved").length / cited.length,
+          citationValidity: (() => {
+            const projectFiles = cited.filter((c) => c.kind !== "unknown");
+            return projectFiles.length === 0
+              ? 1
+              : projectFiles.filter((c) => c.kind === "retrieved").length / projectFiles.length;
+          })(),
           citesExpected: expectedRetrieved
             ? cited.some((c) => refersTo(c.as, q.expectedFiles))
             : null,
@@ -128,7 +138,8 @@ it.skipIf(!enabled)(
         answered: answers.length,
         failed: failures.length,
         citationValidity: mean(answers.map((a) => a.citationValidity)),
-        invalidCitations: answers.flatMap((a) => a.cited.filter((c) => c.kind !== "retrieved").map((c) => c.as)),
+        unseenCitations: answers.flatMap((a) => a.cited.filter((c) => c.kind === "unseen").map((c) => c.as)),
+        unknownNames: answers.flatMap((a) => a.cited.filter((c) => c.kind === "unknown").map((c) => c.as)),
         citesExpected: mean(withExpected.map((a) => (a.citesExpected ? 1 : 0))),
         expectedRetrieved: `${withExpected.length}/${answerable.length}`,
         abstainsWhenUnanswerable: answers.filter((a) => !a.answerable).map((a) => a.abstains),
@@ -159,13 +170,14 @@ it.skipIf(!enabled)(
         ...repos.map(
           (r) =>
             `  ${r.repo}: ${r.answered} answered, ${r.failed} failed; citation validity ${fmt(r.citationValidity)}` +
-            ` (invalid: ${r.invalidCitations.join(", ") || "none"}); cites the answer ${fmt(r.citesExpected)} when retrieved (${r.expectedRetrieved});` +
+            ` (unseen: ${r.unseenCitations.join(", ") || "none"}; names not in the project: ${r.unknownNames.join(", ") || "none"});` +
+            ` cites the answer ${fmt(r.citesExpected)} when retrieved (${r.expectedRetrieved});` +
             ` abstains when unanswerable: ${r.abstainsWhenUnanswerable.join(",") || "n/a"}`,
         ),
       ].join("\n"),
     );
 
-    expect(repos).toHaveLength(RETRIEVAL_CASES.length);
+    expect(repos).toHaveLength(selected.length);
   },
   60 * 60_000,
 );

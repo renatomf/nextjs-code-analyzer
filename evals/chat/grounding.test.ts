@@ -19,6 +19,13 @@ describe("citations", () => {
   it("ignores words that only look like files", () => {
     expect(citations("It uses Node.js and Next.js with express.")).toEqual([]);
   });
+
+  it("reads file names written with Unicode hyphens (gpt-oss writes U+2011)", () => {
+    expect(citations("See `user‑dao.js` and drizzle‑report‑shares.ts.")).toEqual([
+      "user-dao.js",
+      "drizzle-report-shares.ts",
+    ]);
+  });
 });
 
 describe("refersTo", () => {
@@ -37,6 +44,9 @@ describe("abstains", () => {
     "There is no Kafka producer in the retrieved code.",
     "I cannot find where SMS messages are sent; the sources are insufficient.",
     "This is not included in the provided sources.",
+    // A real answer (gpt-oss): words between the subject and the verb, U+2011
+    // and a typographic apostrophe.
+    "The snippets you provided do not contain any GraphQL‑related code, so I can’t show you the actual resolver implementation.",
   ])("recognizes: %s", (answer) => {
     expect(abstains(answer)).toBe(true);
   });

@@ -11,13 +11,14 @@ import { loadRepo, loadThisRepository, REPO_CASES } from "../repos/repos";
  * (no index yet: a dot product of normalized vectors).
  */
 
-// The retrieval eval's own questions, word for word: indexed, they would
-// answer every question about this repository.
-const OWN_QUESTIONS_FILE = "evals/retrieval/questions.ts";
+// The evals themselves are left out of this repository's corpus: they hold
+// the questions word for word (and the chat eval's unanswerable subjects),
+// so indexed they would answer the questions about this repository.
+const EVALS_DIR = "evals/";
 
 export async function filesOf(repo: string) {
   if (repo === "this-repository") {
-    return (await loadThisRepository()).filter((f) => f.relativePath !== OWN_QUESTIONS_FILE);
+    return (await loadThisRepository()).filter((f) => !f.relativePath.startsWith(EVALS_DIR));
   }
   const repoCase = REPO_CASES.find((c) => c.name === repo);
   if (!repoCase) throw new Error(`Unknown repository ${repo}`);
