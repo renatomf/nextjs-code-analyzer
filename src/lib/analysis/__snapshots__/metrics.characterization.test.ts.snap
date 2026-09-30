@@ -301,6 +301,13 @@ exports[`computeDeterministicMetrics (characterization) > produces the same metr
     },
     {
       "category": "security",
+      "description": "Hardcoded API key / token assignment around line 1. Treat as a potential issue to review, not a confirmed vulnerability.",
+      "filePath": "src/lib/__fixtures__/credentials.ts",
+      "severity": "critical",
+      "title": "Potential hardcoded secret",
+    },
+    {
+      "category": "security",
       "description": "AWS-style access key pattern around line 1. Treat as a potential issue to review, not a confirmed vulnerability.",
       "filePath": "src/config.ts",
       "severity": "critical",
@@ -351,13 +358,6 @@ exports[`computeDeterministicMetrics (characterization) > produces the same metr
     {
       "category": "security",
       "description": "Hardcoded API key / token assignment around line 8. Treat as a potential issue to review, not a confirmed vulnerability.",
-      "filePath": "src/config.ts",
-      "severity": "critical",
-      "title": "Potential hardcoded secret",
-    },
-    {
-      "category": "security",
-      "description": "Hardcoded API key / token assignment around line 9. Treat as a potential issue to review, not a confirmed vulnerability.",
       "filePath": "src/config.ts",
       "severity": "critical",
       "title": "Potential hardcoded secret",
@@ -420,6 +420,11 @@ exports[`computeDeterministicMetrics (characterization) > produces the same metr
       "line": 1,
     },
     {
+      "filePath": "src/lib/__fixtures__/credentials.ts",
+      "hint": "Hardcoded API key / token assignment",
+      "line": 1,
+    },
+    {
       "filePath": "src/config.ts",
       "hint": "AWS-style access key pattern",
       "line": 1,
@@ -475,10 +480,10 @@ exports[`computeDeterministicMetrics (characterization) > produces the same metr
       "line": 11,
     },
   ],
-  "sourceFileCount": 25,
+  "sourceFileCount": 26,
   "summaries": {
     "codeQuality": "Found 12 large file(s) and 14 complex function(s) using static heuristics.",
-    "security": "Pattern scan found 12 potential hardcoded secret hit(s).",
+    "security": "Pattern scan found 13 potential hardcoded secret hit(s).",
     "testing": "Matched test files for roughly 4% of source files (2 test files found).",
   },
   "testFileCount": 2,

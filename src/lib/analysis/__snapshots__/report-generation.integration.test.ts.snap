@@ -67,7 +67,7 @@ exports[`generateProjectReport (characterization) > scores the project and store
   "architecture": "Layers are mixed.",
   "codeQuality": "Found 12 large file(s) and 14 complex function(s) using static heuristics.",
   "performance": "No hot spots.",
-  "security": "Pattern scan found 12 potential hardcoded secret hit(s). Input is validated.",
+  "security": "Pattern scan found 13 potential hardcoded secret hit(s). Input is validated.",
   "testing": "Matched test files for roughly 4% of source files (2 test files found).",
 }
 `;
