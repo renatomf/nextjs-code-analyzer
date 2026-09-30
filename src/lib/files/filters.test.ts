@@ -53,8 +53,25 @@ describe("shouldSkipPath", () => {
     expect(shouldSkipPath("src/")).toBe(true);
   });
 
+  it.each([
+    ".yarn/sdks/typescript/lib/tsserver.js",
+    ".nuxt/components.d.ts",
+    ".output/server/index.mjs",
+    ".svelte-kit/generated/root.js",
+    "apps/web/.cache/bundle.js",
+    ".claude/hooks/format.js",
+    ".cursor/rules/check.ts",
+    ".vscode/extension.js",
+    ".husky/commit-msg.js",
+  ])("skips tool folders and generated output: %s", (path) => {
+    expect(shouldSkipPath(path)).toBe(true);
+  });
+
   it("keeps normal source paths", () => {
     expect(shouldSkipPath("src/lib/utils.ts")).toBe(false);
+    // Folders that may hold real code stay in.
+    expect(shouldSkipPath("docs/examples/client.ts")).toBe(false);
+    expect(shouldSkipPath(".github/scripts/release.js")).toBe(false);
   });
 
   it("skips secret-bearing files in any folder and casing", () => {
