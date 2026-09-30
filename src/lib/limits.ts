@@ -36,7 +36,7 @@ export const ALWAYS_EXCLUDE_DIR_NAMES = new Set([
   ".yarn",
   // Third-party code copied into the repository: not the project's code, and
   // it takes the review sample and yields findings about someone else's code.
-  "vendor",
+  // (`vendor` is also a domain word: see VENDOR_DIR_NAME.)
   "third_party",
   "third-party",
   "bower_components",
@@ -55,6 +55,14 @@ export const ALWAYS_EXCLUDE_FILE_NAMES = new Set([
   "bun.lock",
   "bun.lockb",
 ]);
+
+/**
+ * `vendor/` holds third-party code only at the repository root (Composer, Go,
+ * Rails) or inside a static-files folder (`app/assets/vendor/`). Elsewhere it
+ * is a domain word (`src/modules/vendor/` in a marketplace) and stays.
+ */
+export const VENDOR_DIR_NAME = "vendor";
+export const STATIC_DIR_NAMES = new Set(["assets", "public", "static"]);
 
 /** Minified bundles (`jquery.min.js`): third-party or built, never reviewed source. */
 export const MINIFIED_FILE_PATTERN = /\.min\.[cm]?js$/;
