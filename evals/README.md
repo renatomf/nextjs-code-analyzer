@@ -33,11 +33,29 @@ real extractor): number of findings per rule, the deterministic category
 scores and what the LLM reviewer would see of it (files, directories and
 test files in the review sample). There is no full ground truth here; it tracks the dogfooding trend.
 
+**Real repositories** ([repos/repos.ts](repos/repos.ts)): open-source
+projects with known problems, annotated by file and line, pinned to a
+commit and read like a GitHub import. The source is downloaded once into
+`evals/.cache/` (git-ignored) and never committed. Today: OWASP NodeGoat
+(Apache-2.0), 9 active vulnerabilities (the fixes it keeps commented out do
+not count). Reported without an LLM: files, chunks, deterministic findings
+and how many annotated lines reach the reviewer's sample (the model can
+only report what it receives). NodeGoat comments its own flaws, so its LLM
+recall is an upper bound.
+
 ## LLM review (opt-in)
 
 ```bash
-RUN_LLM_EVAL=1 npm run eval   # real model, free Groq quota, about 5 minutes
+RUN_LLM_EVAL=1 npm run eval   # real model, free Groq quota, about 10 minutes
+RUN_LLM_EVAL=1 LLM_EVAL_CASES=nodegoat npm run eval   # only some cases
 ```
+
+Quota: Groq's free tier allows 200,000 tokens per day per organization
+(gpt-oss-120b), and a full run uses about 60,000 of them. The limit is the
+organization's, not the key's: evals run with the production key compete
+with real analyses, so use a separate Groq account for them. Failed calls
+are recorded (with the organization id masked), and a case without
+successful runs reports `null`, not a perfect score.
 
 Cases in [llm/cases.ts](llm/cases.ts): planted problems a reviewer should
 find (SQL built from input, a delete route without authorization, N+1 and

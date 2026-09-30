@@ -53,3 +53,6 @@ next-env.d.ts
 
 # Local debug script (not part of the app)
 .dbcheck.mjs
+
+# Eval downloads (real repositories, never committed)
+/evals/.cache

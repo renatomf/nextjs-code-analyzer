@@ -16,6 +16,7 @@ import {
   sampleForReview,
 } from "@/modules/analysis";
 
+import { loadRepo, REPO_CASES, type RepoCase } from "../repos/repos";
 import { ANALYSIS_CASES } from "./cases";
 import { scoreCase } from "./score";
 
@@ -26,6 +27,55 @@ import { scoreCase } from "./score";
 // result to evals/results/<date>-<commit>.json.
 
 const git = (...args: string[]) => execFileSync("git", args, { maxBuffer: 256 * 1024 * 1024 });
+
+/**
+ * A real repository with annotated problems, read like a GitHub import:
+ * what the deterministic analysis finds and which annotated lines reach the
+ * LLM reviewer's sample (the model can only report what it receives).
+ */
+async function realRepository(repoCase: RepoCase) {
+  const files = await loadRepo(repoCase);
+  const metrics = computeDeterministicMetrics(files);
+  const chunks = chunkProjectFiles(files).sort(
+    (a, b) => a.filePath.localeCompare(b.filePath) || (a.startLine ?? 0) - (b.startLine ?? 0),
+  );
+  const sample = sampleForReview(chunks);
+  const byRule: Record<string, number> = {};
+  for (const finding of metrics.issues) {
+    const rule = finding.title.replace(/ \(.*\)$/, "").replace(/^Complex function .*/, "Complex function");
+    byRule[rule] = (byRule[rule] ?? 0) + 1;
+  }
+  const expected = repoCase.expected.map((e) => ({
+    filePath: e.filePath,
+    line: e.line,
+    inSample: sample.some(
+      (c) => c.filePath === e.filePath && (c.startLine ?? 0) <= e.line && e.line <= (c.endLine ?? 0),
+    ),
+  }));
+
+  return {
+    name: repoCase.name,
+    commit: repoCase.commit,
+    sourceFiles: files.length,
+    chunks: chunks.length,
+    findings: metrics.issues.length,
+    findingsByRule: byRule,
+    reviewSample: {
+      chunks: sample.length,
+      files: new Set(sample.map((c) => c.filePath)).size,
+      filePaths: [...new Set(sample.map((c) => c.filePath))],
+    },
+    expectedInSample: expected.filter((e) => e.inSample).length,
+    expectedTotal: expected.length,
+    expected,
+    issues: metrics.issues.map(({ title, severity, category, filePath }) => ({
+      title,
+      severity,
+      category,
+      filePath,
+    })),
+  };
+}
 
 async function thisRepository() {
   const extracted = await extractFromZipBuffer(git("archive", "--format=zip", "HEAD"));
@@ -117,6 +167,7 @@ it("measures the deterministic analysis", async () => {
         recall: expected === 0 ? 1 : tp / expected,
       },
       thisRepository: await thisRepository(),
+      realRepositories: await Promise.all(REPO_CASES.map(realRepository)),
     },
   };
 
@@ -136,6 +187,10 @@ it("measures the deterministic analysis", async () => {
       ),
       `  total: precision ${result.analysis.totals.precision.toFixed(2)}, recall ${result.analysis.totals.recall.toFixed(2)}`,
       `  this repository: ${result.analysis.thisRepository.findings} findings in ${result.analysis.thisRepository.reportFindings} report lines, deterministic health ${result.analysis.thisRepository.deterministicHealthScore} (v1: ${result.analysis.thisRepository.v1DeterministicHealthScore})`,
+      ...result.analysis.realRepositories.map(
+        (r) =>
+          `  ${r.name}: ${r.sourceFiles} files, ${r.chunks} chunks, ${r.findings} findings; annotated lines in the review sample: ${r.expectedInSample}/${r.expectedTotal}`,
+      ),
       `  review sample: ${result.analysis.thisRepository.reviewSample.chunks} chunks from ${result.analysis.thisRepository.reviewSample.files} files in ${result.analysis.thisRepository.reviewSample.directories} directories (${result.analysis.thisRepository.reviewSample.testFiles} test files)`,
     ].join("\n"),
   );

@@ -76,6 +76,7 @@ export type LlmReportResult = {
   droppedUnverified: number;
   /** For the evals: which files the model saw, and the tokens it used. */
   sentFilePaths: string[];
+  sentRanges: Array<{ filePath: string; startLine: number | null; endLine: number | null }>;
   usage: { inputTokens?: number; outputTokens?: number };
 };
 
@@ -147,6 +148,7 @@ export async function runLlmHealthReview(options: {
     })),
     droppedUnverified: verified.dropped.length,
     sentFilePaths: [...new Set(sampled.map((chunk) => chunk.filePath))],
+    sentRanges: sampled.map(({ filePath, startLine, endLine }) => ({ filePath, startLine, endLine })),
     usage: { inputTokens: usage.inputTokens, outputTokens: usage.outputTokens },
   };
 }

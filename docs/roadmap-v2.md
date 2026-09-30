@@ -479,6 +479,19 @@ Vem antes da ingestão assíncrona: job em segundo plano sem log é caixa preta.
 - [ ] `evals/` com dataset versionado: este repo, OWASP Juice Shop e 2 ou 3
       repositórios pequenos com violações conhecidas e anotadas, mais casos
       de prompt injection (TD-28).
+      Progresso: OWASP NodeGoat (commit fixo, lido como importação do
+      GitHub, baixado para `evals/.cache`), 9 vulnerabilidades ativas
+      anotadas por arquivo e linha. Baseline determinístico: 50 arquivos,
+      286 chunks, 7 achados (1 falso positivo: "Large file" num arquivo de
+      terceiros em `app/assets/vendor/`); só **2 de 9** linhas vulneráveis
+      entram na amostra do revisor. Causas: bibliotecas de terceiros
+      (`vendor/`, `*.min.js`) ocupam 3 vagas, e o amostrador pega só o
+      primeiro chunk de cada arquivo, enquanto o NodeGoat escreve cada
+      arquivo como uma função grande. Eval do LLM do NodeGoat pendente: a
+      cota diária do Groq (200 mil tokens por organização) acabou nas
+      rodadas de hoje. Próximos PRs, cada um com antes × depois: excluir
+      código de terceiros; escolher dentro do arquivo os chunks que tocam
+      entrada ou chamadas perigosas. Falta: Juice Shop e outros.
 - [ ] `npm run eval` → `evals/results/<data>.json`: precisão/recall dos
       achados, falsos positivos, groundedness do chat, recall do retrieval,
       latência, tokens e custo.
