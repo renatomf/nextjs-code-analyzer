@@ -153,6 +153,10 @@ describe("riskScore", () => {
     ["file access", "const text = fs.readFileSync(path);"],
     ["passwords", "if (user.password === password) {"],
     ["sessions", "const session = await auth();"],
+    ["ORM data access", "await db.update(projects).set({ status }).where(eq(projects.id, id));"],
+    ["Prisma data access", "const user = await prisma.user.findUnique({ where: { id } });"],
+    ["an auth library", "export default NextAuth(authConfig).auth;"],
+    ["secrets and configuration", "const url = process.env.DATABASE_URL;"],
   ])("counts %s", (_, content) => {
     expect(riskScore(content)).toBeGreaterThan(0);
   });

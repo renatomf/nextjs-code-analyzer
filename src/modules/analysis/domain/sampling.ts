@@ -60,6 +60,8 @@ const RISK_SIGNALS: RegExp[] = [
   /\beval\(|\bnew Function\(/,
   /\bchild_process\b|\bexecSync\(|\bexec\(|\bspawn\(/,
   /\$where\b|\.(query|execute|raw)\(|\$queryRawUnsafe|\$executeRawUnsafe/,
+  // Data access through an ORM or driver (who may read or change which rows)
+  /\.(select|insert|update|delete|upsert|findMany|findFirst|findUnique|findOne|insertOne|updateOne|deleteOne|aggregate)\(/,
   // XSS
   /\binnerHTML\b|dangerouslySetInnerHTML|document\.write\(/,
   // Open redirect and server-side requests
@@ -68,6 +70,8 @@ const RISK_SIGNALS: RegExp[] = [
   // Files
   /\bfs\.\w+\(|\breadFile(Sync)?\(|\bwriteFile(Sync)?\(/,
   // Authentication, sessions and secrets
+  /\bauth\w*\(|\bNextAuth\b|\bgetServerSession\b|\bcurrentUser\b|\bsignIn\(|\bauthorize\b/,
+  /\bprocess\.env\b/,
   /\bpasswords?\b/i,
   /\bsessions?\b/i,
   /\bcookies?\b/i,
