@@ -17,7 +17,16 @@ export {
   setProjectStatus,
   startReanalysis,
 } from "./infrastructure/drizzle-project-lifecycle";
+export { importArchive } from "./infrastructure/import-archive";
 export {
+  createReportShare,
+  findSharedReport,
+  getReportShareState,
+  revokeReportShare,
+  type SharedReport,
+} from "./infrastructure/drizzle-report-shares";
+export {
+  findExistingImport,
   getProjectIssues,
   getProjectProgress,
   getProjectReport,

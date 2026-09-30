@@ -48,6 +48,31 @@ export async function readProgress(userId: string, projectId: string) {
 }
 
 /**
+ * Creates a project whose files are being read (inside the quota
+ * transaction, so the limit check and the insert commit together).
+ */
+export async function createImportingProject(
+  executor: Executor,
+  project: {
+    userId: string;
+    name: string;
+    source: "github" | "upload";
+    repositoryUrl?: string;
+  },
+) {
+  const [created] = await executor
+    .insert(projects)
+    .values({
+      ...project,
+      status: "processing",
+      progressStep: "Reading files",
+      progressPercent: 10,
+    })
+    .returning({ id: projects.id });
+  return created;
+}
+
+/**
  * Atomic claim: only one request can move the project into "processing", so
  * parallel calls (two tabs, a refresh) never run the analysis twice. Same
  * rule as `analysisStart` returning "claimable".

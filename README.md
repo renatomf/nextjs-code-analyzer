@@ -11,6 +11,10 @@ grounded in the real code (RAG).
 > The current health score is known to be noisy — see
 > [docs/baseline.md](docs/baseline.md).
 
+**Live demo report** (no sign-up): [a real health report, shared through a
+public read-only link](https://nextjs-codedriven.vercel.app/r/dEVSu6Ax3931oUeMuQ8aBd-maFvYFt0vE3-WX2yHRpw). It shows the report only — never the source
+code — with secrets redacted.
+
 ## Features
 
 - **Import** a GitHub repository (OAuth) or a ZIP upload, with hardened
@@ -22,6 +26,8 @@ grounded in the real code (RAG).
 - **Chat with the codebase:** Tree-sitter chunking, local embeddings
   (MiniLM) in pgvector, answers streamed with their sources.
 - **Plans and billing** with Stripe Checkout and a signed webhook.
+- **Public report links:** share a read-only report (revocable, optional
+  expiry, only a hash of the token stored, not indexed by search engines).
 
 ## Tech stack
 

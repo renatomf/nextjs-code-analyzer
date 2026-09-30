@@ -13,12 +13,13 @@ import { cn } from "@/lib/utils";
 // One issue card for every list (report "Top issues" and the Issues page):
 // severity-colored left rule + icon + badges, file linked to the explorer.
 // No hooks, so it renders from both server and client components.
+// Without `projectId` (public shared report) the file is plain text.
 export function IssueCard({
   issue,
   projectId,
 }: {
   issue: ReportIssue;
-  projectId: string;
+  projectId?: string;
 }) {
   const styles = SEVERITY_STYLES[issue.severity];
 
@@ -38,7 +39,11 @@ export function IssueCard({
         <Badge variant="outline">{CATEGORY_LABELS[issue.category]}</Badge>
       </div>
       <p className="leading-relaxed text-foreground/75">{issue.description}</p>
-      {issue.filePath ? (
+      {issue.filePath && !projectId ? (
+        <p className="mt-2 font-mono text-xs break-all text-(--ca-muted)">
+          {issue.filePath}
+        </p>
+      ) : issue.filePath ? (
         <Link
           href={`/projects/${projectId}/explorer?file=${encodeURIComponent(issue.filePath)}`}
           className="mt-2 inline-block font-mono text-xs break-all text-(--ca-muted) underline-offset-4 hover:text-(--ca-ink) hover:underline"
