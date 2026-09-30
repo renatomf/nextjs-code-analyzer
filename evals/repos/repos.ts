@@ -16,8 +16,8 @@ export type ExpectedProblem = {
   /** Any of these categories counts (e.g. ReDoS is security or performance). */
   categories: IssueCategory[];
   filePath: string;
-  /** A line of the vulnerable code: the sample must include its chunk. */
-  line: number;
+  /** Lines of the vulnerable code: the sample must include the chunk of one. */
+  lines: number[];
   note: string;
 };
 
@@ -28,6 +28,11 @@ export type RepoCase = {
   commit: string;
   license: string;
   expected: ExpectedProblem[];
+  /**
+   * Comments that point at the answer, removed before the analysis (the
+   * rest of the line stays, so line numbers do not move).
+   */
+  stripComments?: RegExp;
 };
 
 /**
@@ -47,61 +52,133 @@ export const NODEGOAT: RepoCase = {
     {
       categories: ["security"],
       filePath: "app/routes/contributions.js",
-      line: 32,
+      lines: [32],
       note: "eval() of request body fields (server-side JS injection)",
     },
     {
       categories: ["security"],
       filePath: "app/data/allocations-dao.js",
-      line: 78,
+      lines: [78],
       note: "NoSQL injection: user input inside a $where expression",
     },
     {
       categories: ["security"],
       filePath: "app/routes/allocations.js",
-      line: 18,
+      lines: [18],
       note: "IDOR: userId taken from the URL instead of the session",
     },
     {
       categories: ["security"],
       filePath: "app/routes/index.js",
-      line: 72,
+      lines: [72],
       note: "Open redirect: res.redirect(req.query.url)",
     },
     {
       categories: ["security"],
       filePath: "app/routes/research.js",
-      line: 15,
+      lines: [15],
       note: "SSRF: server fetches a URL built from the query string",
     },
     {
       categories: ["security"],
       filePath: "app/data/user-dao.js",
-      line: 25,
+      lines: [25],
       note: "Passwords stored and compared in plain text",
     },
     {
       categories: ["security"],
       filePath: "app/data/profile-dao.js",
-      line: 62,
+      lines: [62],
       note: "SSN and date of birth stored unencrypted",
     },
     {
       categories: ["security", "performance"],
       filePath: "app/routes/profile.js",
-      line: 59,
+      lines: [59],
       note: "ReDoS: /([0-9]+)+\\#/ on user input",
     },
     {
       categories: ["security"],
       filePath: "server.js",
-      line: 137,
+      lines: [137],
       note: "No CSRF protection, session cookie without httpOnly, template autoescape off",
     },
   ],
 };
 
-export const REPO_CASES: RepoCase[] = [NODEGOAT];
+/**
+ * OWASP Juice Shop: a modern TypeScript app (Express + Angular) with
+ * deliberate flaws. The answers come from the project itself: it marks each
+ * vulnerable line with `// vuln-code-snippet vuln-line <challenge>` for its
+ * coding challenges. Those comments name the flaw, so they are stripped
+ * before the analysis (only the comment; lines keep their numbers).
+ * Included: markers whose code is itself a flaw a reviewer can see
+ * (injection, XSS, redirect, weak hashing, authorization, exposure,
+ * misconfiguration), one expectation per file. Left out: "discovery"
+ * challenges (hidden frontend routes: score board, web3, token sale), the
+ * crypto-address allowlist entries and the marker parser
+ * (lib/codingChallenges.ts).
+ */
+export const JUICE_SHOP: RepoCase = {
+  name: "juice-shop",
+  owner: "juice-shop",
+  repo: "juice-shop",
+  commit: "1618a611b173b4bf114028e6e02549950606e29d",
+  license: "MIT",
+  stripComments: /[ \t]*\/\/ vuln-code-snippet .*$/gm,
+  expected: [
+    {
+      categories: ["security"],
+      filePath: "routes/search.ts",
+      lines: [23],
+      note: "SQL injection: search criteria inside a raw query (unionSqlInjection)",
+    },
+    {
+      categories: ["security"],
+      filePath: "routes/login.ts",
+      lines: [34],
+      note: "SQL injection in login: email inside a raw query (loginAdmin)",
+    },
+    {
+      categories: ["security"],
+      filePath: "routes/updateProductReviews.ts",
+      lines: [16, 18, 20],
+      note: "NoSQL injection and no author check on review updates (noSqlReviews, forgedReview)",
+    },
+    {
+      categories: ["security"],
+      filePath: "lib/insecurity.ts",
+      lines: [136],
+      note: "Open redirect: allowlist checked with url.includes (redirect)",
+    },
+    {
+      categories: ["security"],
+      filePath: "models/user.ts",
+      lines: [73],
+      note: "Passwords hashed with unsalted MD5 (weakPassword)",
+    },
+    {
+      categories: ["security"],
+      filePath: "frontend/src/app/search-result/search-result.component.ts",
+      lines: [111, 144],
+      note: "XSS: bypassSecurityTrustHtml on user-controlled data (restfulXss, localXss)",
+    },
+    {
+      categories: ["security"],
+      filePath: "server.ts",
+      lines: [288, 289, 300, 302, 365, 389, 530, 750],
+      note: "Directory listing, log and metrics exposure, rate limit keyed by X-Forwarded-For, missing authorization, admin registration",
+    },
+    {
+      categories: ["security"],
+      filePath: "routes/chat.ts",
+      lines: [179, 184],
+      note: "LLM tool trusts the model's discount: no server-side cap (chatbotPromptInjection)",
+    },
+  ],
+};
+
+export const REPO_CASES: RepoCase[] = [NODEGOAT, JUICE_SHOP];
 
 const CACHE_DIR = join(process.cwd(), "evals", ".cache");
 
@@ -121,7 +198,11 @@ export async function loadRepo(repoCase: RepoCase) {
   // Same as a GitHub import: the archive's root folder is stripped.
   const extracted = await extractFromZipBuffer(readFileSync(zipPath), { stripRoot: true });
   if (!extracted.ok) throw new Error(`Could not read ${repoCase.name}: ${extracted.error}`);
+  const strip = repoCase.stripComments;
   return extracted.sourceFiles
     .filter((file) => isSourceFile(file.relativePath))
-    .map(({ relativePath, content }) => ({ relativePath, content }));
+    .map(({ relativePath, content }) => ({
+      relativePath,
+      content: strip ? content.replace(strip, "") : content,
+    }));
 }

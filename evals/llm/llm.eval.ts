@@ -33,7 +33,7 @@ function describeError(error: unknown) {
   return { error: mask(String(error)), responseBody: body ? mask(body).slice(0, 4000) : undefined };
 }
 
-type Expected = { categories: IssueCategory[]; filePath: string; line?: number; note?: string };
+type Expected = { categories: IssueCategory[]; filePath: string; lines?: number[]; note?: string };
 type EvalCase = { name: string; files: { relativePath: string; content: string }[]; expected: Expected[] };
 
 const key = (category: string, filePath: string | null) => `${category}:${filePath ?? "-"}`;
@@ -111,8 +111,10 @@ it.skipIf(!enabled)(
           review.sentRanges.some(
             (range) =>
               range.filePath === e.filePath &&
-              (e.line === undefined ||
-                ((range.startLine ?? 0) <= e.line && e.line <= (range.endLine ?? 0))),
+              (e.lines === undefined ||
+                e.lines.some(
+                  (line) => (range.startLine ?? 0) <= line && line <= (range.endLine ?? 0),
+                )),
           );
         const isFound = (e: Expected) => e.categories.some((c) => found.has(key(c, e.filePath)));
 
@@ -170,7 +172,7 @@ it.skipIf(!enabled)(
         // Per expected problem: share of runs in which it was sent / found.
         perExpected: evalCase.expected.map((e, index) => ({
           filePath: e.filePath,
-          line: e.line ?? null,
+          lines: e.lines ?? null,
           note: e.note ?? null,
           sentRate: mean(runs.map((r) => (r.expected[index].sent ? 1 : 0))),
           foundRate: mean(runs.map((r) => (r.expected[index].found ? 1 : 0))),

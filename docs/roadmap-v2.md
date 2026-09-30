@@ -524,6 +524,20 @@ Vem antes da ingestão assíncrona: job em segundo plano sem log é caixa preta.
       NodeGoat os outros DAOs, a regex do ReDoS e o `autoescape`, por
       orçamento. Próximo passo: o eval do LLM, para saber se o recall
       acompanha a amostra, antes de mexer mais nela.
+      OWASP Juice Shop (TypeScript, Express + Angular) no dataset: a
+      resposta vem dos marcadores `vuln-code-snippet vuln-line` do próprio
+      projeto (8 arquivos), removidos antes da análise porque nomeiam a
+      falha. O importador rejeitava o Juice Shop (1.163 arquivos de texto
+      contra o limite de 1.000): o limite passou a contar só os arquivos
+      JS/TS, os únicos lidos, analisados e guardados (640 no Juice Shop).
+      Baseline: 633 arquivos, 2.031 chunks, 24 achados; só **1 de 8**
+      arquivos vulneráveis na amostra do revisor. Causa: componentes do
+      frontend Angular (`payment.component.ts`, `two-factor-auth-...`)
+      ganham prioridade de servidor pelo nome do caminho e têm muitos
+      sinais, e tiram a vaga das rotas do backend. Próximo PR: UI
+      (`*.component.ts`, `frontend/`, `client/`) não ganha prioridade de
+      servidor pelo nome. A medir em produção: se a ingestão de 2 mil
+      chunks cabe nos 300 s da Vercel.
 - [ ] `npm run eval` → `evals/results/<data>.json`: precisão/recall dos
       achados, falsos positivos, groundedness do chat, recall do retrieval,
       latência, tokens e custo.
