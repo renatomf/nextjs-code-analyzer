@@ -475,6 +475,19 @@ maintainability) · **Low** (cleanup).
   typecheck and tests on every PR.
 - **Phase:** Test safety net.
 
+### TD-39 — TypeScript 7 and ESLint 10 not adopted · Low
+- **Where:** [dependabot.yml](../.github/dependabot.yml) ignores their
+  major bumps.
+- **Problem:** the Dependabot PRs (TypeScript 5.9 → 7.0, ESLint 9 → 10)
+  failed the required "Lint, typecheck, test, build" check (2026-09-29);
+  integration, E2E and OSV passed. Likely cause, not confirmed from the
+  logs: tools on the TypeScript JS API (typescript-eslint, Next's
+  typecheck) and the plugins in `eslint-config-next` not supporting them
+  yet. Minor and patch updates keep coming.
+- **Direction:** when `eslint-config-next` and typescript-eslint declare
+  support, remove the ignore and upgrade one at a time, reading the CI log.
+- **Phase:** Maintenance.
+
 ---
 
 ## Already addressed during the tutorial
