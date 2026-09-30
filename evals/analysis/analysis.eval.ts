@@ -5,8 +5,6 @@ import { join } from "node:path";
 import { expect, it } from "vitest";
 
 import { chunkProjectFiles } from "@/lib/analysis/chunking";
-import { extractFromZipBuffer } from "@/lib/files/extract";
-import { isSourceFile } from "@/lib/files/filters";
 import {
   buildReportFindings,
   computeDeterministicMetrics,
@@ -16,7 +14,7 @@ import {
   sampleForReview,
 } from "@/modules/analysis";
 
-import { loadRepo, REPO_CASES, type RepoCase } from "../repos/repos";
+import { loadRepo, loadThisRepository, REPO_CASES, type RepoCase } from "../repos/repos";
 import { ANALYSIS_CASES } from "./cases";
 import { scoreCase } from "./score";
 
@@ -80,12 +78,7 @@ async function realRepository(repoCase: RepoCase) {
 }
 
 async function thisRepository() {
-  const extracted = await extractFromZipBuffer(git("archive", "--format=zip", "HEAD"));
-  if (!extracted.ok) throw new Error(`Could not read this repository: ${extracted.error}`);
-  // Same filter as the analysis (loadProjectSourceFiles).
-  const files = extracted.sourceFiles
-    .filter((file) => isSourceFile(file.relativePath))
-    .map(({ relativePath, content }) => ({ relativePath, content }));
+  const files = await loadThisRepository();
 
   const metrics = computeDeterministicMetrics(files);
   // As the report shows them: grouped (ADR-010).

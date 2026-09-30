@@ -560,7 +560,18 @@ Vem antes da ingestão assíncrona: job em segundo plano sem log é caixa preta.
       Quality 0 e Testing 0. Eval do LLM (opt-in, 3 execuções por caso):
       baseline `bf17f41` — recall 1,00 (inclusive com injeção de prompt),
       evidência 0,97, estabilidade 0,44–0,63, 6–8 achados em projetos de 2–3
-      arquivos. Falta: retrieval.
+      arquivos. Retrieval do chat: 21 perguntas (NodeGoat, Juice Shop, este
+      repo) escritas antes da primeira medição, com os arquivos que as
+      respondem; mesmo chunking e modelo de embedding da produção, busca
+      exata como o pgvector sem índice. Baseline `18b11ed`: recall@8 0,57
+      (NodeGoat 1,00; Juice Shop 0,29; este repo 0,43), hit@1 0,24, MRR
+      0,34, com gate no CI. No Juice Shop, as variantes de
+      `data/static/codefixes/` (cópias quase idênticas do código) e os
+      tutoriais tomam as primeiras posições; neste repo, conceitos vizinhos
+      disputam a vaga (`finding.ts` × `evidence.ts`). Próximas alavancas,
+      cada uma com antes × depois: remover chunks quase duplicados, dar
+      menos peso a arquivos servidos/dados, busca híbrida (palavra-chave +
+      embedding). Falta: groundedness da resposta (usa o LLM).
 - [ ] Prompts em arquivos versionados; PR que altera prompt ou retrieval roda
       o eval e falha se a qualidade cair.
 - [ ] **Dogfooding:** o analisador roda no próprio repo a cada PR e publica

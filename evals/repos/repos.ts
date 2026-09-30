@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -181,6 +182,20 @@ export const JUICE_SHOP: RepoCase = {
 export const REPO_CASES: RepoCase[] = [NODEGOAT, JUICE_SHOP];
 
 const CACHE_DIR = join(process.cwd(), "evals", ".cache");
+
+/**
+ * This repository's source files, read like a GitHub import: the committed
+ * tree (not uncommitted edits) through the real extractor.
+ */
+export async function loadThisRepository() {
+  const zip = execFileSync("git", ["archive", "--format=zip", "HEAD"], { maxBuffer: 256 * 1024 * 1024 });
+  const extracted = await extractFromZipBuffer(zip);
+  if (!extracted.ok) throw new Error(`Could not read this repository: ${extracted.error}`);
+  // Same filter as the analysis (loadProjectSourceFiles).
+  return extracted.sourceFiles
+    .filter((file) => isSourceFile(file.relativePath))
+    .map(({ relativePath, content }) => ({ relativePath, content }));
+}
 
 /** The repository's source files at its commit, as the analysis reads them. */
 export async function loadRepo(repoCase: RepoCase) {

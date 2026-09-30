@@ -48,6 +48,19 @@ and how many annotated lines reach the reviewer's sample (the model can
 only report what it receives). NodeGoat comments its own flaws, so its LLM
 recall is an upper bound.
 
+## Chat retrieval
+
+[retrieval/questions.ts](retrieval/questions.ts): 21 questions a user would
+ask about NodeGoat, Juice Shop and this repository, each with the files that
+answer it, written before the first measurement (a change to the retriever
+must not edit them to pass). Same chunking and local embedding model as
+production; the search is the exact cosine top-k that pgvector runs today.
+Per repository: **recall@k** (questions with an expected file in the chat's
+context), **hit@1** and **MRR**. The questions file itself is left out of
+this repository's corpus (it would answer every question). Results:
+`evals/results/<date>-<commit>-retrieval.json`. No LLM: it runs in CI with
+the rest.
+
 ## LLM review (opt-in)
 
 ```bash
@@ -87,7 +100,9 @@ and the run fails if a change makes the analysis worse (`GATE` in
 - annotated cases: precision and recall stay at 1.00;
 - real repositories: at least as many annotated vulnerable lines in the LLM
   review sample as the last improvement reached (NodeGoat: 5 of 9; Juice
-  Shop: 2 of 8).
+  Shop: 2 of 8);
+- chat retrieval: at least as many questions answered in the top k
+  (`GATE` in [retrieval/retrieval.eval.ts](retrieval/retrieval.eval.ts)).
 
 Raise a limit when an improvement is merged; never lower one to make a
 change pass.
