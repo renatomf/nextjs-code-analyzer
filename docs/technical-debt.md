@@ -259,9 +259,12 @@ maintainability) · **Low** (cleanup).
   multi-line parameters, are still found); `test/` and `tests/` folders at
   any depth are tests; fixtures and mocks (`fixtures/`, `__fixtures__/`,
   `__mocks__/`) are not scanned for secrets. Pinned by unit tests and by
-  the characterization snapshots. **Still open (Phase 7):** React
-  components sized by lines, the "critical area" keyword rule, coverage by
-  file-name matching, and the uncapped penalty.
+  the characterization snapshots. **Done in Phase 7:** React components
+  sized by their logic, not their markup; "critical area" = logic file with
+  the whole keyword in its path; files imported by tests count as tested;
+  the penalty is diminishing (ADR-010). **Still open:** indirect tests
+  (a test that reaches a file through another module) need the full import
+  graph (v2.1 Code Intelligence).
 
 ---
 

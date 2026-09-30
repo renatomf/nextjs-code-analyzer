@@ -505,8 +505,15 @@ Vem antes da ingestão assíncrona: job em segundo plano sem log é caixa preta.
      0 → 10, nota determinística 53 → 64, 22 → 4 linhas no relatório.
   5. Achados high/critical exigem arquivo + trecho como evidência; prompt mais
      restritivo; código tratado como dado, não como instrução (TD-28).
-  6. Heurísticas determinísticas: não medir componentes React só por
-     linhas, critério melhor para "área crítica". (As correções objetivas —
+  6. ✅ Heurísticas determinísticas: não medir componentes React só por
+     linhas, critério melhor para "área crítica". Feito: componente medido
+     pela lógica até o último `return` de JSX; "área crítica" = arquivo de
+     lógica (não tela) com a palavra inteira no caminho; arquivo importado
+     por um teste conta como testado (`@/` e relativo); valor com espaço
+     não é segredo. Eval: precisão 0,57 → 1,00 com recall 1,00 (casos
+     ampliados com problemas reais que não podem sumir); este repo 22 → 17
+     achados, nota determinística 64 → 68. Limite conhecido: teste
+     indireto (via `server.ts`) só com o grafo de imports (v2.1). (As correções objetivas —
      regex do TD-31, `src/test/`, segredos em fixtures — foram antecipadas
      para a Fase 3.)
   7. Timeout e limites aplicados no servidor (TD-29); migrar para

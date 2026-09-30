@@ -1,0 +1,242 @@
+{
+  "date": "2026-09-30T12:06:36.794Z",
+  "commit": "ab669bb",
+  "analysis": {
+    "cases": [
+      {
+        "name": "well-tested-lib",
+        "expected": 0,
+        "found": 0,
+        "truePositives": 0,
+        "precision": 1,
+        "recall": 1,
+        "falsePositives": [],
+        "missed": []
+      },
+      {
+        "name": "planted-problems",
+        "expected": 8,
+        "found": 5,
+        "truePositives": 8,
+        "precision": 1,
+        "recall": 1,
+        "falsePositives": [],
+        "missed": []
+      },
+      {
+        "name": "false-positive-traps",
+        "expected": 0,
+        "found": 3,
+        "truePositives": 0,
+        "precision": 0,
+        "recall": 1,
+        "falsePositives": [
+          {
+            "title": "Potential hardcoded secret",
+            "filePath": "src/i18n/messages.ts"
+          },
+          {
+            "title": "Critical area may lack tests",
+            "filePath": "src/components/oauth-icons.tsx"
+          },
+          {
+            "title": "Complex function Dashboard (116 lines)",
+            "filePath": "src/components/Dashboard.tsx"
+          }
+        ],
+        "missed": []
+      },
+      {
+        "name": "tests-in-separate-folder",
+        "expected": 0,
+        "found": 2,
+        "truePositives": 0,
+        "precision": 0,
+        "recall": 1,
+        "falsePositives": [
+          {
+            "title": "Low test file coverage signal",
+            "filePath": null
+          },
+          {
+            "title": "Critical area may lack tests",
+            "filePath": "src/lib/auth/session.ts"
+          },
+          {
+            "title": "Critical area may lack tests",
+            "filePath": "src/lib/billing/charge.ts"
+          }
+        ],
+        "missed": []
+      }
+    ],
+    "totals": {
+      "truePositives": 8,
+      "falsePositives": 6,
+      "missed": 0,
+      "precision": 0.5714285714285714,
+      "recall": 1
+    },
+    "thisRepository": {
+      "sourceFiles": 232,
+      "findings": 22,
+      "reportFindings": 4,
+      "findingsByRule": {
+        "Large file": 1,
+        "Complex function": 12,
+        "Low test file coverage signal": 1,
+        "Critical area may lack tests": 8
+      },
+      "deterministicCategoryScores": {
+        "architecture": 88,
+        "security": 90,
+        "performance": 86,
+        "codeQuality": 45,
+        "testing": 10
+      },
+      "deterministicHealthScore": 64,
+      "v1DeterministicCategoryScores": {
+        "architecture": 88,
+        "security": 90,
+        "performance": 86,
+        "codeQuality": 0,
+        "testing": 0
+      },
+      "v1DeterministicHealthScore": 53,
+      "issues": [
+        {
+          "title": "Large file (479 lines)",
+          "severity": "medium",
+          "category": "codeQuality",
+          "filePath": "src/app/page.tsx"
+        },
+        {
+          "title": "Complex function POST (100 lines)",
+          "severity": "medium",
+          "category": "codeQuality",
+          "filePath": "src/app/api/chat/route.ts"
+        },
+        {
+          "title": "Complex function POST (105 lines)",
+          "severity": "medium",
+          "category": "codeQuality",
+          "filePath": "src/app/api/projects/[id]/analyze/route.ts"
+        },
+        {
+          "title": "Complex function AppShell (80 lines)",
+          "severity": "medium",
+          "category": "codeQuality",
+          "filePath": "src/components/app/app-shell.tsx"
+        },
+        {
+          "title": "Complex function UserMenu (161 lines)",
+          "severity": "high",
+          "category": "codeQuality",
+          "filePath": "src/components/app/user-menu.tsx"
+        },
+        {
+          "title": "Complex function AuthShell (100 lines)",
+          "severity": "medium",
+          "category": "codeQuality",
+          "filePath": "src/components/auth/auth-shell.tsx"
+        },
+        {
+          "title": "Complex function RegisterForm (97 lines)",
+          "severity": "medium",
+          "category": "codeQuality",
+          "filePath": "src/components/auth/register-form.tsx"
+        },
+        {
+          "title": "Complex function UpgradeToPremiumButton (85 lines)",
+          "severity": "medium",
+          "category": "codeQuality",
+          "filePath": "src/components/billing/billing-buttons.tsx"
+        },
+        {
+          "title": "Complex function AnalysisProgress (172 lines)",
+          "severity": "high",
+          "category": "codeQuality",
+          "filePath": "src/components/projects/analysis-progress.tsx"
+        },
+        {
+          "title": "Complex function CodeExplorer (108 lines)",
+          "severity": "medium",
+          "category": "codeQuality",
+          "filePath": "src/components/projects/code-explorer.tsx"
+        },
+        {
+          "title": "Complex function CodeViewer (83 lines)",
+          "severity": "medium",
+          "category": "codeQuality",
+          "filePath": "src/components/projects/code-viewer.tsx"
+        },
+        {
+          "title": "Complex function FileAiPanel (119 lines)",
+          "severity": "medium",
+          "category": "codeQuality",
+          "filePath": "src/components/projects/file-ai-panel.tsx"
+        },
+        {
+          "title": "Complex function TreeNode (92 lines)",
+          "severity": "medium",
+          "category": "codeQuality",
+          "filePath": "src/components/projects/file-tree.tsx"
+        },
+        {
+          "title": "Low test file coverage signal",
+          "severity": "medium",
+          "category": "testing",
+          "filePath": null
+        },
+        {
+          "title": "Critical area may lack tests",
+          "severity": "high",
+          "category": "testing",
+          "filePath": "src/app/(auth)/login/page.tsx"
+        },
+        {
+          "title": "Critical area may lack tests",
+          "severity": "high",
+          "category": "testing",
+          "filePath": "src/app/(auth)/register/page.tsx"
+        },
+        {
+          "title": "Critical area may lack tests",
+          "severity": "high",
+          "category": "testing",
+          "filePath": "src/app/api/auth/[...nextauth]/route.ts"
+        },
+        {
+          "title": "Critical area may lack tests",
+          "severity": "high",
+          "category": "testing",
+          "filePath": "src/app/r/[token]/page.tsx"
+        },
+        {
+          "title": "Critical area may lack tests",
+          "severity": "high",
+          "category": "testing",
+          "filePath": "src/components/auth/auth-shell.tsx"
+        },
+        {
+          "title": "Critical area may lack tests",
+          "severity": "high",
+          "category": "testing",
+          "filePath": "src/components/auth/login-form.tsx"
+        },
+        {
+          "title": "Critical area may lack tests",
+          "severity": "high",
+          "category": "testing",
+          "filePath": "src/components/auth/oauth-buttons.tsx"
+        },
+        {
+          "title": "Critical area may lack tests",
+          "severity": "high",
+          "category": "testing",
+          "filePath": "src/components/auth/oauth-icons.tsx"
+        }
+      ]
+    }
+  }
+}

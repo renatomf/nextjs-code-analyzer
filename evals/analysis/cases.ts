@@ -61,6 +61,28 @@ const plantedProblems: EvalCase = {
     { relativePath: "src/billing/invoice.ts", content: small("invoice") },
     { relativePath: "src/util.ts", content: small("util") },
     { relativePath: "src/util.test.ts", content: test("util") },
+    {
+      // A component with real logic (hooks, handlers) before its markup.
+      relativePath: "src/components/Checkout.tsx",
+      content: [
+        "export function Checkout() {",
+        lines(90, (i) => `  const step${i} = useStep(${i});`),
+        "  return (",
+        "    <form />",
+        "  );",
+        "}",
+      ].join("\n"),
+    },
+    { relativePath: "src/components/Checkout.test.tsx", content: test("Checkout") },
+    {
+      relativePath: "src/components/Widget.tsx",
+      content: `const token = ${quoted(["ghx", "Z9x8Y7w6V5u4"].join("-"))};
+export function Widget() {
+  return <div />;
+}
+`,
+    },
+    { relativePath: "src/components/Widget.test.tsx", content: test("Widget") },
   ],
   expected: [
     { category: "codeQuality", filePath: "src/big-module.ts", title: /^Large file/ },
@@ -69,7 +91,33 @@ const plantedProblems: EvalCase = {
     { category: "testing", filePath: "src/auth/login.ts", title: /^Critical area may lack tests/ },
     { category: "testing", filePath: "src/billing/invoice.ts", title: /^Critical area may lack tests/ },
     { category: "testing", filePath: null, title: /^Low test file coverage signal/ },
+    { category: "codeQuality", filePath: "src/components/Checkout.tsx", title: /^Complex function Checkout/ },
+    { category: "security", filePath: "src/components/Widget.tsx", title: /^Potential hardcoded secret/ },
   ],
+};
+
+/** Tests that live apart from the code and reach it through imports. */
+const testsInSeparateFolder: EvalCase = {
+  name: "tests-in-separate-folder",
+  description:
+    "Auth and billing code tested from a separate folder, through the @/ alias and a relative path: nothing should be flagged.",
+  files: [
+    { relativePath: "src/lib/auth/session.ts", content: small("readSession") },
+    { relativePath: "src/lib/billing/charge.ts", content: small("charge") },
+    {
+      relativePath: "tests/integration/session.integration.test.ts",
+      content: `import { readSession } from "@/lib/auth/session";
+test("session", () => readSession());
+`,
+    },
+    {
+      relativePath: "tests/charges.test.ts",
+      content: `import { charge } from "../src/lib/billing/charge";
+test("charge", () => charge());
+`,
+    },
+  ],
+  expected: [],
 };
 
 /** Code that looks suspicious to naive heuristics but is fine. */
@@ -92,6 +140,8 @@ const falsePositiveTraps: EvalCase = {
     },
     { relativePath: "src/components/Dashboard.test.tsx", content: test("Dashboard") },
     { relativePath: "src/components/oauth-icons.tsx", content: small("GitHubIcon") },
+    // Screen, not security logic: the checks run on the server.
+    { relativePath: "src/components/auth/login-form.tsx", content: small("LoginForm") },
     {
       relativePath: "src/i18n/messages.ts",
       content: `export const messages = {\n  token: ${quoted("Paste your access token here")},\n};\n`,
@@ -110,4 +160,9 @@ const falsePositiveTraps: EvalCase = {
   expected: [],
 };
 
-export const ANALYSIS_CASES: EvalCase[] = [wellTestedLib, plantedProblems, falsePositiveTraps];
+export const ANALYSIS_CASES: EvalCase[] = [
+  wellTestedLib,
+  plantedProblems,
+  falsePositiveTraps,
+  testsInSeparateFolder,
+];
