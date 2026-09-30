@@ -46,7 +46,7 @@ exports[`generateProjectReport (characterization) > scores the project and store
   "medium codeQuality Large file (424 lines)",
   "medium codeQuality Large file (423 lines)",
   "medium codeQuality Large file (422 lines)",
-  "medium codeQuality Complex function scores (95 lines)",
+  "medium codeQuality Complex function render (92 lines)",
   "medium codeQuality Complex function long0 (87 lines)",
   "medium codeQuality Complex function long1 (87 lines)",
   "medium codeQuality Complex function long2 (87 lines)",
@@ -67,7 +67,7 @@ exports[`generateProjectReport (characterization) > scores the project and store
   "architecture": "Layers are mixed.",
   "codeQuality": "Found 12 large file(s) and 14 complex function(s) using static heuristics.",
   "performance": "No hot spots.",
-  "security": "Pattern scan found 13 potential hardcoded secret hit(s). Input is validated.",
-  "testing": "Matched test files for roughly 4% of source files (2 test files found).",
+  "security": "Pattern scan found 11 potential hardcoded secret hit(s). Input is validated.",
+  "testing": "Matched test files for roughly 4% of source files (3 test files found).",
 }
 `;

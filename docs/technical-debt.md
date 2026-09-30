@@ -245,6 +245,14 @@ maintainability) · **Low** (cleanup).
   metrics from the same AST (real function bounds, cyclomatic complexity);
   calibrate the heuristics against evals.
 - **Phase:** Evals + analysis quality (fix) → Code Intelligence (AST).
+- **Done (Phase 3, objective fixes):** `const x = (` counts as a function
+  only when `=>` comes before the first `;` (real arrow functions, even with
+  multi-line parameters, are still found); `test/` and `tests/` folders at
+  any depth are tests; fixtures and mocks (`fixtures/`, `__fixtures__/`,
+  `__mocks__/`) are not scanned for secrets. Pinned by unit tests and by
+  the characterization snapshots. **Still open (Phase 7):** React
+  components sized by lines, the "critical area" keyword rule, coverage by
+  file-name matching, and the uncapped penalty.
 
 ---
 

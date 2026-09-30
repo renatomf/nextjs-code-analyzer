@@ -45,14 +45,12 @@ describe("computeDeterministicMetrics", () => {
     expect(metrics.testedSourceApproxPercent).toBe(50);
   });
 
-  // TD-31 regression. The start regex treats any `const x = (` as a function,
-  // so a parenthesized expression is reported as a "complex function" that
-  // runs until the braces of the following code close (262 lines on this
-  // repo's report page). The scan also jumps over the real long function
-  // that follows (`render` below is never reported). `it.fails` keeps CI
-  // green while the bug exists and
-  // turns red once it is fixed: then switch it to `it`.
-  it.fails("does not report a parenthesized const expression as a function", () => {
+  // TD-31 regression. The start regex treated any `const x = (` as a
+  // function, so a parenthesized expression was reported as a "complex
+  // function" running until the braces of the following code closed (262
+  // lines on this repo's report page), and the scan jumped over the real
+  // long function that follows (`render` below).
+  it("does not report a parenthesized const expression as a function", () => {
     const body = Array.from({ length: 90 }, (_, i) => `  const v${i} = ${i};`);
     const content = [
       "const scores = (defaults ??",
@@ -68,6 +66,42 @@ describe("computeDeterministicMetrics", () => {
     ]);
 
     expect(metrics.complexFunctions.map((fn) => fn.name)).not.toContain("scores");
+    expect(metrics.complexFunctions.map((fn) => fn.name)).toContain("render");
+  });
+
+  it("still reports a long arrow function, even with parameters over several lines", () => {
+    const body = Array.from({ length: 90 }, (_, i) => `  const v${i} = ${i};`);
+    const content = ["export const handler = async (", "  req: Request,", ") => {", ...body, "};"].join(
+      "\n",
+    );
+
+    const metrics = computeDeterministicMetrics([{ relativePath: "src/api.ts", content }]);
+
+    expect(metrics.complexFunctions.map((fn) => fn.name)).toEqual(["handler"]);
+  });
+
+  it("treats test/ and tests/ folders, at the root or nested, as tests", () => {
+    const metrics = computeDeterministicMetrics([
+      { relativePath: "src/test/helpers.ts", content: "export const h = 1;\n" },
+      { relativePath: "test/setup.ts", content: "export const s = 1;\n" },
+      { relativePath: "src/tests/a.ts", content: "export const a = 1;\n" },
+      { relativePath: "src/app.ts", content: "export const app = 1;\n" },
+    ]);
+
+    expect(metrics.testFileCount).toBe(3);
+    expect(metrics.sourceFileCount).toBe(1);
+  });
+
+  it("does not flag fake secrets in fixtures and mocks", () => {
+    const fake = ["password", " = ", '"', "fixture-value-123", '"'].join("");
+    const metrics = computeDeterministicMetrics([
+      { relativePath: "src/lib/__fixtures__/creds.ts", content: `${fake}\n` },
+      { relativePath: "e2e/fixtures/user.ts", content: `${fake}\n` },
+      { relativePath: "src/__mocks__/db.ts", content: `${fake}\n` },
+      { relativePath: "src/config.ts", content: `${fake}\n` },
+    ]);
+
+    expect(metrics.secretHits.map((hit) => hit.filePath)).toEqual(["src/config.ts"]);
   });
 
   it("flags untested critical paths", () => {

@@ -47,9 +47,14 @@ function isTestFile(filePath: string): boolean {
     base.includes(".test.") ||
     base.includes(".spec.") ||
     filePath.includes("__tests__/") ||
-    filePath.includes("/tests/") ||
-    filePath.startsWith("tests/")
+    // `test/` and `tests/` folders, at the root or nested (`src/test/`).
+    /(^|\/)tests?\//.test(filePath)
   );
+}
+
+/** Test data (fixtures, mocks): fake secrets there are expected. */
+function isTestSupportFile(filePath: string): boolean {
+  return /(^|\/)(__fixtures__|fixtures|__mocks__)\//.test(filePath);
 }
 
 function stripExt(filePath: string): string {
@@ -61,7 +66,16 @@ function guessSourceFromTest(testPath: string): string {
     .replace(/\.test$/i, "")
     .replace(/\.spec$/i, "")
     .replace(/\/__tests__\//, "/")
-    .replace(/\/tests\//, "/");
+    .replace(/\/tests?\//, "/");
+}
+
+const ARROW_LOOKAHEAD_LINES = 20;
+
+function isArrowFunctionStart(lines: string[], start: number): boolean {
+  const text = lines.slice(start, start + ARROW_LOOKAHEAD_LINES).join("\n");
+  const arrow = text.indexOf("=>");
+  const semicolon = text.indexOf(";");
+  return arrow !== -1 && (semicolon === -1 || arrow < semicolon);
 }
 
 function findComplexFunctions(
@@ -78,6 +92,13 @@ function findComplexFunctions(
   while (i < lines.length) {
     const match = lines[i]?.match(startRegex);
     if (!match) {
+      i += 1;
+      continue;
+    }
+
+    // `const x = (` is only a function when `=>` comes before the first `;`
+    // (not `const x = (a ?? b) as T;`, TD-31).
+    if (match[2] && !isArrowFunctionStart(lines, i)) {
       i += 1;
       continue;
     }
@@ -174,6 +195,7 @@ export function computeDeterministicMetrics(
 
   const secretHits: DeterministicMetrics["secretHits"] = [];
   for (const file of sourceFiles) {
+    if (isTestSupportFile(file.relativePath)) continue;
     const lines = file.content.split("\n");
     lines.forEach((line, index) => {
       for (const pattern of SECRET_PATTERNS) {
