@@ -316,7 +316,8 @@ medido antes e depois.
       importação no módulo (`importArchive`, criação do projeto e busca de
       duplicado); link público do relatório — backend (tabela
       `report_shares`, token só como hash, revogação, expiração, redação de
-      segredos); próximo: a interface. Convenção
+      segredos) e interface (compartilhar, copiar, revogar; página pública
+      `/r/<token>` com rate limit por IP, `noindex` e `no-referrer`). Convenção
       provisória em [`docs/modules.md`](modules.md).
 - [ ] identity: acesso a dados atrás do módulo.
 - [ ] Queries por módulo para todas as pages (sai o Drizzle de `src/app`).
@@ -339,7 +340,7 @@ medido antes e depois.
 - [ ] Correções objetivas da análise (TD-31, `src/test/`, segredos em
       fixtures) e `Rule`/`Finding`/`ScoringPolicy` preservando o
       comportamento.
-- [ ] **Link público de um relatório** (somente leitura): token aleatório com
+- [x] **Link público de um relatório** (somente leitura): token aleatório com
       expiração, revogável, com rate limit; expõe só o relatório, nunca
       código-fonte nem chat. Substitui a "conta de demonstração" do
       encerramento: quem avalia abre um relatório real sem criar conta.

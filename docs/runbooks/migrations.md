@@ -47,6 +47,32 @@ DATABASE_URL_UNPOOLED="<connection string direta do branch preview>" npm run db:
 DATABASE_URL_UNPOOLED="<connection string direta do branch main>" npm run db:migrate
 ```
 
+**No Windows (PowerShell do VS Code)** o exemplo acima não funciona, e colar
+a string na linha de comando é perigoso: o `&` dela vira operador e a string
+(com a senha) vai para o histórico. O jeito seguro é ler a área de
+transferência, rodando **uma linha por vez**:
+
+1. Copie o comando abaixo, **cole no terminal e não dê Enter**:
+   ```powershell
+   $env:DATABASE_URL_UNPOOLED = [regex]::Match(((Get-Clipboard) -join ""), "postgres(ql)?://[^'`"\s]+").Value
+   ```
+2. No Neon, copie a connection string do branch (pooling **desligado**).
+3. Volte ao terminal e dê **Enter** (o `Get-Clipboard` lê a string agora).
+4. Confira (deve mostrar `True` e o host **sem** `-pooler`):
+   ```powershell
+   $env:DATABASE_URL_UNPOOLED -match "^postgres(ql)?://"
+   ([uri]$env:DATABASE_URL_UNPOOLED).Host
+   ```
+5. Aplique e limpe:
+   ```powershell
+   npm run db:migrate
+   Remove-Item Env:\DATABASE_URL_UNPOOLED
+   Set-Clipboard -Value " "
+   ```
+
+Confira no Neon Console (branch → **Tables**) que a mudança chegou ao
+branch certo.
+
 O `migrate` só aplica o que ainda não está registrado em
 `drizzle.__drizzle_migrations`; rodar de novo não repete nada.
 

@@ -39,7 +39,10 @@ async function sampleProjectZip(): Promise<Buffer> {
   return zip.generateAsync({ type: "nodebuffer" });
 }
 
-test("register, upload a project, get a report and chat about it", async ({ page }) => {
+test("register, upload a project, get a report, share it and chat about it", async ({
+  page,
+  browser,
+}) => {
   test.setTimeout(5 * 60_000); // first run downloads the embedding model
 
   // 1. Register (lands on the dashboard, signed in).
@@ -69,7 +72,30 @@ test("register, upload a project, get a report and chat about it", async ({ page
   });
   await expect(page.getByText(FAKE_ISSUE).first()).toBeVisible();
 
-  // 4. Chat: the answer streams back with sources from the vector search.
+  // 4. Share: a visitor without a session reads the report through the
+  // public link, which is not indexable; once revoked it is a plain 404.
+  await page.getByRole("button", { name: "Share report" }).click();
+  await page.getByRole("button", { name: "Create link", exact: true }).click();
+  const shareUrl = await page.getByLabel(/Your link/).inputValue();
+  expect(shareUrl).toMatch(/\/r\/[A-Za-z0-9_-]{43}$/);
+
+  const visitor = await browser.newContext();
+  const publicPage = await visitor.newPage();
+  const shared = await publicPage.goto(shareUrl);
+  expect(shared?.status()).toBe(200);
+  expect(shared?.headers()["x-robots-tag"]).toBe("noindex, nofollow");
+  expect(shared?.headers()["referrer-policy"]).toBe("no-referrer");
+  await expect(publicPage.getByText("Shared report · read only")).toBeVisible();
+  await expect(publicPage.getByText(FAKE_ISSUE).first()).toBeVisible();
+  // Read only: no way into the owner's pages.
+  await expect(publicPage.getByRole("link", { name: "View all" })).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Revoke link" }).click();
+  await expect(page.getByText("Link revoked. It no longer works.")).toBeVisible();
+  expect((await publicPage.goto(shareUrl))?.status()).toBe(404);
+  await visitor.close();
+
+  // 5. Chat: the answer streams back with sources from the vector search.
   await page.goto(page.url().replace(/\/report$/, "/chat"));
   await page.getByPlaceholder("Ask about this codebase...").fill("What does add do?");
   await page.getByRole("button", { name: "Send message" }).click();
