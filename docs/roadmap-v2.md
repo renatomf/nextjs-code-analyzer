@@ -295,8 +295,10 @@ medido antes e depois.
     baseline, retro. Feito: [architecture.md](architecture.md) (o "antes"
     em [architecture-baseline.md](architecture-baseline.md)),
     [results-phase-3.md](results-phase-3.md) e
-    [retros/phase-3.md](retros/phase-3.md) (a escrever pelo autor). Falta
-    medir em produção o score do próprio repo e a duração da análise.
+    [retros/phase-3.md](retros/phase-3.md) (a escrever pelo autor) e a
+    convenção dos módulos definitiva na
+    [ADR-002](decisions/002-module-convention.md). Falta medir em produção
+    o score do próprio repo e a duração da análise.
 
 **Metas medidas (mesmo script do baseline)**
 
@@ -672,9 +674,9 @@ Mudam o roadmap a partir da v2.2.
 
 | # | Decisão | Fase |
 |---|---|---|
-| 001 | Monólito modular + Clean Architecture seletiva | 3 |
-| 002 | Regras de arquitetura no CI (`dependency-cruiser`) | 3 |
-| 003 | Cota consumida em falha do sistema × erro do usuário (TD-12) | 3 |
+| 001 | [Monólito modular + Clean Architecture seletiva](decisions/001-modular-monolith.md) — aceita | 3 |
+| 002 | [Convenção dos módulos e regras de arquitetura no CI](decisions/002-module-convention.md) (`dependency-cruiser`) — aceita | 3 |
+| 003 | [Regras da cota](decisions/003-quota.md), inclusive falha do sistema × erro do usuário (TD-12) — proposta | 3 |
 | 004 | Limites de custo do LLM e kill switch | 4 |
 | 005 | Job runner da ingestão + outbox | 5 |
 | 006 | Embeddings em runtime serverless (TD-05) | 5 |
