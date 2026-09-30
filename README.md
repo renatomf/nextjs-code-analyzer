@@ -15,6 +15,24 @@ grounded in the real code (RAG).
 public read-only link](https://nextjs-codedriven.vercel.app/r/dEVSu6Ax3931oUeMuQ8aBd-maFvYFt0vE3-WX2yHRpw). It shows the report only — never the source
 code — with secrets redacted.
 
+## Dogfooding
+
+The analyzer measures itself: every pull request runs the analysis eval on
+this repository and on two deliberately vulnerable open-source apps (OWASP
+NodeGoat and Juice Shop), and fails if the analysis gets worse
+([evals/README.md](evals/README.md)).
+
+![This repository's deterministic health score in every committed eval result](docs/assets/dogfooding.svg)
+
+The **deterministic** score leaves the LLM's categories (architecture,
+performance) at their base value, so it is comparable across results. The
+dashed line is the same measure under the v1 formula: the first jump (53 →
+64) is the new scoring formula ([ADR-010](docs/decisions/010-score-formula.md)),
+the next (64 → 68, with v1 53 → 60) is the analysis getting more accurate
+(heuristic false positives fixed). A full report from before v2 scored this
+repository 30/100, mostly on false positives ([baseline](docs/baseline.md)).
+Regenerate with `npm run eval:chart` when a new result is committed.
+
 ## Features
 
 - **Import** a GitHub repository (OAuth) or a ZIP upload, with hardened
@@ -95,6 +113,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 | `npm run test:integration` | Integration tests on a **local, disposable** Postgres (refuses remote hosts) |
 | `npm run test:e2e` | Playwright; the full-flow test needs the CI setup (fake LLM, fresh DB) |
 | `npm run db:generate` / `db:migrate` / `db:studio` | Drizzle migrations and studio |
+| `npm run eval` / `eval:chart` | Analysis and chat retrieval evals with quality gates ([evals/README.md](evals/README.md)); the dogfooding chart |
 
 Integration tests locally (Docker):
 
@@ -104,9 +123,9 @@ docker run -d --rm --name it-pg -e POSTGRES_USER=app -e POSTGRES_PASSWORD=app \
 DATABASE_URL="postgresql://app:app@localhost:5432/app" npm run test:integration
 ```
 
-Every pull request must pass lint, typecheck, a schema-vs-migrations check,
-unit tests, the build, integration tests, the E2E main flow and a dependency
-vulnerability scan (OSV) before it can be merged.
+Every pull request runs lint, typecheck, a schema-vs-migrations check,
+unit tests, the build, integration tests, the E2E main flow, the analysis
+eval with its quality gates and a dependency vulnerability scan (OSV).
 
 ## Security highlights
 
