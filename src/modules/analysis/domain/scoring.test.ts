@@ -1,17 +1,12 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
-vi.mock("server-only", () => ({}));
-// report.ts imports the DB and the LLM client; scoreFromIssues needs neither.
-vi.mock("@/lib/db", () => ({ db: {} }));
-vi.mock("@/lib/analysis/report-llm", () => ({ runLlmHealthReview: vi.fn() }));
-
-import { scoreFromIssues } from "@/lib/analysis/report";
-import type { ReportIssue } from "@/lib/analysis/report-types";
+import type { Finding } from "./finding";
+import { scoreFromIssues } from "./scoring";
 
 function issue(
-  severity: ReportIssue["severity"],
-  category: ReportIssue["category"] = "testing",
-): ReportIssue {
+  severity: Finding["severity"],
+  category: Finding["category"] = "testing",
+): Finding {
   return { title: "t", description: "d", severity, category, filePath: null };
 }
 

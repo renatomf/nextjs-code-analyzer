@@ -326,7 +326,10 @@ medido antes e depois.
       **analysis** — caracterização: snapshot completo das heurísticas
       (inclusive os falsos positivos conhecidos) e da geração do relatório
       em Postgres real (notas, ordem das issues, roadmap), verificada com
-      mutações; próximo: `Rule`/`Finding`/`ScoringPolicy`. Convenção
+      mutações; `Finding` (com evidência opcional), uma `Rule` por
+      heurística e `ScoringPolicy` no módulo, com os snapshots idênticos;
+      próximo: correções objetivas (TD-31, `src/test/`, segredos em
+      fixtures). Convenção
       provisória em [`docs/modules.md`](modules.md).
 - [ ] identity: acesso a dados atrás do módulo.
 - [ ] Queries por módulo para todas as pages (sai o Drizzle de `src/app`).

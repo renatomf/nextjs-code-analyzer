@@ -3,42 +3,20 @@ import { logger } from "@/shared/logger";
 import { and, asc, eq } from "drizzle-orm";
 
 import { codeChunks, projects, reports } from "@/db/schema";
-import { computeDeterministicMetrics } from "@/lib/analysis/metrics";
 import { loadProjectSourceFiles } from "@/lib/analysis/project-files";
 import { runLlmHealthReview } from "@/lib/analysis/report-llm";
-import {
-  SEVERITY_ORDER,
-  SEVERITY_PENALTY,
-  type CategoryScores,
-  type CategorySummaries,
-  type ReportIssue,
+import type {
+  CategoryScores,
+  CategorySummaries,
+  ReportIssue,
 } from "@/lib/analysis/report-types";
 import { db } from "@/lib/db";
+import {
+  computeDeterministicMetrics,
+  linearPenaltyPolicy,
+  sortFindings,
+} from "@/modules/analysis";
 import { setProjectStatus } from "@/modules/projects/server";
-
-function clampScore(value: number): number {
-  return Math.max(0, Math.min(100, Math.round(value)));
-}
-
-export function scoreFromIssues(
-  base: number,
-  issues: ReportIssue[],
-  category: ReportIssue["category"],
-): number {
-  const penalty = issues
-    .filter((issue) => issue.category === category)
-    .reduce((sum, issue) => sum + SEVERITY_PENALTY[issue.severity], 0);
-  return clampScore(base - penalty);
-}
-
-function sortIssues(issues: ReportIssue[]): ReportIssue[] {
-  return [...issues].sort((a, b) => {
-    const severityDiff =
-      SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity];
-    if (severityDiff !== 0) return severityDiff;
-    return a.category.localeCompare(b.category);
-  });
-}
 
 export type GeneratedReport = {
   healthScore: number;
@@ -98,38 +76,12 @@ export async function generateProjectReport(
       chunks,
     });
 
-    const issues = sortIssues([...metrics.issues, ...llm.issues]);
+    const issues = sortFindings([...metrics.issues, ...llm.issues]);
 
-    const categoryScores: CategoryScores = {
-      architecture: scoreFromIssues(88, issues, "architecture"),
-      security: scoreFromIssues(
-        metrics.secretHits.length > 0 ? 70 : 90,
-        issues,
-        "security",
-      ),
-      performance: scoreFromIssues(86, issues, "performance"),
-      codeQuality: scoreFromIssues(
-        metrics.largeFiles.length + metrics.complexFunctions.length > 8
-          ? 72
-          : 85,
-        issues,
-        "codeQuality",
-      ),
-      testing: scoreFromIssues(
-        Math.max(40, metrics.testedSourceApproxPercent),
-        issues,
-        "testing",
-      ),
-    };
-
-    const healthScore = clampScore(
-      (categoryScores.architecture +
-        categoryScores.security +
-        categoryScores.performance +
-        categoryScores.codeQuality +
-        categoryScores.testing) /
-        5,
-    );
+    const { categoryScores, healthScore } = linearPenaltyPolicy({
+      measures: metrics,
+      findings: issues,
+    });
 
     const categorySummaries: CategorySummaries = {
       architecture: llm.architectureSummary,
