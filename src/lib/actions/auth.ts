@@ -1,14 +1,12 @@
 "use server";
 
-import { hash } from "bcryptjs";
 import { AuthError } from "next-auth";
 import { headers } from "next/headers";
 
-import { users } from "@/db/schema";
 import { signIn, signOut } from "@/lib/auth";
-import { db } from "@/lib/db";
 import { assertRateLimit, RateLimitError } from "@/lib/rate-limit";
 import { loginSchema, registerSchema } from "@/lib/validations/auth";
+import { createEmailAccount } from "@/modules/identity/server";
 
 export type AuthFormState = {
   error?: string;
@@ -55,20 +53,11 @@ export async function registerWithEmail(
     return { error: "Too many attempts. Please try again later." };
   }
 
-  const passwordHash = await hash(password, 12);
-
-  // Atomic insert: the unique constraint decides, so two concurrent requests
-  // can never create duplicate accounts (no check-then-insert race).
-  const [created] = await db
-    .insert(users)
-    .values({
-      name: `${firstName} ${lastName}`,
-      email,
-      passwordHash,
-      authProvider: "email",
-    })
-    .onConflictDoNothing({ target: users.email })
-    .returning({ id: users.id });
+  const created = await createEmailAccount({
+    name: `${firstName} ${lastName}`,
+    email,
+    password,
+  });
 
   if (!created) {
     return { error: "Unable to create an account with this email. Try signing in instead." };

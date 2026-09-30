@@ -345,10 +345,10 @@ medido antes e depois.
       GitHub e dados da conta, a página de settings só recebe um booleano
       do token). Convenção
       provisória em [`docs/modules.md`](modules.md).
-- [ ] identity: acesso a dados atrás do módulo. Feito: conexão com o
-      GitHub e dados da conta (`src/modules/identity`). Falta: cadastro por
-      e-mail e os callbacks do NextAuth (`lib/actions/auth.ts`,
-      `lib/auth.ts`).
+- [x] identity: acesso a dados atrás do módulo (`src/modules/identity`):
+      conexão com o GitHub, dados da conta, cadastro por e-mail,
+      verificação de credenciais e o que cada login registra. O
+      `lib/auth.ts` ficou só com a configuração do NextAuth.
 - [x] Queries por módulo para todas as pages (sai o Drizzle de `src/app`):
       baseline de arquitetura zerada.
 - [x] `dependency-cruiser` no CI (`npm run lint:arch`): regras da ADR-001;
