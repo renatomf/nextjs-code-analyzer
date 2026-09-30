@@ -329,7 +329,9 @@ medido antes e depois.
       mutações; `Finding` (com evidência opcional), uma `Rule` por
       heurística e `ScoringPolicy` no módulo, com os snapshots idênticos;
       correções objetivas (TD-31, `src/test/`, segredos em fixtures);
-      próximo: chat. Convenção
+      **chat** — caracterização da rota (RAG em Postgres real com o
+      modelo falso do E2E: resposta, fontes em ordem, prompt em snapshot,
+      isolamento, sem knowledge, limite da pergunta); próximo: módulo. Convenção
       provisória em [`docs/modules.md`](modules.md).
 - [ ] identity: acesso a dados atrás do módulo.
 - [ ] Queries por módulo para todas as pages (sai o Drizzle de `src/app`).
