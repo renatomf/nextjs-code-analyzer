@@ -378,7 +378,10 @@ medido antes e depois.
       `useAnalysisProgress`, `report/page.tsx` dividido em seções server
       component, filtros do issues dashboard na URL, fetch do explorer com
       `AbortController`; Testing Library + jsdom para os componentes
-      interativos.
+      interativos. Feito: Testing Library + jsdom (`*.test.tsx`, jsdom por
+      arquivo) com testes de caracterização de `AnalysisProgress`,
+      `IssuesDashboard` e `CodeExplorer`; o `AbortController` do explorer
+      já existia e agora é coberto por teste (verificado com mutação).
 
 **Se sobrar**
 
