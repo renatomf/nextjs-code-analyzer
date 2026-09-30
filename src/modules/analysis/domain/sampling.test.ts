@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { sampleForReview, type ReviewBudget } from "./sampling";
+import { riskScore, sampleForReview, type ReviewBudget } from "./sampling";
 
 const chunk = (filePath: string, startLine = 1, size = 100) => ({
   filePath,
@@ -52,13 +52,27 @@ describe("sampleForReview", () => {
     expect(files(sample)).toEqual(["src/a/one.ts", "src/b/one.ts"]);
   });
 
-  it("takes the first chunk of every file before the second of any", () => {
+  it("takes one chunk of every file before a second of any (by line when none is riskier)", () => {
     const sample = sampleForReview(
       [chunk("src/a.ts", 1), chunk("src/a.ts", 50), chunk("src/b.ts", 1)],
       budget(2),
     );
 
     expect(sample.map((c) => `${c.filePath}:${c.startLine}`)).toEqual(["src/a.ts:1", "src/b.ts:1"]);
+  });
+
+  it("takes the chunk with risk signals of a file, not its imports", () => {
+    const code = (startLine: number, content: string) => ({ filePath: "app/routes/pay.js", startLine, content });
+    const sample = sampleForReview(
+      [
+        code(1, 'const express = require("express");'),
+        code(5, "function total(items) {\n  return items.reduce((sum, i) => sum + i.price, 0);\n}"),
+        code(20, "app.post('/pay', (req, res) => {\n  const amount = eval(req.body.amount);\n});"),
+      ],
+      budget(1),
+    );
+
+    expect(sample.map((c) => c.startLine)).toEqual([20]);
   });
 
   it("leaves tests out, unless there is nothing else", () => {
@@ -91,5 +105,31 @@ describe("sampleForReview", () => {
 
   it("returns nothing for no chunks", () => {
     expect(sampleForReview([], budget(5))).toEqual([]);
+  });
+});
+
+describe("riskScore", () => {
+  it.each([
+    ["request input", "const { id } = req.params;"],
+    ["App Router input", "const body = await request.json();"],
+    ["code execution", "const value = eval(input);"],
+    ["raw SQL", "await prisma.$queryRawUnsafe(sql);"],
+    ["HTML injection", "<div dangerouslySetInnerHTML={{ __html: html }} />"],
+    ["a redirect", "return res.redirect(next);"],
+    ["an outbound request", "const page = await fetch(url);"],
+    ["file access", "const text = fs.readFileSync(path);"],
+    ["passwords", "if (user.password === password) {"],
+    ["sessions", "const session = await auth();"],
+  ])("counts %s", (_, content) => {
+    expect(riskScore(content)).toBeGreaterThan(0);
+  });
+
+  it("is 0 for code without input, dangerous calls or auth", () => {
+    expect(riskScore("export function total(items) {\n  return items.length;\n}")).toBe(0);
+    expect(riskScore('import { Button } from "@/components/ui/button";')).toBe(0);
+  });
+
+  it("counts kinds of signal, not repetitions", () => {
+    expect(riskScore("eval(req.body.a); eval(req.body.b);")).toBe(2);
   });
 });

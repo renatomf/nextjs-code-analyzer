@@ -48,6 +48,38 @@ const SERVER_WORDS = new Set([
   "handlers",
 ]);
 
+// Where security problems come in (untrusted input) and where they land
+// (dangerous calls), for JS/TS in general (OWASP Top 10 categories), plus
+// authentication and session code. Not tuned to any evaluated repository.
+const RISK_SIGNALS: RegExp[] = [
+  // Untrusted input
+  /\breq\.(body|query|params|headers|cookies)\b/,
+  /\brequest\.(json|formData|text)\(/,
+  /\bsearchParams\b|\bformData\.get\(/,
+  // Injection and code execution
+  /\beval\(|\bnew Function\(/,
+  /\bchild_process\b|\bexecSync\(|\bexec\(|\bspawn\(/,
+  /\$where\b|\.(query|execute|raw)\(|\$queryRawUnsafe|\$executeRawUnsafe/,
+  // XSS
+  /\binnerHTML\b|dangerouslySetInnerHTML|document\.write\(/,
+  // Open redirect and server-side requests
+  /\bredirect\(/,
+  /\bfetch\(|\baxios\b|\bhttps?\.(get|request)\(|\bneedle\b|\bgot\(/,
+  // Files
+  /\bfs\.\w+\(|\breadFile(Sync)?\(|\bwriteFile(Sync)?\(/,
+  // Authentication, sessions and secrets
+  /\bpasswords?\b/i,
+  /\bsessions?\b/i,
+  /\bcookies?\b/i,
+  /\bjwt\b|\btokens?\b/i,
+  /\bcrypto\.|\bMath\.random\(/,
+];
+
+/** How many kinds of risk signal a chunk shows (0 = none). */
+export function riskScore(content: string): number {
+  return RISK_SIGNALS.filter((signal) => signal.test(content)).length;
+}
+
 /** 0 = server logic, 1 = other logic, 2 = UI, 3 = configuration and type declarations. */
 function priority(filePath: string): number {
   if (/\.config\.[cm]?[jt]s$|\.d\.ts$/i.test(filePath)) return 3;
@@ -62,7 +94,9 @@ function priority(filePath: string): number {
  * - tests are left out (unless there is nothing else);
  * - server logic first, then other logic, UI and configuration;
  * - inside each level, one file per directory in turn, so no folder takes
- *   the whole budget; first chunk of every file before the second of any.
+ *   the whole budget; one chunk of every file before a second of any;
+ * - inside a file, the chunks with more risk signals first (input, dangerous
+ *   calls, auth), then by line: the first chunk is often only imports.
  * Deterministic (same project, same sample) and returned in path order.
  */
 export function sampleForReview<T extends ReviewedChunk>(
@@ -77,7 +111,10 @@ export function sampleForReview<T extends ReviewedChunk>(
     byFile.set(chunk.filePath, [...(byFile.get(chunk.filePath) ?? []), chunk]);
   }
   for (const fileChunks of byFile.values()) {
-    fileChunks.sort((a, b) => (a.startLine ?? 0) - (b.startLine ?? 0));
+    const risk = new Map(fileChunks.map((chunk) => [chunk, riskScore(chunk.content)]));
+    fileChunks.sort(
+      (a, b) => risk.get(b)! - risk.get(a)! || (a.startLine ?? 0) - (b.startLine ?? 0),
+    );
   }
 
   const files = [...byFile.keys()].sort(
@@ -85,7 +122,7 @@ export function sampleForReview<T extends ReviewedChunk>(
   );
   const order = interleaveByDirectory(files);
 
-  // Round r takes the r-th chunk of every file, in that order.
+  // Round r takes the r-th best chunk of every file, in that order.
   const queue: T[] = [];
   const rounds = Math.max(...[...byFile.values()].map((c) => c.length), 0);
   for (let round = 0; round < rounds; round += 1) {
