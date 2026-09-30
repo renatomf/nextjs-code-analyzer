@@ -58,6 +58,12 @@ export function analysisFixtureFiles(): File[] {
     content: `export const apiKey = ${quoted("ignored-because-test-file")};\n`,
   });
 
+  // A test fixture outside a test folder, holding a fake secret.
+  files.push({
+    relativePath: "src/lib/__fixtures__/credentials.ts",
+    content: `export const apiKey = ${quoted("fixture-api-key-value")};\n`,
+  });
+
   // Critical-looking paths without tests: 9 of them (only 8 become issues).
   for (let n = 0; n < 9; n += 1) {
     files.push({ relativePath: `src/auth/handler-${n}.ts`, content: "export const handle = 1;\n" });

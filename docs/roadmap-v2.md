@@ -328,8 +328,8 @@ medido antes e depois.
       em Postgres real (notas, ordem das issues, roadmap), verificada com
       mutações; `Finding` (com evidência opcional), uma `Rule` por
       heurística e `ScoringPolicy` no módulo, com os snapshots idênticos;
-      próximo: correções objetivas (TD-31, `src/test/`, segredos em
-      fixtures). Convenção
+      correções objetivas (TD-31, `src/test/`, segredos em fixtures);
+      próximo: chat. Convenção
       provisória em [`docs/modules.md`](modules.md).
 - [ ] identity: acesso a dados atrás do módulo.
 - [ ] Queries por módulo para todas as pages (sai o Drizzle de `src/app`).
@@ -349,7 +349,7 @@ medido antes e depois.
       (`x-vercel-id`), redação de segredos por nome de campo e por padrão no
       texto. Substituiu as 26 chamadas `console.*`, a maioria das quais
       descartava o erro.
-- [ ] Correções objetivas da análise (TD-31, `src/test/`, segredos em
+- [x] Correções objetivas da análise (TD-31, `src/test/`, segredos em
       fixtures) e `Rule`/`Finding`/`ScoringPolicy` preservando o
       comportamento.
 - [x] **Link público de um relatório** (somente leitura): token aleatório com
