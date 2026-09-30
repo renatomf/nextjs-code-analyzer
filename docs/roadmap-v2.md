@@ -496,8 +496,14 @@ Vem antes da ingestão assíncrona: job em segundo plano sem log é caixa preta.
 - [ ] **Dogfooding:** o analisador roda no próprio repo a cada PR e publica
       score e achados; gráfico do score ao longo das fases no README.
 - [ ] Melhorias, cada uma num PR com eval antes × depois:
-  1. Excluir `.claude` e outras pastas de ferramenta/docs em
-     `ALWAYS_EXCLUDE_DIR_NAMES` (`src/lib/limits.ts`).
+  1. ✅ Excluir `.claude` e outras pastas de ferramenta/docs em
+     `ALWAYS_EXCLUDE_DIR_NAMES` (`src/lib/limits.ts`). Feito: pastas de
+     editor/agente (`.claude`, `.cursor`, `.vscode`, `.idea`, `.husky`) e
+     saída gerada de outros frameworks e ferramentas (`.nuxt`, `.output`,
+     `.svelte-kit`, `.docusaurus`, `.expo`, `.cache`, `.parcel-cache`,
+     `.yarn`). `docs/`, `out/` e `.github` ficam, porque podem ter código
+     real. Neste repo não muda nada (`.claude` só tem `.md`); o ganho é
+     em repositórios importados.
   2. ✅ Amostrar chunks do projeto inteiro no relatório, em vez dos 80 primeiros
      em ordem alfabética (`report.ts`). Feito: `sampleForReview` (puro, no
      módulo analysis) tira os testes, põe lógica de servidor primeiro
