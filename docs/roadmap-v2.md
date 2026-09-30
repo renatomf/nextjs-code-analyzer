@@ -487,7 +487,10 @@ Vem antes da ingestão assíncrona: job em segundo plano sem log é caixa preta.
       (2026-09-30, `a853a30`): precisão 0,67, recall 1,00, 3 falsos
       positivos (componente React por linhas, `oauth-icons` como área
       crítica, texto de UI com "token"); este repo: 22 achados, Code
-      Quality 0 e Testing 0. Falta: retrieval, LLM, latência e custo.
+      Quality 0 e Testing 0. Eval do LLM (opt-in, 3 execuções por caso):
+      baseline `bf17f41` — recall 1,00 (inclusive com injeção de prompt),
+      evidência 0,97, estabilidade 0,44–0,63, 6–8 achados em projetos de 2–3
+      arquivos. Falta: retrieval.
 - [ ] Prompts em arquivos versionados; PR que altera prompt ou retrieval roda
       o eval e falha se a qualidade cair.
 - [ ] **Dogfooding:** o analisador roda no próprio repo a cada PR e publica

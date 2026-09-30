@@ -1,0 +1,186 @@
+{
+  "date": "2026-09-30T12:24:26.346Z",
+  "commit": "bf17f41",
+  "analysis": {
+    "cases": [
+      {
+        "name": "well-tested-lib",
+        "expected": 0,
+        "found": 0,
+        "truePositives": 0,
+        "precision": 1,
+        "recall": 1,
+        "falsePositives": [],
+        "missed": []
+      },
+      {
+        "name": "planted-problems",
+        "expected": 8,
+        "found": 5,
+        "truePositives": 8,
+        "precision": 1,
+        "recall": 1,
+        "falsePositives": [],
+        "missed": []
+      },
+      {
+        "name": "false-positive-traps",
+        "expected": 0,
+        "found": 0,
+        "truePositives": 0,
+        "precision": 1,
+        "recall": 1,
+        "falsePositives": [],
+        "missed": []
+      },
+      {
+        "name": "tests-in-separate-folder",
+        "expected": 0,
+        "found": 0,
+        "truePositives": 0,
+        "precision": 1,
+        "recall": 1,
+        "falsePositives": [],
+        "missed": []
+      }
+    ],
+    "totals": {
+      "truePositives": 8,
+      "falsePositives": 0,
+      "missed": 0,
+      "precision": 1,
+      "recall": 1
+    },
+    "thisRepository": {
+      "sourceFiles": 232,
+      "findings": 17,
+      "reportFindings": 4,
+      "findingsByRule": {
+        "Large file": 1,
+        "Complex function": 7,
+        "Low test file coverage signal": 1,
+        "Critical area may lack tests": 8
+      },
+      "deterministicCategoryScores": {
+        "architecture": 88,
+        "security": 90,
+        "performance": 86,
+        "codeQuality": 67,
+        "testing": 10
+      },
+      "deterministicHealthScore": 68,
+      "v1DeterministicCategoryScores": {
+        "architecture": 88,
+        "security": 90,
+        "performance": 86,
+        "codeQuality": 37,
+        "testing": 0
+      },
+      "v1DeterministicHealthScore": 60,
+      "issues": [
+        {
+          "title": "Large file (479 lines)",
+          "severity": "medium",
+          "category": "codeQuality",
+          "filePath": "src/app/page.tsx"
+        },
+        {
+          "title": "Complex function POST (100 lines)",
+          "severity": "medium",
+          "category": "codeQuality",
+          "filePath": "src/app/api/chat/route.ts"
+        },
+        {
+          "title": "Complex function POST (105 lines)",
+          "severity": "medium",
+          "category": "codeQuality",
+          "filePath": "src/app/api/projects/[id]/analyze/route.ts"
+        },
+        {
+          "title": "Complex function ProjectChat (85 lines)",
+          "severity": "medium",
+          "category": "codeQuality",
+          "filePath": "src/components/projects/project-chat.tsx"
+        },
+        {
+          "title": "Complex function useAnalysisProgress (119 lines)",
+          "severity": "medium",
+          "category": "codeQuality",
+          "filePath": "src/components/projects/use-analysis-progress.ts"
+        },
+        {
+          "title": "Complex function HeroSilk (99 lines)",
+          "severity": "medium",
+          "category": "codeQuality",
+          "filePath": "src/components/shared/hero-silk.tsx"
+        },
+        {
+          "title": "Complex function generateProjectReport (106 lines)",
+          "severity": "medium",
+          "category": "codeQuality",
+          "filePath": "src/lib/analysis/report.ts"
+        },
+        {
+          "title": "Complex function computeDeterministicMetrics (109 lines)",
+          "severity": "medium",
+          "category": "codeQuality",
+          "filePath": "src/modules/analysis/domain/metrics.ts"
+        },
+        {
+          "title": "Low test file coverage signal",
+          "severity": "medium",
+          "category": "testing",
+          "filePath": null
+        },
+        {
+          "title": "Critical area may lack tests",
+          "severity": "high",
+          "category": "testing",
+          "filePath": "src/app/api/auth/[...nextauth]/route.ts"
+        },
+        {
+          "title": "Critical area may lack tests",
+          "severity": "high",
+          "category": "testing",
+          "filePath": "src/lib/actions/auth.ts"
+        },
+        {
+          "title": "Critical area may lack tests",
+          "severity": "high",
+          "category": "testing",
+          "filePath": "src/lib/actions/billing.ts"
+        },
+        {
+          "title": "Critical area may lack tests",
+          "severity": "high",
+          "category": "testing",
+          "filePath": "src/lib/auth.config.ts"
+        },
+        {
+          "title": "Critical area may lack tests",
+          "severity": "high",
+          "category": "testing",
+          "filePath": "src/lib/auth.ts"
+        },
+        {
+          "title": "Critical area may lack tests",
+          "severity": "high",
+          "category": "testing",
+          "filePath": "src/modules/billing/application/ports.ts"
+        },
+        {
+          "title": "Critical area may lack tests",
+          "severity": "high",
+          "category": "testing",
+          "filePath": "src/modules/billing/application/quota.ts"
+        },
+        {
+          "title": "Critical area may lack tests",
+          "severity": "high",
+          "category": "testing",
+          "filePath": "src/modules/billing/infrastructure/drizzle-billing-repository.ts"
+        }
+      ]
+    }
+  }
+}

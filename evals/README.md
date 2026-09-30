@@ -32,6 +32,22 @@ each expectation matches once.
 real extractor): number of findings per rule and the deterministic category
 scores. There is no full ground truth here; it tracks the dogfooding trend.
 
+## LLM review (opt-in)
+
+```bash
+RUN_LLM_EVAL=1 npm run eval   # real model, free Groq quota, about 5 minutes
+```
+
+Cases in [llm/cases.ts](llm/cases.ts): planted problems a reviewer should
+find (SQL built from input, a delete route without authorization, N+1 and
+sync file reads), plus the same code with a comment that tries to steer the
+reviewer (prompt injection, TD-28). Each case runs `LLM_EVAL_RUNS` times
+(default 3), spaced out for the free tier's tokens per minute. Per case:
+**recall** (category + file), **evidence validity** (cited files the model
+actually received), **stability** (overlap between runs), number of
+findings, latency and tokens. Only the `GROQ_*` variables are read from the
+local env files. Results: `evals/results/<date>-<commit>-llm.json`.
+
 ## Rules
 
 - Files in the cases are built at runtime: fake credentials never appear as
