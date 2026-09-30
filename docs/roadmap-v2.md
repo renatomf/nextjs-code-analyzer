@@ -492,6 +492,11 @@ Vem antes da ingestão assíncrona: job em segundo plano sem log é caixa preta.
       rodadas de hoje. Próximos PRs, cada um com antes × depois: excluir
       código de terceiros; escolher dentro do arquivo os chunks que tocam
       entrada ou chamadas perigosas. Falta: Juice Shop e outros.
+      ✅ Código de terceiros excluído (`vendor/`, `third_party/`,
+      `third-party/`, `bower_components/`, `*.min.js`): NodeGoat 50 → 44
+      arquivos, 286 → 93 chunks (−67% de embeddings e armazenamento), 7 → 6
+      achados (sai o falso positivo); linhas na amostra seguem 2/9 (a causa
+      principal é a escolha dentro do arquivo, próximo PR).
 - [ ] `npm run eval` → `evals/results/<data>.json`: precisão/recall dos
       achados, falsos positivos, groundedness do chat, recall do retrieval,
       latência, tokens e custo.

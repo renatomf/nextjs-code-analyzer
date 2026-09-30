@@ -1,6 +1,7 @@
 import {
   ALWAYS_EXCLUDE_DIR_NAMES,
   ALWAYS_EXCLUDE_FILE_NAMES,
+  MINIFIED_FILE_PATTERN,
   SENSITIVE_FILE_EXTENSIONS,
   SENSITIVE_FILE_NAMES,
   SOURCE_EXTENSIONS,
@@ -91,6 +92,7 @@ export function shouldSkipPath(
 
   const baseName = parts[parts.length - 1] ?? "";
   if (ALWAYS_EXCLUDE_FILE_NAMES.has(baseName)) return true;
+  if (MINIFIED_FILE_PATTERN.test(baseName)) return true;
   if (isSensitiveFile(baseName)) return true;
   if (isBinaryOrNonText(normalized)) return true;
   if (gitignore?.ignores(normalized)) return true;

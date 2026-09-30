@@ -1,0 +1,349 @@
+{
+  "date": "2026-09-30T14:37:10.903Z",
+  "commit": "44ed911",
+  "analysis": {
+    "cases": [
+      {
+        "name": "well-tested-lib",
+        "expected": 0,
+        "found": 0,
+        "truePositives": 0,
+        "precision": 1,
+        "recall": 1,
+        "falsePositives": [],
+        "missed": []
+      },
+      {
+        "name": "planted-problems",
+        "expected": 8,
+        "found": 5,
+        "truePositives": 8,
+        "precision": 1,
+        "recall": 1,
+        "falsePositives": [],
+        "missed": []
+      },
+      {
+        "name": "false-positive-traps",
+        "expected": 0,
+        "found": 0,
+        "truePositives": 0,
+        "precision": 1,
+        "recall": 1,
+        "falsePositives": [],
+        "missed": []
+      },
+      {
+        "name": "tests-in-separate-folder",
+        "expected": 0,
+        "found": 0,
+        "truePositives": 0,
+        "precision": 1,
+        "recall": 1,
+        "falsePositives": [],
+        "missed": []
+      }
+    ],
+    "totals": {
+      "truePositives": 8,
+      "falsePositives": 0,
+      "missed": 0,
+      "precision": 1,
+      "recall": 1
+    },
+    "thisRepository": {
+      "sourceFiles": 241,
+      "reviewSample": {
+        "chunks": 24,
+        "chars": 15903,
+        "files": 24,
+        "directories": 24,
+        "testFiles": 0,
+        "filePaths": [
+          "evals/repos/repos.ts",
+          "src/app/api/auth/[...nextauth]/route.ts",
+          "src/app/api/chat/route.ts",
+          "src/app/api/explorer/explain/route.ts",
+          "src/app/api/explorer/file/route.ts",
+          "src/app/api/github/callback/route.ts",
+          "src/app/api/github/connect/route.ts",
+          "src/app/api/projects/[id]/analyze/route.ts",
+          "src/app/api/projects/[id]/status/route.ts",
+          "src/app/api/stripe/webhook/route.ts",
+          "src/db/schema.ts",
+          "src/lib/actions/analysis.ts",
+          "src/lib/auth.ts",
+          "src/lib/validations/auth.ts",
+          "src/modules/billing/application/ports.ts",
+          "src/modules/billing/domain/plan.ts",
+          "src/modules/billing/index.ts",
+          "src/modules/billing/infrastructure/drizzle-billing-repository.ts",
+          "src/modules/billing/infrastructure/stripe/checkout.ts",
+          "src/modules/chat/server.ts",
+          "src/modules/identity/server.ts",
+          "src/modules/ingestion/server.ts",
+          "src/modules/projects/infrastructure/drizzle-project-queries.ts",
+          "src/proxy.ts"
+        ]
+      },
+      "findings": 17,
+      "reportFindings": 4,
+      "findingsByRule": {
+        "Large file": 1,
+        "Complex function": 7,
+        "Low test file coverage signal": 1,
+        "Critical area may lack tests": 8
+      },
+      "deterministicCategoryScores": {
+        "architecture": 88,
+        "security": 90,
+        "performance": 86,
+        "codeQuality": 67,
+        "testing": 10
+      },
+      "deterministicHealthScore": 68,
+      "v1DeterministicCategoryScores": {
+        "architecture": 88,
+        "security": 90,
+        "performance": 86,
+        "codeQuality": 37,
+        "testing": 0
+      },
+      "v1DeterministicHealthScore": 60,
+      "issues": [
+        {
+          "title": "Large file (479 lines)",
+          "severity": "medium",
+          "category": "codeQuality",
+          "filePath": "src/app/page.tsx"
+        },
+        {
+          "title": "Complex function POST (100 lines)",
+          "severity": "medium",
+          "category": "codeQuality",
+          "filePath": "src/app/api/chat/route.ts"
+        },
+        {
+          "title": "Complex function POST (105 lines)",
+          "severity": "medium",
+          "category": "codeQuality",
+          "filePath": "src/app/api/projects/[id]/analyze/route.ts"
+        },
+        {
+          "title": "Complex function ProjectChat (85 lines)",
+          "severity": "medium",
+          "category": "codeQuality",
+          "filePath": "src/components/projects/project-chat.tsx"
+        },
+        {
+          "title": "Complex function useAnalysisProgress (119 lines)",
+          "severity": "medium",
+          "category": "codeQuality",
+          "filePath": "src/components/projects/use-analysis-progress.ts"
+        },
+        {
+          "title": "Complex function HeroSilk (99 lines)",
+          "severity": "medium",
+          "category": "codeQuality",
+          "filePath": "src/components/shared/hero-silk.tsx"
+        },
+        {
+          "title": "Complex function generateProjectReport (107 lines)",
+          "severity": "medium",
+          "category": "codeQuality",
+          "filePath": "src/lib/analysis/report.ts"
+        },
+        {
+          "title": "Complex function computeDeterministicMetrics (109 lines)",
+          "severity": "medium",
+          "category": "codeQuality",
+          "filePath": "src/modules/analysis/domain/metrics.ts"
+        },
+        {
+          "title": "Low test file coverage signal",
+          "severity": "medium",
+          "category": "testing",
+          "filePath": null
+        },
+        {
+          "title": "Critical area may lack tests",
+          "severity": "high",
+          "category": "testing",
+          "filePath": "src/app/api/auth/[...nextauth]/route.ts"
+        },
+        {
+          "title": "Critical area may lack tests",
+          "severity": "high",
+          "category": "testing",
+          "filePath": "src/lib/actions/auth.ts"
+        },
+        {
+          "title": "Critical area may lack tests",
+          "severity": "high",
+          "category": "testing",
+          "filePath": "src/lib/actions/billing.ts"
+        },
+        {
+          "title": "Critical area may lack tests",
+          "severity": "high",
+          "category": "testing",
+          "filePath": "src/lib/auth.config.ts"
+        },
+        {
+          "title": "Critical area may lack tests",
+          "severity": "high",
+          "category": "testing",
+          "filePath": "src/lib/auth.ts"
+        },
+        {
+          "title": "Critical area may lack tests",
+          "severity": "high",
+          "category": "testing",
+          "filePath": "src/modules/billing/application/ports.ts"
+        },
+        {
+          "title": "Critical area may lack tests",
+          "severity": "high",
+          "category": "testing",
+          "filePath": "src/modules/billing/application/quota.ts"
+        },
+        {
+          "title": "Critical area may lack tests",
+          "severity": "high",
+          "category": "testing",
+          "filePath": "src/modules/billing/infrastructure/drizzle-billing-repository.ts"
+        }
+      ]
+    },
+    "realRepositories": [
+      {
+        "name": "nodegoat",
+        "commit": "c5cb68a7084e4ae7dcc60e6a98768720a81841e8",
+        "sourceFiles": 44,
+        "chunks": 93,
+        "findings": 6,
+        "findingsByRule": {
+          "Complex function": 5,
+          "Low test file coverage signal": 1
+        },
+        "reviewSample": {
+          "chunks": 24,
+          "files": 24,
+          "filePaths": [
+            "app/assets/js/chart/chart-data-morris.js",
+            "app/assets/js/tour/redirects-steps.js",
+            "app/data/allocations-dao.js",
+            "app/data/benefits-dao.js",
+            "app/data/contributions-dao.js",
+            "app/data/memos-dao.js",
+            "app/data/profile-dao.js",
+            "app/routes/allocations.js",
+            "app/routes/benefits.js",
+            "app/routes/contributions.js",
+            "app/routes/error.js",
+            "app/routes/index.js",
+            "app/routes/memos.js",
+            "app/routes/profile.js",
+            "app/routes/research.js",
+            "app/routes/session.js",
+            "app/routes/tutorial.js",
+            "artifacts/db-reset.js",
+            "config/config.js",
+            "config/env/all.js",
+            "config/env/development.js",
+            "config/env/test.js",
+            "Gruntfile.js",
+            "server.js"
+          ]
+        },
+        "expectedInSample": 2,
+        "expectedTotal": 9,
+        "expected": [
+          {
+            "filePath": "app/routes/contributions.js",
+            "line": 32,
+            "inSample": false
+          },
+          {
+            "filePath": "app/data/allocations-dao.js",
+            "line": 78,
+            "inSample": false
+          },
+          {
+            "filePath": "app/routes/allocations.js",
+            "line": 18,
+            "inSample": true
+          },
+          {
+            "filePath": "app/routes/index.js",
+            "line": 72,
+            "inSample": false
+          },
+          {
+            "filePath": "app/routes/research.js",
+            "line": 15,
+            "inSample": true
+          },
+          {
+            "filePath": "app/data/user-dao.js",
+            "line": 25,
+            "inSample": false
+          },
+          {
+            "filePath": "app/data/profile-dao.js",
+            "line": 62,
+            "inSample": false
+          },
+          {
+            "filePath": "app/routes/profile.js",
+            "line": 59,
+            "inSample": false
+          },
+          {
+            "filePath": "server.js",
+            "line": 137,
+            "inSample": false
+          }
+        ],
+        "issues": [
+          {
+            "title": "Complex function ContributionsDAO (81 lines)",
+            "severity": "medium",
+            "category": "codeQuality",
+            "filePath": "app/data/contributions-dao.js"
+          },
+          {
+            "title": "Complex function ProfileDAO (110 lines)",
+            "severity": "medium",
+            "category": "codeQuality",
+            "filePath": "app/data/profile-dao.js"
+          },
+          {
+            "title": "Complex function UserDAO (118 lines)",
+            "severity": "medium",
+            "category": "codeQuality",
+            "filePath": "app/data/user-dao.js"
+          },
+          {
+            "title": "Complex function ProfileHandler (102 lines)",
+            "severity": "medium",
+            "category": "codeQuality",
+            "filePath": "app/routes/profile.js"
+          },
+          {
+            "title": "Complex function SessionHandler (268 lines)",
+            "severity": "high",
+            "category": "codeQuality",
+            "filePath": "app/routes/session.js"
+          },
+          {
+            "title": "Low test file coverage signal",
+            "severity": "high",
+            "category": "testing",
+            "filePath": null
+          }
+        ]
+      }
+    ]
+  }
+}

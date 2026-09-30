@@ -63,7 +63,12 @@ describe("shouldSkipPath", () => {
     ".cursor/rules/check.ts",
     ".vscode/extension.js",
     ".husky/commit-msg.js",
-  ])("skips tool folders and generated output: %s", (path) => {
+    "app/assets/vendor/bootstrap/bootstrap-tour.js",
+    "lib/third_party/parser.ts",
+    "public/bower_components/angular/angular.js",
+    "app/assets/js/jquery.min.js",
+    "static/chart.MIN.js",
+  ])("skips tool folders, generated output and third-party code: %s", (path) => {
     expect(shouldSkipPath(path)).toBe(true);
   });
 
@@ -72,6 +77,9 @@ describe("shouldSkipPath", () => {
     // Folders that may hold real code stay in.
     expect(shouldSkipPath("docs/examples/client.ts")).toBe(false);
     expect(shouldSkipPath(".github/scripts/release.js")).toBe(false);
+    // Only a real ".min.js" suffix is minified.
+    expect(shouldSkipPath("src/lib/admin.js")).toBe(false);
+    expect(shouldSkipPath("src/utils/min.ts")).toBe(false);
   });
 
   it("skips secret-bearing files in any folder and casing", () => {
