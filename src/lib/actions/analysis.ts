@@ -7,7 +7,7 @@ import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
-import { projects, users } from "@/db/schema";
+import { projects } from "@/db/schema";
 import { generateProjectReport } from "@/lib/analysis/report";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -19,6 +19,7 @@ import { downloadGitHubZipball, GitHubError } from "@/lib/github";
 import { assertRateLimit } from "@/lib/rate-limit";
 import { BillingLimitError } from "@/modules/billing";
 import { withQuota } from "@/modules/billing/server";
+import { getGitHubConnection } from "@/modules/identity/server";
 import {
   requeueIdleProject,
   setProjectProgress,
@@ -91,11 +92,7 @@ async function refreshProjectSources(project: {
     );
   }
 
-  const [user] = await db
-    .select({ githubAccessToken: users.githubAccessToken })
-    .from(users)
-    .where(eq(users.id, project.userId))
-    .limit(1);
+  const user = await getGitHubConnection(project.userId);
 
   if (!user?.githubAccessToken) {
     throw new GitHubError(

@@ -1,11 +1,8 @@
 import { logger, requestIdFrom } from "@/shared/logger";
-import { eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
-import { users } from "@/db/schema";
 import { auth } from "@/lib/auth";
-import { db } from "@/lib/db";
 import { encryptToken } from "@/lib/encryption";
 import {
   exchangeGitHubCode,
@@ -13,6 +10,7 @@ import {
   GITHUB_OAUTH_NONCE_COOKIE,
   verifyGitHubOAuthState,
 } from "@/lib/github";
+import { saveGitHubConnection } from "@/modules/identity/server";
 
 const callbackSchema = z.object({
   code: z.string().min(1).max(512),
@@ -80,16 +78,12 @@ export async function GET(request: NextRequest) {
   try {
     const { accessToken, login } = await exchangeGitHubCode(parsed.data.code);
 
-    const updated = await db
-      .update(users)
-      .set({
-        githubAccessToken: encryptToken(accessToken, userId),
-        githubUsername: login,
-      })
-      .where(eq(users.id, userId))
-      .returning({ id: users.id });
+    const saved = await saveGitHubConnection(userId, {
+      encryptedToken: encryptToken(accessToken, userId),
+      login,
+    });
 
-    if (updated.length === 0) {
+    if (!saved) {
       return redirectToSettings("exchange_failed");
     }
 

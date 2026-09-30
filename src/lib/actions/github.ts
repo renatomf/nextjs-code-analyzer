@@ -1,15 +1,12 @@
 "use server";
 import { publicErrorMessage } from "@/shared/public-error-message";
 
-import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
-import { accounts, users } from "@/db/schema";
 import { auth, signIn } from "@/lib/auth";
-import { db } from "@/lib/db";
 import {
   downloadGitHubZipball,
   fullNameSchema,
@@ -18,6 +15,10 @@ import {
 import { MAX_REPO_SIZE_BYTES } from "@/lib/limits";
 import { BillingLimitError } from "@/modules/billing";
 import { getPlanCatalogWithPricing } from "@/modules/billing/server";
+import {
+  disconnectGitHub as forgetGitHubConnection,
+  getGitHubConnection,
+} from "@/modules/identity/server";
 import { findExistingImport, importArchive } from "@/modules/projects/server";
 
 export type ProjectActionState = {
@@ -71,16 +72,7 @@ export async function connectGitHubAccount() {
 export async function disconnectGitHub() {
   const user = await requireUser();
 
-  await db.transaction(async (tx) => {
-    await tx
-      .update(users)
-      .set({ githubAccessToken: null, githubUsername: null })
-      .where(eq(users.id, user.id));
-
-    await tx
-      .delete(accounts)
-      .where(and(eq(accounts.userId, user.id), eq(accounts.provider, "github")));
-  });
+  await forgetGitHubConnection(user.id);
 
   revalidatePath("/settings");
   revalidatePath("/projects/new");
@@ -101,11 +93,7 @@ export async function createProjectFromGitHub(
   }
   const { fullName, defaultBranch } = parsed.data;
 
-  const [dbUser] = await db
-    .select({ githubAccessToken: users.githubAccessToken })
-    .from(users)
-    .where(eq(users.id, user.id))
-    .limit(1);
+  const dbUser = await getGitHubConnection(user.id);
 
   if (!dbUser?.githubAccessToken) {
     return {
