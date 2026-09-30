@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { appendFileSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { expect, it } from "vitest";
@@ -10,6 +10,7 @@ import { REVIEW_PROMPT_VERSION, type IssueCategory } from "@/modules/analysis";
 
 import { loadRepo, REPO_CASES } from "../repos/repos";
 import { LLM_CASES } from "./cases";
+import { assertEvalKey, describeError, sleep } from "./provider";
 
 // LLM review eval (opt-in: real model, uses the free Groq quota):
 //   RUN_LLM_EVAL=1 npm run eval
@@ -24,20 +25,10 @@ const PAUSE_MS = Number(process.env.LLM_EVAL_PAUSE_MS ?? 20_000);
 // Comma-separated case names, to spend less of the daily quota (e.g. nodegoat).
 const ONLY = process.env.LLM_EVAL_CASES?.split(",").map((name) => name.trim());
 
-/** Provider errors name the Groq organization: never write it to results. */
-function describeError(error: unknown) {
-  const mask = (text: string) => text.replace(/org_[A-Za-z0-9]+/g, "org_***");
-  // After the SDK's retries the provider's answer is on the last error.
-  const cause = (error as { lastError?: unknown }).lastError ?? error;
-  const body = (cause as { responseBody?: string }).responseBody;
-  return { error: mask(String(error)), responseBody: body ? mask(body).slice(0, 4000) : undefined };
-}
-
 type Expected = { categories: IssueCategory[]; filePath: string; lines?: number[]; note?: string };
 type EvalCase = { name: string; files: { relativePath: string; content: string }[]; expected: Expected[] };
 
 const key = (category: string, filePath: string | null) => `${category}:${filePath ?? "-"}`;
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 function jaccard(a: Set<string>, b: Set<string>) {
   const union = new Set([...a, ...b]);
@@ -63,12 +54,7 @@ async function allCases(): Promise<EvalCase[]> {
 it.skipIf(!enabled)(
   "measures the LLM review",
   async () => {
-    // vitest.eval.config.mts fills GROQ_API_KEY from GROQ_EVAL_API_KEY only.
-    if (!process.env.GROQ_API_KEY) {
-      throw new Error(
-        "RUN_LLM_EVAL needs GROQ_EVAL_API_KEY (a key from a separate Groq account, in .env.local or a CI secret); the production key is never used for evals.",
-      );
-    }
+    assertEvalKey();
     const evalCases = await allCases();
     const cases = [];
     let first = true;
@@ -216,7 +202,47 @@ it.skipIf(!enabled)(
       ].join("\n"),
     );
 
+    const summary = process.env.GITHUB_STEP_SUMMARY;
+    if (summary) {
+      appendFileSync(
+        summary,
+        [
+          `## LLM review eval @ \`${commit}\` (${result.model}, prompt ${REVIEW_PROMPT_VERSION})`,
+          "",
+          "| Case | Runs ok / failed | Expected problems found (worst run) | Evidence valid |",
+          "|---|---|---|---|",
+          ...cases.map((c, i) => {
+            const found = foundPerRun(c.runDetails);
+            const total = evalCases[i].expected.length;
+            return `| ${c.name} | ${c.runs} / ${c.failedRuns} | ${found.length ? Math.min(...found) : "n/a"}/${total} (gate ≥ ${LLM_GATE.minFound[c.name] ?? total}) | ${fmt(c.meanEvidenceValidity)} |`;
+          }),
+          "",
+        ].join("\n"),
+      );
+    }
+
     expect(cases).toHaveLength(evalCases.length);
+    // Quality gate (also in CI): every case measured, cited files real, and
+    // in every run at least as many expected problems found as the baseline.
+    cases.forEach((c, i) => {
+      expect(c.runs, `${c.name}: no successful run`).toBeGreaterThan(0);
+      expect(c.meanEvidenceValidity, `${c.name}: cited a file it never received`).toBe(1);
+      const worst = Math.min(...foundPerRun(c.runDetails));
+      expect(worst, `${c.name}: expected problems found`).toBeGreaterThanOrEqual(
+        LLM_GATE.minFound[c.name] ?? evalCases[i].expected.length,
+      );
+    });
   },
   30 * 60_000,
 );
+
+const foundPerRun = (runs: Array<{ expected: Array<{ found: boolean }> }>) =>
+  runs.map((run) => run.expected.filter((e) => e.found).length);
+
+/**
+ * Expected problems found in the worst run: every one for the synthetic
+ * cases; for the real repositories, the baseline of 2026-09-30 (`d7c5284`,
+ * 3 runs: NodeGoat 6-7 of 9, Juice Shop 1-2 of 8), limited by what reaches
+ * the review sample. Raise when an improvement is merged, never lower.
+ */
+const LLM_GATE = { minFound: { nodegoat: 6, "juice-shop": 1 } as Record<string, number> };

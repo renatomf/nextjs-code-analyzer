@@ -1,8 +1,8 @@
 {
   "review": {
     "version": "9c8ef776",
-    "measuredBy": "evals/results/2026-09-30-4ada8a2-llm.json",
-    "note": "Same 15 lines at 4ada8a2 (hashed from that commit's report-llm.ts); that eval predates the promptVersions field."
+    "measuredBy": "evals/results/2026-09-30-d7c5284-llm.json",
+    "note": "Baseline with the real repositories (3 runs): synthetic cases all found, NodeGoat 6-7 of 9, Juice Shop 1-2 of 8."
   },
   "chat": {
     "version": "86e19fe0",
