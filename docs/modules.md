@@ -57,6 +57,21 @@ src/modules/<módulo>/
   Stripe com `import()` dentro das funções, para quem só usa a cota (análise,
   chat) não carregar o SDK na cold start.
 
+## Decisões do módulo analysis
+
+- **Domínio puro e sem APIs do Node:** o `index.ts` é importado por
+  componentes de cliente (tipos e cores das issues), então nada de `path`
+  (o `basename` é uma operação de string; os caminhos guardados usam `/`).
+- **`Rule` transforma medidas em achados:** a detecção (tamanho, funções
+  longas, testes, segredos) roda uma vez e alimenta as regras, a nota e os
+  resumos. Cada regra tem seu limite de achados.
+- **`ScoringPolicy` é uma função trocável** (`linearPenaltyPolicy` é a de
+  hoje); a Fase 7 cria outra e compara as duas com o eval.
+- **`Finding.evidence` existe mas ainda não é preenchido:** preencher muda
+  as issues salvas, então entra com a Fase 7.
+- **Ficam para depois:** `LlmReviewer` (a troca de provedor já acontece no
+  nível do modelo, com o fake do E2E) e `AnalysisRunner` (Fase 5).
+
 ## Decisões do módulo ingestion
 
 - **Primeiras portas do projeto:** `Embedder` e `VectorStore`, porque um
