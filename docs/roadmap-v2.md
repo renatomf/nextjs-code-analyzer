@@ -66,6 +66,12 @@ Cada fase tem itens **obrigatórios** (a v2.0 não sai sem eles) e itens
 | 7 — Evals + qualidade da análise | | | |
 | Encerramento v2.0 | | | |
 
+**Ordem de execução (decidida em 2026-09-30):** Fase 3 → **Fase 7 (evals e
+prompts)** → Fases 4, 5 e 6. A qualidade do relatório é o que quem avalia
+o projeto vê primeiro (o link público de demonstração), e a Fase 3 já deixou
+prontas as peças que o eval precisa (`ScoringPolicy`, o fake do LLM, a
+caracterização da análise em snapshot). As Fases 4 a 6 não dependem da 7.
+
 ### Critérios de saída da v2.0
 
 - [ ] CI verde em todo PR, com testes de IDOR e o E2E do fluxo principal
@@ -292,7 +298,7 @@ medido antes e depois.
 
 | Métrica | Antes (2026-09-29) | Meta |
 |---|---|---|
-| Arquivos em `src/app` importando o banco | 12 | **0** |
+| Arquivos em `src/app` importando o banco | 12 | **0** — atingido (baseline de arquitetura 24 → 0) |
 | Arquivos importando o Drizzle | 27 | só `infrastructure/` e `shared/` |
 | Lugares que mudam o status do projeto | 3+ | **1** (o aggregate) |
 | Violações de camada no CI | não verificado | **0**, bloqueando o merge |
@@ -335,10 +341,16 @@ medido antes e depois.
       do prompt no domínio, busca de contexto no `server.ts`); rotas do chat
       e do explorer sem Drizzle (baseline 12 → 6); TD-28: código como dado
       no prompt (blocos com delimitador aleatório por requisição) no chat,
-      no explain e na revisão do relatório; próximo: identity. Convenção
+      no explain e na revisão do relatório; identity (conexão com o
+      GitHub e dados da conta, a página de settings só recebe um booleano
+      do token). Convenção
       provisória em [`docs/modules.md`](modules.md).
-- [ ] identity: acesso a dados atrás do módulo.
-- [ ] Queries por módulo para todas as pages (sai o Drizzle de `src/app`).
+- [ ] identity: acesso a dados atrás do módulo. Feito: conexão com o
+      GitHub e dados da conta (`src/modules/identity`). Falta: cadastro por
+      e-mail e os callbacks do NextAuth (`lib/actions/auth.ts`,
+      `lib/auth.ts`).
+- [x] Queries por módulo para todas as pages (sai o Drizzle de `src/app`):
+      baseline de arquitetura zerada.
 - [x] `dependency-cruiser` no CI (`npm run lint:arch`): regras da ADR-001;
       as 24 violações atuais (12 arquivos de `src/app` × banco e schema) ficam
       num baseline e só as **novas** falham. O baseline só pode diminuir.
@@ -443,6 +455,8 @@ Vem antes da ingestão assíncrona: job em segundo plano sem log é caixa preta.
 - [ ] Modelo de ameaças STRIDE e `SECURITY.md`.
 
 ## Fase 7 — Evals + qualidade da análise
+
+> Executada logo depois da Fase 3 (ver "Ordem de execução" no início).
 
 **Primeiro o harness, depois as melhorias**, sempre comparando com o baseline.
 

@@ -1,4 +1,3 @@
-import { eq } from "drizzle-orm";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -13,10 +12,8 @@ import {
   type SettingsNotice,
 } from "@/components/settings/settings-toast";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { users } from "@/db/schema";
 import { connectGitHubAccount } from "@/lib/actions/github";
 import { auth } from "@/lib/auth";
-import { db } from "@/lib/db";
 import { effectivePlanId } from "@/modules/billing";
 import {
   getBillingSnapshot,
@@ -24,6 +21,7 @@ import {
   syncCheckoutSessionForUser,
   syncCustomerSubscriptionsForUser,
 } from "@/modules/billing/server";
+import { getAccountSettings } from "@/modules/identity/server";
 
 type PageProps = {
   searchParams: Promise<{
@@ -56,24 +54,14 @@ export default async function SettingsPage({ searchParams }: PageProps) {
     }
   }
 
-  const [user] = await db
-    .select({
-      name: users.name,
-      email: users.email,
-      authProvider: users.authProvider,
-      githubUsername: users.githubUsername,
-      githubAccessToken: users.githubAccessToken,
-    })
-    .from(users)
-    .where(eq(users.id, session.user.id))
-    .limit(1);
+  const user = await getAccountSettings(session.user.id);
 
   const billing = await getBillingSnapshot(session.user.id);
   const planId = effectivePlanId(billing.plan, billing.planStatus);
   const isPaid = planId === "premium";
   const current = plans[planId];
   // Only a boolean reaches the markup, never the (encrypted) token.
-  const githubConnected = Boolean(user?.githubAccessToken);
+  const githubConnected = Boolean(user?.githubConnected);
 
   // Fixed messages only: the query values are user-controlled and never echoed.
   const notices: SettingsNotice[] = [];

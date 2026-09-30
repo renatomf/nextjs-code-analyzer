@@ -1,4 +1,3 @@
-import { eq } from "drizzle-orm";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -13,25 +12,17 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { users } from "@/db/schema";
 import { connectGitHubAccount } from "@/lib/actions/github";
 import { auth } from "@/lib/auth";
-import { db } from "@/lib/db";
 import { GitHubError, listGitHubRepos } from "@/lib/github";
+import { getGitHubConnection } from "@/modules/identity/server";
 
 export default async function NewProjectPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
   const userId = session.user.id;
 
-  const [user] = await db
-    .select({
-      githubAccessToken: users.githubAccessToken,
-      githubUsername: users.githubUsername,
-    })
-    .from(users)
-    .where(eq(users.id, userId))
-    .limit(1);
+  const user = await getGitHubConnection(userId);
 
   const githubConnected = Boolean(user?.githubAccessToken);
   let repos: Awaited<ReturnType<typeof listGitHubRepos>> = [];

@@ -65,7 +65,7 @@ estes termos; ao precisar de um conceito novo, acrescente-o aqui no mesmo PR.
 | Termo | Significado | No código |
 |---|---|---|
 | **User** | Conta autenticada (e-mail/senha, GitHub ou Google). Dono dos projetos. | `users` |
-| **GitHub connection** | Token OAuth do GitHub guardado cifrado, usado para listar e baixar repositórios. | `users.githubAccessToken` |
+| **GitHub connection** | Token OAuth do GitHub guardado cifrado, usado para listar e baixar repositórios. Páginas só recebem um booleano (`githubConnected`). | `getGitHubConnection`, `saveGitHubConnection`, `disconnectGitHub` |
 
 ## Transversais
 
