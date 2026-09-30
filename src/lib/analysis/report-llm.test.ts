@@ -4,12 +4,17 @@ import { MockLanguageModelV4 } from "ai/test";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Each call takes the next answer; an Error answer is thrown.
-const model = vi.hoisted(() => ({ answers: [] as unknown[], calls: 0 }));
+const model = vi.hoisted(() => ({
+  answers: [] as unknown[],
+  calls: 0,
+  lastOptions: undefined as unknown,
+}));
 
 vi.mock("@/lib/ai/llm", () => ({
   getStructuredLanguageModel: () =>
     new MockLanguageModelV4({
-      doGenerate: async () => {
+      doGenerate: async (options) => {
+        model.lastOptions = options;
         const answer = model.answers[Math.min(model.calls, model.answers.length - 1)];
         model.calls += 1;
         if (answer instanceof Error) throw answer;
@@ -93,6 +98,25 @@ describe("runLlmHealthReview", () => {
     expect(result.issues[0]).toMatchObject({ title: "SQL injection", evidence: { startLine: 1 } });
     expect(result.droppedUnverified).toBe(1);
     expect(result.sentFilePaths).toEqual(["src/db.ts"]);
+  });
+
+  it("asks the provider for JSON with the report schema, at temperature 0", async () => {
+    model.answers = [answer(report)];
+
+    await review();
+
+    // Groq turns a JSON response format with a schema into strict json_schema.
+    expect(model.lastOptions).toMatchObject({
+      temperature: 0,
+      responseFormat: {
+        type: "json",
+        schema: {
+          type: "object",
+          required: expect.arrayContaining(["issues"]),
+          additionalProperties: false,
+        },
+      },
+    });
   });
 
   it("caps the number of issues and the length of their texts", async () => {

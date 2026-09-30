@@ -239,6 +239,11 @@ maintainability) · **Low** (cleanup).
   `output: Output.object({ schema })`.
 - **Direction:** migrate together with the AI Gateway work.
 - **Phase:** AI Gateway.
+- **Done (Phase 7):** `generateText` + `Output.object({ schema })`. The
+  request to the provider is unchanged (JSON response format with the
+  schema, so Groq keeps strict `json_schema`): a unit test pins it and
+  passes on both the old and the new code, and fails with `Output.text()`.
+  LLM eval run on the real model after the change.
 
 ### TD-31 — Static metrics use regex while we already have an AST · Low
 - **Where:** [metrics.ts:66-108](../src/lib/analysis/metrics.ts#L66-L108)

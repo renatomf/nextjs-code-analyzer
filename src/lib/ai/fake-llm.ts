@@ -35,7 +35,7 @@ export function createFakeLanguageModel() {
   return new MockLanguageModelV4({
     provider: "e2e-fake",
     modelId: "e2e-fake-model",
-    // generateObject asks for JSON; generateText gets plain text.
+    // Structured output (Output.object) asks for JSON; plain text otherwise.
     doGenerate: async (options) => ({
       content: [
         {

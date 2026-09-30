@@ -3,7 +3,7 @@ import { dataBlock, dataRules, newDataBoundary } from "@/shared/prompt-data";
 import { getStructuredLanguageModel } from "@/lib/ai/llm";
 import type { ReportIssue } from "@/lib/analysis/report-types";
 import { REVIEW_BUDGET, sampleForReview, verifyEvidence } from "@/modules/analysis";
-import { APICallError, generateObject } from "ai";
+import { APICallError, generateText, Output } from "ai";
 import { z } from "zod";
 
 // A slow provider must not hold the analysis request (TD-29).
@@ -93,9 +93,9 @@ export async function runLlmHealthReview(options: {
 
   const review = () => {
     const boundary = newDataBoundary();
-    return generateObject({
+    return generateText({
       model: getStructuredLanguageModel(),
-      schema: reportSchema,
+      output: Output.object({ schema: reportSchema }),
       // Same code, same review: needed for a stable report and a fair eval.
       temperature: 0,
       abortSignal: AbortSignal.timeout(LLM_TIMEOUT_MS),
@@ -128,7 +128,7 @@ export async function runLlmHealthReview(options: {
   };
 
   // One retry, only for invalid JSON; other errors (auth, quota) fail fast.
-  const { object, usage } = await review().catch((error: unknown) => {
+  const { output: object, usage } = await review().catch((error: unknown) => {
     if (isInvalidJsonGeneration(error)) return review();
     throw error;
   });
