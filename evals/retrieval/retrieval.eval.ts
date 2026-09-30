@@ -6,7 +6,8 @@ import { expect, it } from "vitest";
 
 import { chunkProjectFiles } from "@/lib/analysis/chunking";
 import { RAG_TOP_K } from "@/lib/limits";
-import { embedQuery, embedTexts } from "@/modules/ingestion/server";
+// The embedder alone: the module entry point also loads the database client.
+import { embedQuery, embedTexts } from "@/modules/ingestion/infrastructure/onnx-embedder";
 
 import { loadRepo, loadThisRepository, REPO_CASES } from "../repos/repos";
 import { RETRIEVAL_CASES } from "./questions";
@@ -19,8 +20,14 @@ import { RETRIEVAL_CASES } from "./questions";
 
 const git = (...args: string[]) => execFileSync("git", args).toString().trim();
 
+// This eval's own questions, word for word: indexed, they would answer
+// every question about this repository.
+const OWN_QUESTIONS_FILE = "evals/retrieval/questions.ts";
+
 async function filesOf(repo: string) {
-  if (repo === "this-repository") return loadThisRepository();
+  if (repo === "this-repository") {
+    return (await loadThisRepository()).filter((f) => f.relativePath !== OWN_QUESTIONS_FILE);
+  }
   const repoCase = REPO_CASES.find((c) => c.name === repo);
   if (!repoCase) throw new Error(`Unknown repository ${repo}`);
   return loadRepo(repoCase);
