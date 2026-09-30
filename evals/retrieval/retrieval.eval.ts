@@ -4,36 +4,16 @@ import { join } from "node:path";
 
 import { expect, it } from "vitest";
 
-import { chunkProjectFiles } from "@/lib/analysis/chunking";
 import { RAG_TOP_K } from "@/lib/limits";
-// The embedder alone: the module entry point also loads the database client.
-import { embedQuery, embedTexts } from "@/modules/ingestion/infrastructure/onnx-embedder";
 
-import { loadRepo, loadThisRepository, REPO_CASES } from "../repos/repos";
 import { RETRIEVAL_CASES } from "./questions";
+import { buildIndex, filesOf } from "./retrieve";
 
 // Chat retrieval eval (no LLM, no cost): does the chat's context hold the
-// code that answers the question? Same chunking and the same local
-// embedding model as production; the search is the exact cosine top-k that
-// pgvector runs today (no index yet: a dot product of normalized vectors).
+// code that answers the question? The retrieval is the chat's (./retrieve).
 // Writes evals/results/<date>-<commit>-retrieval.json.
 
 const git = (...args: string[]) => execFileSync("git", args).toString().trim();
-
-// This eval's own questions, word for word: indexed, they would answer
-// every question about this repository.
-const OWN_QUESTIONS_FILE = "evals/retrieval/questions.ts";
-
-async function filesOf(repo: string) {
-  if (repo === "this-repository") {
-    return (await loadThisRepository()).filter((f) => f.relativePath !== OWN_QUESTIONS_FILE);
-  }
-  const repoCase = REPO_CASES.find((c) => c.name === repo);
-  if (!repoCase) throw new Error(`Unknown repository ${repo}`);
-  return loadRepo(repoCase);
-}
-
-const dot = (a: number[], b: number[]) => a.reduce((sum, value, i) => sum + value * b[i], 0);
 
 type QuestionResult = {
   question: string;
@@ -57,10 +37,8 @@ it("measures the chat retrieval", async () => {
   const cases: CaseResult[] = [];
 
   for (const retrievalCase of RETRIEVAL_CASES) {
-    const files = await filesOf(retrievalCase.repo);
-    const paths = new Set(files.map((f) => f.relativePath));
-    const chunks = chunkProjectFiles(files);
-    const vectors = await embedTexts(chunks.map((c) => c.content));
+    const search = await buildIndex(await filesOf(retrievalCase.repo));
+    const { chunks, paths } = search;
 
     const questions: QuestionResult[] = [];
     for (const q of retrievalCase.questions) {
@@ -68,11 +46,7 @@ it("measures the chat retrieval", async () => {
       if (missing.length === q.expectedFiles.length) {
         throw new Error(`${retrievalCase.repo}: no expected file exists for "${q.question}"`);
       }
-      const query = await embedQuery(q.question);
-      const top = chunks
-        .map((chunk, i) => ({ chunk, score: dot(query, vectors[i]) }))
-        .sort((a, b) => b.score - a.score)
-        .slice(0, RAG_TOP_K);
+      const top = await search.search(q.question);
       const index = top.findIndex(({ chunk }) => q.expectedFiles.includes(chunk.filePath));
       questions.push({
         question: q.question,

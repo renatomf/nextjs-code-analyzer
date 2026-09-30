@@ -1,0 +1,56 @@
+name: LLM eval
+
+# The review prompt, the analysis or the LLM eval changed: run the LLM review
+# eval against the real model and fail if its quality drops (evals/README.md).
+# Only on these paths: every run spends the eval account's daily Groq quota.
+on:
+  pull_request:
+    paths:
+      - "src/modules/analysis/**"
+      - "src/lib/analysis/report-llm.ts"
+      - "src/lib/ai/**"
+      - "src/shared/prompt-data.ts"
+      - "evals/llm/**"
+      - "evals/repos/**"
+      - "evals/prompts.lock.json"
+      - ".github/workflows/llm-eval.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: llm-eval-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  llm-review:
+    name: LLM review eval (real model)
+    # Pull requests from forks get no secrets: skip instead of failing.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+      RUN_LLM_EVAL: "1"
+      # One run per case keeps a PR within the free tier's daily tokens.
+      LLM_EVAL_RUNS: "1"
+      # Real repositories send ~7k tokens per call; the free tier allows 8k/min.
+      LLM_EVAL_PAUSE_MS: "65000"
+      # A separate Groq account: the eval never uses the production key.
+      GROQ_EVAL_API_KEY: ${{ secrets.GROQ_EVAL_API_KEY }}
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: LLM review eval and quality gate
+        run: npx vitest run --config vitest.eval.config.mts evals/llm

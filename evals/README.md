@@ -61,6 +61,25 @@ this repository's corpus (it would answer every question). Results:
 `evals/results/<date>-<commit>-retrieval.json`. No LLM: it runs in CI with
 the rest.
 
+## Chat groundedness (opt-in)
+
+[chat/chat.eval.ts](chat/chat.eval.ts) runs the chat as production does
+(same retrieval, prompt and model) on the first 3 retrieval questions of
+each repository plus one it cannot answer (GraphQL in NodeGoat, Kafka in
+Juice Shop, Twilio here: absent from each, checked by search). No second
+model judges the answers; deterministic checks
+([chat/grounding.ts](chat/grounding.ts), tested):
+
+- **citation validity**: files the answer cites must be among the snippets
+  it received;
+- **cites the answer**: when an expected file was retrieved, the answer
+  cites it;
+- **abstention**: on the unanswerable question, the answer says the sources
+  fall short.
+
+Runs with the LLM review (`RUN_LLM_EVAL=1`); results:
+`evals/results/<date>-<commit>-chat.json`, answers included for review.
+
 ## LLM review (opt-in)
 
 ```bash
@@ -70,10 +89,12 @@ RUN_LLM_EVAL=1 LLM_EVAL_CASES=nodegoat npm run eval   # only some cases
 
 Quota: Groq's free tier allows 200,000 tokens per day per organization
 (gpt-oss-120b), and a full run uses about 60,000 of them. The limit is the
-organization's, not the key's: evals run with the production key compete
-with real analyses, so use a separate Groq account for them. Failed calls
-are recorded (with the organization id masked), and a case without
-successful runs reports `null`, not a perfect score.
+organization's, not the key's: evals run with the production key would
+compete with real analyses. So the eval never uses it: it reads only
+`GROQ_EVAL_API_KEY` (a key from a separate Groq account, in `.env.local` or
+a CI secret) and refuses to run without it, whatever `GROQ_API_KEY` holds.
+Failed calls are recorded (with the organization id masked), and a case
+without successful runs reports `null`, not a perfect score.
 
 Cases in [llm/cases.ts](llm/cases.ts): planted problems a reviewer should
 find (SQL built from input, a delete route without authorization, N+1 and
@@ -106,6 +127,15 @@ and the run fails if a change makes the analysis worse (`GATE` in
 
 Raise a limit when an improvement is merged; never lower one to make a
 change pass.
+
+The **LLM eval** workflow runs the LLM review against the real model (one
+run per case, with the `GROQ_EVAL_API_KEY` secret) only when a pull request
+from this repository changes the analysis, the prompt, the model setup or
+the eval. It fails if a case has no successful run, a finding cites a file
+the model never received, or fewer expected problems are found than the
+baseline (`LLM_GATE` in [llm/llm.eval.ts](llm/llm.eval.ts): every one in the
+synthetic cases, NodeGoat 6 of 9, Juice Shop 1 of 8). It is not a required
+check: it does not run on every pull request.
 
 ## Prompts
 
