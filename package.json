@@ -24,7 +24,7 @@
   },
   "dependencies": {
     "@ai-sdk/groq": "^4.0.50",
-    "@ai-sdk/react": "^4.0.119",
+    "@ai-sdk/react": "^4.0.121",
     "@auth/drizzle-adapter": "^1.11.3",
     "@base-ui/react": "^1.8.0",
     "@huggingface/transformers": "^4.3.0",
@@ -48,7 +48,7 @@
     "react": "19.3.0",
     "react-day-picker": "^10.0.1",
     "react-dom": "19.3.0",
-    "react-resizable-panels": "^4.13.3",
+    "react-resizable-panels": "^4.14.1",
     "react-syntax-highlighter": "^16.1.1",
     "recharts": "^3.10.1",
     "shadcn": "^4.21.0",
