@@ -381,7 +381,10 @@ medido antes e depois.
       interativos. Feito: Testing Library + jsdom (`*.test.tsx`, jsdom por
       arquivo) com testes de caracterização de `AnalysisProgress`,
       `IssuesDashboard` e `CodeExplorer`; o `AbortController` do explorer
-      já existia e agora é coberto por teste (verificado com mutação).
+      já existia e agora é coberto por teste (verificado com mutação). Hook
+      `useAnalysisProgress` extraído e relatório em seções (`ScoreOverview`,
+      `CategoryCards`, `RoadmapList`, `TopIssues`), com os testes
+      inalterados. Falta: filtros do issues dashboard na URL.
 
 **Se sobrar**
 
