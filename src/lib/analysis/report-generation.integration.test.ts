@@ -1,0 +1,178 @@
+import { eq } from "drizzle-orm";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+
+import { codeChunks, projects, reports } from "@/db/schema";
+import { db } from "@/lib/db";
+import { persistProjectFiles } from "@/lib/files/storage";
+import { analysisFixtureFiles } from "@/test/fixtures/analysis-project";
+import { axisEmbedding, createUser, deleteUsers } from "@/test/integration/factories";
+
+// Characterization of report generation before it moves into the analysis
+// module: deterministic metrics + LLM review → category scores, health score,
+// issue order and roadmap, stored on a real Postgres. The LLM is replaced by
+// a fixed review; everything else is real.
+
+const mocks = vi.hoisted(() => ({ runLlmHealthReview: vi.fn() }));
+
+vi.mock("@/lib/analysis/report-llm", () => ({
+  runLlmHealthReview: mocks.runLlmHealthReview,
+}));
+
+import { generateProjectReport } from "@/lib/analysis/report";
+
+const LLM_REVIEW = {
+  architectureSummary: "Layers are mixed.",
+  securitySummary: "Input is validated.",
+  performanceSummary: "No hot spots.",
+  issues: [
+    {
+      title: "Business logic in route handlers",
+      description: "Handlers query the database directly.",
+      severity: "high" as const,
+      category: "architecture" as const,
+      filePath: "src/app/page.tsx",
+    },
+    {
+      title: "Missing rate limit",
+      description: "Login has no brute-force protection.",
+      severity: "medium" as const,
+      category: "security" as const,
+      filePath: null,
+    },
+    {
+      title: "N+1 query",
+      description: "A query runs per item.",
+      severity: "low" as const,
+      category: "performance" as const,
+      filePath: "src/payment.ts",
+    },
+  ],
+};
+
+const created: string[] = [];
+let owner: string;
+
+beforeAll(async () => {
+  owner = await createUser();
+  created.push(owner);
+});
+
+afterAll(async () => {
+  await deleteUsers(created);
+});
+
+beforeEach(() => {
+  mocks.runLlmHealthReview.mockReset().mockResolvedValue(LLM_REVIEW);
+  vi.spyOn(console, "error").mockImplementation(() => {});
+  vi.spyOn(console, "warn").mockImplementation(() => {});
+});
+
+async function analyzedProject(chunkCount = 3) {
+  const [project] = await db
+    .insert(projects)
+    .values({
+      userId: owner,
+      name: "fixture",
+      framework: "nextjs",
+      source: "upload",
+      status: "processing",
+      progressPercent: 80,
+    })
+    .returning({ id: projects.id });
+  await persistProjectFiles(
+    owner,
+    project.id,
+    analysisFixtureFiles().map((file) => ({ ...file, sizeBytes: file.content.length })),
+  );
+  for (let i = 0; i < chunkCount; i += 1) {
+    await db.insert(codeChunks).values({
+      projectId: project.id,
+      // Zero-padded so the alphabetical order is predictable.
+      filePath: `src/chunk-${String(i).padStart(3, "0")}.ts`,
+      content: `chunk ${i}`,
+      startLine: 1,
+      endLine: 1,
+      embedding: axisEmbedding(i % 384),
+    });
+  }
+  return project.id;
+}
+
+async function projectState(projectId: string) {
+  const [row] = await db
+    .select({ status: projects.status, errorMessage: projects.errorMessage })
+    .from(projects)
+    .where(eq(projects.id, projectId));
+  return row;
+}
+
+describe("generateProjectReport (characterization)", () => {
+  it("scores the project and stores the report", async () => {
+    const projectId = await analyzedProject();
+
+    const report = await generateProjectReport(owner, projectId);
+
+    // Today's formula, pinned (Phase 7 changes it on purpose).
+    expect({ healthScore: report.healthScore, categoryScores: report.categoryScores }).toMatchSnapshot();
+    expect(report.issues.map((issue) => `${issue.severity} ${issue.category} ${issue.title}`)).toMatchSnapshot();
+    expect(report.roadmap).toEqual(report.issues.slice(0, 10));
+    expect(report.categorySummaries).toMatchSnapshot();
+
+    const [stored] = await db.select().from(reports).where(eq(reports.projectId, projectId));
+    expect(stored.healthScore).toBe(report.healthScore);
+    expect(stored.issues).toEqual(report.issues);
+    expect(stored.categoryScores).toEqual({
+      ...report.categoryScores,
+      summaries: report.categorySummaries,
+    });
+    expect(await projectState(projectId)).toEqual({ status: "completed", errorMessage: null });
+  });
+
+  it("sends the LLM the first 80 chunks in file-path order", async () => {
+    const projectId = await analyzedProject(85);
+
+    await generateProjectReport(owner, projectId);
+
+    const [{ projectName, framework, chunks }] = mocks.runLlmHealthReview.mock.calls[0];
+    expect({ projectName, framework }).toEqual({ projectName: "fixture", framework: "nextjs" });
+    expect(chunks).toHaveLength(80);
+    expect(chunks[0].filePath).toBe("src/chunk-000.ts");
+    expect(chunks[79].filePath).toBe("src/chunk-079.ts");
+  });
+
+  it("fails with a user-facing message when there is no code knowledge", async () => {
+    const projectId = await analyzedProject(0);
+
+    await expect(generateProjectReport(owner, projectId)).rejects.toThrow(
+      "No code chunks available. Build project knowledge before generating a report.",
+    );
+    expect(await projectState(projectId)).toEqual({
+      status: "failed",
+      errorMessage: "No code chunks available. Build project knowledge before generating a report.",
+    });
+    expect(mocks.runLlmHealthReview).not.toHaveBeenCalled();
+  });
+
+  it("hides an LLM failure behind a generic message and stores no report", async () => {
+    const projectId = await analyzedProject();
+    mocks.runLlmHealthReview.mockRejectedValue(new Error("provider 500: key=gsk_hunter2"));
+
+    await expect(generateProjectReport(owner, projectId)).rejects.toThrow();
+
+    expect(await projectState(projectId)).toEqual({
+      status: "failed",
+      errorMessage: "Failed to generate health report.",
+    });
+    expect(await db.select().from(reports).where(eq(reports.projectId, projectId))).toEqual([]);
+  });
+
+  it("never reports on another user's project", async () => {
+    const projectId = await analyzedProject();
+    const intruder = await createUser();
+    created.push(intruder);
+
+    await expect(generateProjectReport(intruder, projectId)).rejects.toThrow("Project not found");
+    expect(mocks.runLlmHealthReview).not.toHaveBeenCalled();
+    expect(await projectState(projectId)).toEqual({ status: "processing", errorMessage: null });
+  });
+});
