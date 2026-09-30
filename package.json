@@ -18,7 +18,8 @@
     "test:e2e:ui": "playwright test --ui",
     "lint:arch": "depcruise src --config .dependency-cruiser.cjs --ignore-known .dependency-cruiser-known-violations.json",
     "lint:arch:baseline": "depcruise src --config .dependency-cruiser.cjs --output-type baseline --output-to .dependency-cruiser-known-violations.json",
-    "measure:code": "node scripts/measure-code.mjs"
+    "measure:code": "node scripts/measure-code.mjs",
+    "eval": "vitest run --config vitest.eval.config.mts"
   },
   "dependencies": {
     "@ai-sdk/groq": "^4.0.50",
