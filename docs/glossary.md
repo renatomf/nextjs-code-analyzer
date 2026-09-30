@@ -15,7 +15,7 @@ estes termos; ao precisar de um conceito novo, acrescente-o aqui no mesmo PR.
 | **Claim** | Tomar o projeto para uma análise, garantindo que só uma rode por vez. | `analysisStart` (regra) + `claimAnalysis` (UPDATE atômico) |
 | **Active analysis** | `queued` ou `processing`: pode ser cancelada, não pode ser iniciada de novo. | `ACTIVE_STATUSES` |
 | **Stale** | Projeto em `processing` sem atualização por mais tempo que uma análise completa: pode ser retomado. | `STALE_AFTER_SECONDS` |
-| **Public report link** | URL somente leitura, com token e expiração, que expõe só o relatório. | Fase 3 |
+| **Public report link** | URL somente leitura (`/r/<token>`), revogável, com expiração de 7 ou 30 dias ou sem expiração; expõe só o relatório, com segredos redigidos. Um por projeto. | `report_shares`, `createReportShare`, `findSharedReport` |
 
 ## ingestion
 
