@@ -241,7 +241,7 @@ src/
 
 | Porta | Implementações |
 |---|---|
-| `LlmProvider` | Groq · fake (E2E, já existe) · Ollama (modo local, v2.2) |
+| `LlmProvider` | Groq · fake (E2E, já existe) · outros provedores com plano gratuito (comparados no eval da Fase 7) · Ollama (local) |
 | `Embedder` | ONNX local · fake (testes de use case) |
 | `VectorStore` | pgvector · em memória (testes de use case) |
 | `SourceProvider` | GitHub · ZIP · pasta local (v2.2) |
@@ -490,6 +490,35 @@ Vem antes da ingestão assíncrona: job em segundo plano sem log é caixa preta.
       Quality 0 e Testing 0. Falta: retrieval, LLM, latência e custo.
 - [ ] Prompts em arquivos versionados; PR que altera prompt ou retrieval roda
       o eval e falha se a qualidade cair.
+- [ ] **Dado real rotulado:** cada achado deste repo marcado como verdadeiro
+      ou falso positivo num arquivo versionado (precisão num código real,
+      não só nos casos sintéticos).
+- [ ] **Repositórios vulneráveis de propósito, fixados por commit:** OWASP
+      NodeGoat e DVNA (JavaScript, pequenos, vulnerabilidades documentadas
+      pelos autores = gabarito). Baixados pelo eval; o código não é copiado
+      para este repo. (O Juice Shop passa do limite de arquivos.)
+- [ ] **Testes metamórficos** (invariantes sem gabarito): renomear um arquivo
+      não muda os achados; acrescentar uma vulnerabilidade não aumenta a
+      nota; acrescentar testes não baixa Testing; um comentário de prompt
+      injection no código não muda os achados do LLM (mede o TD-28).
+- [ ] **Validade da evidência** dos achados do LLM: % com arquivo, linhas e
+      trecho que existem de fato nos chunks enviados (checagem
+      determinística = taxa de alucinação).
+- [ ] **Estabilidade do LLM:** cada eval com LLM roda 3 vezes; média e
+      dispersão no resultado, para "antes × depois" não ser ruído e o gate
+      do CI não ficar instável.
+- [ ] **Chat:** recall@k e MRR da busca (perguntas com o arquivo esperado,
+      embeddings locais); citações da resposta ⊆ fontes recuperadas;
+      perguntas sem resposta no código devem ser admitidas, não inventadas.
+- [ ] **Severidade e ruído:** matriz de severidade (esperado × encontrado),
+      achados por mil linhas e % de repetição de uma regra.
+- [ ] **Outros LLMs além do Groq:** porta `LlmProvider` (agora com mais de
+      uma implementação real) e o mesmo eval rodando em cada provedor com
+      plano gratuito ou local (ex.: Groq, Google Gemini, Mistral, Cerebras,
+      OpenRouter com modelos gratuitos, Ollama), comparando qualidade,
+      evidência válida, estabilidade, latência e limites do plano gratuito.
+      Provedor e modelo por configuração no servidor (chaves nunca no
+      cliente); a escolha do padrão vira ADR-011, decidida pelo número.
 - [ ] **Dogfooding:** o analisador roda no próprio repo a cada PR e publica
       score e achados; gráfico do score ao longo das fases no README.
 - [ ] Melhorias, cada uma num PR com eval antes × depois:
@@ -652,6 +681,9 @@ os evals.
   (`search_code`, `get_file`, `find_symbol`, `find_dependencies`,
   `inspect_call_graph`), chat como agente, servidor MCP, gateway de LLM só
   com 2+ providers reais, regras de arquitetura do time verificadas por PR.
+- **Feedback nos achados:** botão "este achado foi útil? 👍/👎" no relatório,
+  gravado por usuário; vira dado real rotulado para o eval (o mais honesto
+  de todos). Precisa de uma tabela nova.
 - **Reanálise por push (depois das Fases 5 e 6):** webhook assinado do GitHub
   App → job → reanálise incremental só dos arquivos alterados (usa o
   `content_hash` da Fase 5).
@@ -688,6 +720,7 @@ Mudam o roadmap a partir da v2.2.
 | 008 | Retenção e exclusão de dados | 6 |
 | 009 | Estratégia de evals e gate no CI | 7 |
 | 010 | Fórmula do score (penalidade com teto) | 7 |
+| 011 | Provedor e modelo de LLM padrão, escolhidos pelo eval comparativo | 7 |
 
 Formato: contexto, problema, opções (inclusive as rejeitadas), decisão,
 trade-offs, consequências.
