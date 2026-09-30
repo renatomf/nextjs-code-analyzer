@@ -12,3 +12,9 @@ export {
   getGitHubConnection,
   saveGitHubConnection,
 } from "./infrastructure/drizzle-github-connection";
+export {
+  createEmailAccount,
+  dropUnverifiedPassword,
+  recordSignIn,
+  verifyCredentials,
+} from "./infrastructure/drizzle-accounts";

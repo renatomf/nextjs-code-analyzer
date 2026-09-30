@@ -2,28 +2,22 @@ import { logger } from "@/shared/logger";
 import "server-only";
 
 import NextAuth from "next-auth";
-import { compare, hash } from "bcryptjs";
 import { DrizzleAdapter } from "@auth/drizzle-adapter";
-import { and, eq, isNull } from "drizzle-orm";
 import type { Adapter } from "next-auth/adapters";
 import Credentials from "next-auth/providers/credentials";
 
 import { accounts, sessions, users, verificationTokens } from "@/db/schema";
 import { authConfig, profileImage } from "@/lib/auth.config";
 import { db } from "@/lib/db";
-import { encryptToken } from "@/lib/encryption";
 import { loginSchema } from "@/lib/validations/auth";
+import {
+  dropUnverifiedPassword,
+  recordSignIn,
+  verifyCredentials,
+} from "@/modules/identity/server";
 
 const GITHUB_API = "https://api.github.com";
 const GITHUB_TIMEOUT_MS = 5000;
-
-// Compared against when the user does not exist, so response time does not
-// reveal which emails are registered.
-let dummyHash: Promise<string> | undefined;
-function getDummyHash() {
-  dummyHash ??= hash("dummy-password-for-timing", 12);
-  return dummyHash;
-}
 
 type AdapterSchema = NonNullable<Parameters<typeof DrizzleAdapter<typeof db>>[1]>;
 
@@ -103,23 +97,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const parsed = loginSchema.safeParse(credentials);
         if (!parsed.success) return null;
 
-        const user = await db.query.users.findFirst({
-          where: eq(users.email, parsed.data.email),
-          columns: { id: true, name: true, email: true, image: true, passwordHash: true },
-        });
-
-        const valid = await compare(
-          parsed.data.password,
-          user?.passwordHash ?? (await getDummyHash()),
-        );
-        if (!user?.passwordHash || !valid) return null;
-
-        return {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          image: user.image,
-        };
+        return verifyCredentials(parsed.data.email, parsed.data.password);
       },
     }),
   ],
@@ -154,32 +132,25 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async linkAccount({ user }) {
       if (!user.id) return;
 
-      await db
-        .update(users)
-        .set({ passwordHash: null, emailVerified: new Date() })
-        .where(and(eq(users.id, user.id), isNull(users.emailVerified)));
+      await dropUnverifiedPassword(user.id);
     },
     async signIn({ user, account, profile }) {
       if (!user.id || !account) return;
 
-      const data: {
-        authProvider: string;
-        image?: string;
-        githubAccessToken?: string;
-        githubUsername?: string;
-      } = {
-        authProvider: account.provider === "credentials" ? "email" : account.provider,
+      const github =
+        account.provider === "github" && account.access_token
+          ? {
+              githubAccessToken: account.access_token,
+              githubUsername: await fetchGithubUsername(account.access_token),
+            }
+          : {};
+
+      // The GitHub token is encrypted by recordSignIn before it is stored.
+      await recordSignIn(user.id, {
+        provider: account.provider,
         image: profileImage(account.provider, profile),
-      };
-
-      if (account.provider === "github" && account.access_token) {
-        data.githubAccessToken = encryptToken(account.access_token, user.id);
-
-        const username = await fetchGithubUsername(account.access_token);
-        if (username) data.githubUsername = username;
-      }
-
-      await db.update(users).set(data).where(eq(users.id, user.id));
+        ...github,
+      });
     },
   },
 });

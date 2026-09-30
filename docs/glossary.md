@@ -64,7 +64,8 @@ estes termos; ao precisar de um conceito novo, acrescente-o aqui no mesmo PR.
 
 | Termo | Significado | No código |
 |---|---|---|
-| **User** | Conta autenticada (e-mail/senha, GitHub ou Google). Dono dos projetos. | `users` |
+| **User** | Conta autenticada (e-mail/senha, GitHub ou Google). Dono dos projetos. | `users`, `createEmailAccount`, `verifyCredentials` |
+| **Unverified password** | Senha de uma conta cujo e-mail nenhum provedor confirmou; é descartada quando um provedor OAuth prova o e-mail (evita sequestro por cadastro prévio). | `dropUnverifiedPassword` |
 | **GitHub connection** | Token OAuth do GitHub guardado cifrado, usado para listar e baixar repositórios. Páginas só recebem um booleano (`githubConnected`). | `getGitHubConnection`, `saveGitHubConnection`, `disconnectGitHub` |
 
 ## Transversais
