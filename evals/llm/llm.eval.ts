@@ -55,6 +55,7 @@ it.skipIf(!enabled)(
         runs.push({
           latencyMs: Date.now() - started,
           usage: review.usage,
+          droppedUnverified: review.droppedUnverified,
           issues: review.issues.map(({ title, severity, category, filePath }) => ({
             title,
             severity,
@@ -90,6 +91,7 @@ it.skipIf(!enabled)(
         meanEvidenceValidity: mean(runs.map((r) => r.evidenceValidity)),
         stability: mean(pairs),
         meanFindings: mean(runs.map((r) => r.issues.length)),
+        meanDroppedUnverified: mean(runs.map((r) => r.droppedUnverified)),
         meanLatencyMs: Math.round(mean(runs.map((r) => r.latencyMs))),
         meanInputTokens: Math.round(mean(runs.map((r) => r.usage.inputTokens ?? 0))),
         meanOutputTokens: Math.round(mean(runs.map((r) => r.usage.outputTokens ?? 0))),
@@ -117,7 +119,7 @@ it.skipIf(!enabled)(
           (c) =>
             `  ${c.name}: recall ${c.meanRecall.toFixed(2)} (min ${c.minRecall.toFixed(2)}), ` +
             `evidence ${c.meanEvidenceValidity.toFixed(2)}, stability ${c.stability.toFixed(2)}, ` +
-            `${c.meanFindings.toFixed(1)} findings, ${c.meanLatencyMs} ms, ${c.meanInputTokens}+${c.meanOutputTokens} tokens`,
+            `${c.meanFindings.toFixed(1)} findings (${c.meanDroppedUnverified.toFixed(1)} dropped), ${c.meanLatencyMs} ms, ${c.meanInputTokens}+${c.meanOutputTokens} tokens`,
         ),
       ].join("\n"),
     );

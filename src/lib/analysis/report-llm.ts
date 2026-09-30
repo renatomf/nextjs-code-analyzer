@@ -2,8 +2,12 @@ import { dataBlock, dataRules, newDataBoundary } from "@/shared/prompt-data";
 
 import { getStructuredLanguageModel } from "@/lib/ai/llm";
 import type { ReportIssue } from "@/lib/analysis/report-types";
+import { verifyEvidence } from "@/modules/analysis";
 import { generateObject } from "ai";
 import { z } from "zod";
+
+// A slow provider must not hold the analysis request (TD-29).
+const LLM_TIMEOUT_MS = 120_000;
 
 const reportSchema = z.object({
   architectureSummary: z.string(),
@@ -16,6 +20,8 @@ const reportSchema = z.object({
       severity: z.enum(["critical", "high", "medium", "low"]),
       category: z.enum(["architecture", "security", "performance"]),
       filePath: z.string().nullable(),
+      // Verbatim code; verified against what was sent (verifyEvidence).
+      quote: z.string().nullable(),
     }),
   ),
 });
@@ -50,6 +56,8 @@ export type LlmReportResult = {
   securitySummary: string;
   performanceSummary: string;
   issues: ReportIssue[];
+  /** Issues dropped because their quote was not found in the cited file. */
+  droppedUnverified: number;
   /** For the evals: which files the model saw, and the tokens it used. */
   sentFilePaths: string[];
   usage: { inputTokens?: number; outputTokens?: number };
@@ -82,6 +90,9 @@ export async function runLlmHealthReview(options: {
   const { object, usage } = await generateObject({
     model: getStructuredLanguageModel(),
     schema: reportSchema,
+    // Same code, same review: needed for a stable report and a fair eval.
+    temperature: 0,
+    abortSignal: AbortSignal.timeout(LLM_TIMEOUT_MS),
     instructions: [
       "You are an AI senior engineer reviewing a JavaScript/TypeScript codebase.",
       "Find potential issues for the developer to verify — not certified vulnerabilities or proven bottlenecks.",
@@ -93,8 +104,11 @@ export async function runLlmHealthReview(options: {
       "- medium: maintainability / structure problem",
       "- low: minor concern",
       "",
-      "Return at most 15 high-signal issues total.",
-      "Use filePath when the snippet supports it; otherwise null.",
+      "You see a sample of the project, not all of it: never claim that something is missing from the codebase (tests, validation, error handling) unless the snippets themselves show it.",
+      "Report only issues the snippets support. A few precise issues are better than many generic ones; an empty list is a valid answer. At most 10 issues.",
+      "Report each root cause once, in its most relevant category.",
+      "For an issue about a file, set filePath exactly as written in the snippet header and set quote to the exact code that shows the problem (1 to 3 lines, copied verbatim). Issues whose quote is not found in that file are discarded.",
+      "Use filePath null (and quote null) only for an issue visible across several snippets.",
       ...dataRules(boundary),
     ].join("\n"),
     prompt: [
@@ -106,11 +120,15 @@ export async function runLlmHealthReview(options: {
     ].join("\n"),
   });
 
+  // Evidence or out: issues whose quote is not in the code they cite go.
+  const verified = verifyEvidence(object.issues, sampled);
+
   return {
     architectureSummary: object.architectureSummary,
     securitySummary: object.securitySummary,
     performanceSummary: object.performanceSummary,
-    issues: object.issues,
+    issues: verified.findings,
+    droppedUnverified: verified.dropped.length,
     sentFilePaths: [...new Set(sampled.map((chunk) => chunk.filePath))],
     usage: { inputTokens: usage.inputTokens, outputTokens: usage.outputTokens },
   };
