@@ -72,6 +72,20 @@ findings dropped because their quote was not in the cited file
 fatal), latency and tokens. Only the `GROQ_*` variables are read from the
 local env files. Results: `evals/results/<date>-<commit>-llm.json`.
 
+## In CI
+
+The `eval` job runs `npm run eval` on every pull request: the deterministic
+part only (no LLM, no cost, no secret). The numbers go to the job summary,
+and the run fails if a change makes the analysis worse (`GATE` in
+[analysis/analysis.eval.ts](analysis/analysis.eval.ts)):
+
+- annotated cases: precision and recall stay at 1.00;
+- real repositories: at least as many annotated vulnerable lines in the LLM
+  review sample as the last improvement reached (NodeGoat: 5 of 9).
+
+Raise a limit when an improvement is merged; never lower one to make a
+change pass.
+
 ## Rules
 
 - Files in the cases are built at runtime: fake credentials never appear as

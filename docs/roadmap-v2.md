@@ -540,7 +540,12 @@ Vem antes da ingestão assíncrona: job em segundo plano sem log é caixa preta.
       o eval e falha se a qualidade cair.
 - [ ] **Dogfooding:** o analisador roda no próprio repo a cada PR e publica
       score e achados; gráfico do score ao longo das fases no README.
-- [ ] Melhorias, cada uma num PR com eval antes × depois:
+      Progresso: job `eval` no CI (parte determinística, sem LLM, sem custo
+      nem segredo) analisa este repo e o NodeGoat a cada PR, publica os
+      números no resumo do job e falha se a qualidade cair: precisão e
+      recall dos casos anotados ≥ 1,00 e linhas vulneráveis do NodeGoat na
+      amostra ≥ 5/9 (limites só sobem). Falta: gráfico do score no README.
+- [x] Melhorias, cada uma num PR com eval antes × depois:
   1. ✅ Excluir `.claude` e outras pastas de ferramenta/docs em
      `ALWAYS_EXCLUDE_DIR_NAMES` (`src/lib/limits.ts`). Feito: pastas de
      editor/agente (`.claude`, `.cursor`, `.vscode`, `.idea`, `.husky`) e

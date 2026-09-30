@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { appendFileSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { expect, it } from "vitest";
@@ -195,5 +195,73 @@ it("measures the deterministic analysis", async () => {
     ].join("\n"),
   );
 
+  const summary = process.env.GITHUB_STEP_SUMMARY;
+  if (summary) appendFileSync(summary, markdownSummary(result));
+
   expect(cases).toHaveLength(ANALYSIS_CASES.length);
+  // Quality gate (also in CI): a change may not make the analysis worse.
+  expect(result.analysis.totals.precision).toBeGreaterThanOrEqual(GATE.minPrecision);
+  expect(result.analysis.totals.recall).toBeGreaterThanOrEqual(GATE.minRecall);
+  for (const repo of result.analysis.realRepositories) {
+    expect(repo.expectedInSample, `${repo.name}: annotated lines in the review sample`).toBeGreaterThanOrEqual(
+      GATE.minExpectedInSample[repo.name] ?? 0,
+    );
+  }
 }, 120_000);
+
+/**
+ * Raise these when an improvement is merged, never lower them to make a
+ * change pass. Annotated cases: every expected finding, no false positive.
+ * Real repositories: annotated lines that reach the LLM review sample.
+ */
+const GATE = {
+  minPrecision: 1,
+  minRecall: 1,
+  minExpectedInSample: { nodegoat: 5 } as Record<string, number>,
+};
+
+type EvalResult = {
+  commit: string;
+  analysis: {
+    cases: Array<{ name: string; precision: number; recall: number; falsePositives: unknown[]; missed: unknown[] }>;
+    totals: { precision: number; recall: number };
+    thisRepository: {
+      findings: number;
+      reportFindings: number;
+      deterministicHealthScore: number;
+      reviewSample: { files: number; directories: number; testFiles: number };
+    };
+    realRepositories: Array<{ name: string; findings: number; expectedInSample: number; expectedTotal: number }>;
+  };
+};
+
+/** The GitHub Actions job summary: the numbers of this change, at a glance. */
+function markdownSummary(result: EvalResult): string {
+  const { cases, totals, thisRepository, realRepositories } = result.analysis;
+  const pct = (value: number) => value.toFixed(2);
+  return [
+    `## Analysis eval @ \`${result.commit}\``,
+    "",
+    "| Annotated case | Precision | Recall | False positives | Missed |",
+    "|---|---|---|---|---|",
+    ...cases.map(
+      (c) => `| ${c.name} | ${pct(c.precision)} | ${pct(c.recall)} | ${c.falsePositives.length} | ${c.missed.length} |`,
+    ),
+    `| **Total** | **${pct(totals.precision)}** | **${pct(totals.recall)}** | | |`,
+    "",
+    "| Repository | Findings | Vulnerable lines in the LLM sample |",
+    "|---|---|---|",
+    ...realRepositories.map(
+      (r) =>
+        `| ${r.name} | ${r.findings} | ${r.expectedInSample}/${r.expectedTotal} (gate ≥ ${GATE.minExpectedInSample[r.name] ?? 0}) |`,
+    ),
+    "",
+    `**This repository (dogfooding):** deterministic health ${thisRepository.deterministicHealthScore}, ` +
+      `${thisRepository.findings} findings in ${thisRepository.reportFindings} report lines; ` +
+      `review sample of ${thisRepository.reviewSample.files} files in ${thisRepository.reviewSample.directories} directories ` +
+      `(${thisRepository.reviewSample.testFiles} tests).`,
+    "",
+    `Gate: precision ≥ ${GATE.minPrecision}, recall ≥ ${GATE.minRecall}. No LLM runs in CI (no cost, no quota).`,
+    "",
+  ].join("\n");
+}
