@@ -1,4 +1,5 @@
 import type { Finding } from "./finding";
+import { isTestFile, pathWords } from "./paths";
 import { DETERMINISTIC_RULES, type ProjectMeasures } from "./rules";
 
 // Pure (no Node APIs): the module's public API is also imported by the UI.
@@ -37,22 +38,6 @@ const SECRET_PATTERNS: Array<{ hint: string; regex: RegExp }> = [
     regex: /AKIA[0-9A-Z]{16}/,
   },
 ];
-
-/** Last path segment; stored paths always use "/". */
-function basename(filePath: string): string {
-  return filePath.slice(filePath.lastIndexOf("/") + 1);
-}
-
-function isTestFile(filePath: string): boolean {
-  const base = basename(filePath).toLowerCase();
-  return (
-    base.includes(".test.") ||
-    base.includes(".spec.") ||
-    filePath.includes("__tests__/") ||
-    // `test/` and `tests/` folders, at the root or nested (`src/test/`).
-    /(^|\/)tests?\//.test(filePath)
-  );
-}
 
 /** Test data (fixtures, mocks): fake secrets there are expected. */
 function isTestSupportFile(filePath: string): boolean {
@@ -94,15 +79,6 @@ function componentLogicLines(lines: string[], start: number, end: number): numbe
     if (/^\s*return\s*[(<]/.test(lines[k] ?? "")) return k - start + 1;
   }
   return end - start + 1;
-}
-
-/** Words of a path: `src/lib/oauthIcons.tsx` → src, lib, oauth, icons, tsx. */
-function pathWords(filePath: string): string[] {
-  return filePath
-    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
-    .toLowerCase()
-    .split(/[/._\-\s]+/)
-    .filter(Boolean);
 }
 
 // `from "x"`, `import "x"`, `import("x")`, `require("x")` (not vi.mock strings).

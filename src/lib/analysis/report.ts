@@ -61,8 +61,9 @@ export async function generateProjectReport(
       })
       .from(codeChunks)
       .where(eq(codeChunks.projectId, projectId))
-      .orderBy(asc(codeChunks.filePath), asc(codeChunks.startLine))
-      .limit(80);
+      // All of them: the reviewer's sample is spread over the whole project
+      // (sampleForReview), not the first files in alphabetical order.
+      .orderBy(asc(codeChunks.filePath), asc(codeChunks.startLine));
 
     if (chunks.length === 0) {
       throw new DomainError(

@@ -4,6 +4,7 @@ import { join } from "node:path";
 
 import { expect, it } from "vitest";
 
+import { chunkProjectFiles } from "@/lib/analysis/chunking";
 import { extractFromZipBuffer } from "@/lib/files/extract";
 import { isSourceFile } from "@/lib/files/filters";
 import {
@@ -11,6 +12,8 @@ import {
   computeDeterministicMetrics,
   diminishingPenaltyPolicy,
   linearPenaltyPolicy,
+  REVIEW_BUDGET,
+  sampleForReview,
 } from "@/modules/analysis";
 
 import { ANALYSIS_CASES } from "./cases";
@@ -42,8 +45,25 @@ async function thisRepository() {
     const rule = finding.title.replace(/ \(.*\)$/, "").replace(/^Complex function .*/, "Complex function");
     byTitle[rule] = (byTitle[rule] ?? 0) + 1;
   }
+  // What the LLM reviewer would see of this repository (roadmap Phase 7
+  // item 2): chunks in the order the report reads them, then the sampler.
+  const chunks = chunkProjectFiles(files).sort(
+    (a, b) => a.filePath.localeCompare(b.filePath) || (a.startLine ?? 0) - (b.startLine ?? 0),
+  );
+  const sample = sampleForReview(chunks);
+  const sampledFiles = [...new Set(sample.map((chunk) => chunk.filePath))];
+  const directory = (filePath: string) => filePath.slice(0, filePath.lastIndexOf("/") + 1);
+
   return {
     sourceFiles: files.length,
+    reviewSample: {
+      chunks: sample.length,
+      chars: sample.reduce((sum, c) => sum + Math.min(c.content.length, REVIEW_BUDGET.chunkChars), 0),
+      files: sampledFiles.length,
+      directories: new Set(sampledFiles.map(directory)).size,
+      testFiles: sampledFiles.filter((f) => /\.(test|spec)\.|(^|\/)(e2e|tests?|__tests__)\//.test(f)).length,
+      filePaths: sampledFiles,
+    },
     findings: metrics.issues.length,
     reportFindings: findings.length,
     findingsByRule: byTitle,
@@ -116,6 +136,7 @@ it("measures the deterministic analysis", async () => {
       ),
       `  total: precision ${result.analysis.totals.precision.toFixed(2)}, recall ${result.analysis.totals.recall.toFixed(2)}`,
       `  this repository: ${result.analysis.thisRepository.findings} findings in ${result.analysis.thisRepository.reportFindings} report lines, deterministic health ${result.analysis.thisRepository.deterministicHealthScore} (v1: ${result.analysis.thisRepository.v1DeterministicHealthScore})`,
+      `  review sample: ${result.analysis.thisRepository.reviewSample.chunks} chunks from ${result.analysis.thisRepository.reviewSample.files} files in ${result.analysis.thisRepository.reviewSample.directories} directories (${result.analysis.thisRepository.reviewSample.testFiles} test files)`,
     ].join("\n"),
   );
 

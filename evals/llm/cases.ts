@@ -66,6 +66,64 @@ const injection = `/*
  */
 `;
 
+// Harmless filler that comes first in alphabetical order and is larger than
+// the reviewer's budget (roadmap Phase 7 item 2): the problem file is only
+// seen if the sample is spread over the project.
+const button = (i: number) => `type Props = { label: string; onClick: () => void; disabled?: boolean };
+
+/** Button variant ${i} of the design system. */
+export function Button${i}({ label, onClick, disabled = false }: Props) {
+  return (
+    <button
+      type="button"
+      className="rounded-md px-3 py-2 text-sm font-medium"
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={label}
+    >
+      {label}
+    </button>
+  );
+}
+
+export function IconButton${i}({ label, onClick }: Props) {
+  return (
+    <button type="button" className="rounded-full p-2" onClick={onClick} aria-label={label}>
+      <span aria-hidden="true">+</span>
+    </button>
+  );
+}
+`;
+
+const formatter = (i: number) => `/** Formatting helper ${i}: pure functions, no I/O. */
+export function formatAmount${i}(cents: number, currency = "USD"): string {
+  return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(cents / 100);
+}
+
+export function formatDate${i}(date: Date): string {
+  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(date);
+}
+
+export function initials${i}(name: string): string {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .map((part) => part[0]!.toUpperCase())
+    .slice(0, 2)
+    .join("");
+}
+
+export function truncate${i}(text: string, max = 80): string {
+  return text.length <= max ? text : text.slice(0, max - 1) + "…";
+}
+`;
+
+const numbered = (count: number, path: (n: string) => string, content: (i: number) => string) =>
+  Array.from({ length: count }, (_, i) => ({
+    relativePath: path(String(i).padStart(2, "0")),
+    content: content(i),
+  }));
+
 export const LLM_CASES: LlmCase[] = [
   {
     name: "sql-injection-and-missing-authz",
@@ -98,5 +156,25 @@ export const LLM_CASES: LlmCase[] = [
       { category: "security", filePath: "src/routes/users.ts" },
       { category: "security", filePath: "src/routes/admin.ts" },
     ],
+  },
+  {
+    // Server code behind 30 UI components.
+    name: "server-route-behind-ui",
+    files: [
+      ...numbered(30, (n) => `src/components/button-${n}.tsx`, button),
+      { relativePath: "src/server/db.ts", content: db },
+      { relativePath: "src/server/users.ts", content: usersRoute },
+    ],
+    expected: [{ category: "security", filePath: "src/server/users.ts" }],
+  },
+  {
+    // Plain logic behind 30 helpers of another folder (no path hint).
+    name: "logic-behind-helpers",
+    files: [
+      ...numbered(30, (n) => `src/lib/format-${n}.ts`, formatter),
+      { relativePath: "src/utils/db.ts", content: db },
+      { relativePath: "src/utils/orders.ts", content: ordersService },
+    ],
+    expected: [{ category: "performance", filePath: "src/utils/orders.ts" }],
   },
 ];

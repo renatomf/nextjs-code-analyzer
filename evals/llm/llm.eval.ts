@@ -51,7 +51,7 @@ it.skipIf(!enabled)(
           review = await runLlmHealthReview({
             projectName: evalCase.name,
             framework: null,
-            chunks: chunks.slice(0, 80),
+            chunks,
           });
         } catch (error) {
           // A failed call is a result too (reliability), not the end of the eval.
@@ -65,6 +65,10 @@ it.skipIf(!enabled)(
           latencyMs: Date.now() - started,
           usage: review.usage,
           droppedUnverified: review.droppedUnverified,
+          // Sampling, apart from the model: expected files the reviewer received.
+          expectedSent:
+            evalCase.expected.filter((e) => review.sentFilePaths.includes(e.filePath)).length /
+            evalCase.expected.length,
           issues: review.issues.map(({ title, severity, category, filePath }) => ({
             title,
             severity,
@@ -96,6 +100,7 @@ it.skipIf(!enabled)(
         name: evalCase.name,
         runs: runs.length,
         failedRuns: failures.length,
+        meanExpectedSent: mean(runs.map((r) => r.expectedSent)),
         meanRecall: mean(runs.map((r) => r.recall)),
         minRecall: runs.length === 0 ? 0 : Math.min(...runs.map((r) => r.recall)),
         meanEvidenceValidity: mean(runs.map((r) => r.evidenceValidity)),
@@ -128,7 +133,7 @@ it.skipIf(!enabled)(
         `llm eval @ ${commit} (${result.model}) → ${file}`,
         ...cases.map(
           (c) =>
-            `  ${c.name}: recall ${c.meanRecall.toFixed(2)} (min ${c.minRecall.toFixed(2)}), ` +
+            `  ${c.name}: sent ${c.meanExpectedSent.toFixed(2)}, recall ${c.meanRecall.toFixed(2)} (min ${c.minRecall.toFixed(2)}), ` +
             `evidence ${c.meanEvidenceValidity.toFixed(2)}, stability ${c.stability.toFixed(2)}, ` +
             `${c.failedRuns} failed, ${c.meanFindings.toFixed(1)} findings (${c.meanDroppedUnverified.toFixed(1)} dropped), ${c.meanLatencyMs} ms, ${c.meanInputTokens}+${c.meanOutputTokens} tokens`,
         ),
