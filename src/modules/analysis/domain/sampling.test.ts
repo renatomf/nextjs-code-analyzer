@@ -75,6 +75,39 @@ describe("sampleForReview", () => {
     expect(sample.map((c) => c.startLine)).toEqual([20]);
   });
 
+  it("puts a file with risk signals before one without any, even from a lower level", () => {
+    const sample = sampleForReview(
+      [
+        { filePath: "src/server/about.ts", startLine: 1, content: "export const title = 'About';" },
+        {
+          filePath: "src/lib/user-store.ts",
+          startLine: 1,
+          content: "export const matches = (user, password) => user.password === password;",
+        },
+      ],
+      budget(1),
+    );
+
+    expect(files(sample)).toEqual(["src/lib/user-store.ts"]);
+  });
+
+  it("puts the riskiest file first within the same level", () => {
+    const sample = sampleForReview(
+      [
+        { filePath: "src/lib/a-cookies.ts", startLine: 1, content: "export const read = (cookies) => cookies.get('x');" },
+        {
+          filePath: "src/lib/z-run.ts",
+          startLine: 1,
+          content: "export const run = (req) => eval(req.body.code) && fetch(req.query.url);",
+        },
+      ],
+      budget(1),
+    );
+
+    // Alphabetical order alone would pick a-cookies.ts.
+    expect(files(sample)).toEqual(["src/lib/z-run.ts"]);
+  });
+
   it("leaves tests out, unless there is nothing else", () => {
     expect(files(sampleForReview([chunk("src/a.test.ts"), chunk("e2e/flow.spec.ts"), chunk("src/a.ts")], budget(5)))).toEqual(["src/a.ts"]);
     expect(files(sampleForReview([chunk("src/a.test.ts")], budget(5)))).toEqual(["src/a.test.ts"]);
@@ -120,6 +153,10 @@ describe("riskScore", () => {
     ["file access", "const text = fs.readFileSync(path);"],
     ["passwords", "if (user.password === password) {"],
     ["sessions", "const session = await auth();"],
+    ["ORM data access", "await db.update(projects).set({ status }).where(eq(projects.id, id));"],
+    ["Prisma data access", "const user = await prisma.user.findUnique({ where: { id } });"],
+    ["an auth library", "export default NextAuth(authConfig).auth;"],
+    ["secrets and configuration", "const url = process.env.DATABASE_URL;"],
   ])("counts %s", (_, content) => {
     expect(riskScore(content)).toBeGreaterThan(0);
   });
