@@ -219,7 +219,7 @@ it("measures the deterministic analysis", async () => {
 const GATE = {
   minPrecision: 1,
   minRecall: 1,
-  minExpectedInSample: { nodegoat: 5, "juice-shop": 1 } as Record<string, number>,
+  minExpectedInSample: { nodegoat: 5, "juice-shop": 2 } as Record<string, number>,
 };
 
 type EvalResult = {
