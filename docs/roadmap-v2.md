@@ -374,7 +374,7 @@ medido antes e depois.
       expiração, revogável, com rate limit; expõe só o relatório, nunca
       código-fonte nem chat. Substitui a "conta de demonstração" do
       encerramento: quem avalia abre um relatório real sem criar conta.
-- [ ] **Front** (ver [Front e estado](#front-e-estado)): hook
+- [x] **Front** (ver [Front e estado](#front-e-estado)): hook
       `useAnalysisProgress`, `report/page.tsx` dividido em seções server
       component, filtros do issues dashboard na URL, fetch do explorer com
       `AbortController`; Testing Library + jsdom para os componentes
@@ -384,7 +384,9 @@ medido antes e depois.
       já existia e agora é coberto por teste (verificado com mutação). Hook
       `useAnalysisProgress` extraído e relatório em seções (`ScoreOverview`,
       `CategoryCards`, `RoadmapList`, `TopIssues`), com os testes
-      inalterados. Falta: filtros do issues dashboard na URL.
+      inalterados; filtros do issues dashboard na URL
+      (`?severity=&category=`, via `history.replaceState`, valores
+      desconhecidos ignorados).
 
 **Se sobrar**
 

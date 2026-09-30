@@ -1,11 +1,18 @@
 // @vitest-environment jsdom
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+// In the app, Next keeps useSearchParams in sync with history.replaceState;
+// here it reads the jsdom URL directly.
+vi.mock("next/navigation", () => ({
+  useSearchParams: () => new URLSearchParams(window.location.search),
+}));
 
 import { IssuesDashboard } from "@/components/projects/issues-dashboard";
 import type { ReportIssue } from "@/lib/analysis/report-types";
 
+beforeEach(() => window.history.replaceState(null, "", "/projects/p1/issues"));
 afterEach(cleanup);
 
 const issue = (
@@ -54,6 +61,38 @@ describe("IssuesDashboard", () => {
     await user.click(medium);
 
     expect(medium.getAttribute("aria-pressed")).toBe("false");
+    expect(shownTitles()).toHaveLength(5);
+  });
+
+  it("keeps the active filter in the URL, and drops it when cleared", async () => {
+    const user = userEvent.setup();
+    render(<IssuesDashboard projectId="p1" issues={ISSUES} />);
+    const high = screen.getByRole("button", { name: /High \(1\)/ });
+
+    await user.click(high);
+    expect(window.location.search).toBe("?severity=high");
+
+    await user.click(high);
+    expect(window.location.search).toBe("");
+    expect(window.location.pathname).toBe("/projects/p1/issues");
+  });
+
+  it("opens with the filters from a shared link", () => {
+    window.history.replaceState(null, "", "/projects/p1/issues?severity=medium&category=performance");
+
+    render(<IssuesDashboard projectId="p1" issues={ISSUES} />);
+
+    expect(shownTitles()).toEqual(["Slow query"]);
+    expect(
+      screen.getByRole("button", { name: /Medium \(2\)/ }).getAttribute("aria-pressed"),
+    ).toBe("true");
+  });
+
+  it("ignores unknown filter values from the URL", () => {
+    window.history.replaceState(null, "", "/projects/p1/issues?severity=bogus&category=<script>");
+
+    render(<IssuesDashboard projectId="p1" issues={ISSUES} />);
+
     expect(shownTitles()).toHaveLength(5);
   });
 

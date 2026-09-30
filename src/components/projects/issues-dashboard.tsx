@@ -23,6 +23,7 @@ import type {
   IssueSeverity,
   ReportIssue,
 } from "@/lib/analysis/report-types";
+import { useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 
 type SeverityFilter = IssueSeverity | "all";
@@ -32,6 +33,21 @@ type CategoryFilter = IssueCategory | "all";
 const SEVERITY_ITEMS = { all: "All severities", ...SEVERITY_LABELS };
 const CATEGORY_ITEMS = { all: "All categories", ...CATEGORY_LABELS };
 
+// Filters live in the URL (`?severity=high&category=security`), so a filtered
+// view survives a reload and can be shared. Unknown values mean "all".
+function parseFilter<T extends string>(value: string | null, allowed: readonly T[]): T | "all" {
+  return allowed.includes(value as T) ? (value as T) : "all";
+}
+
+/** Updates the query string without a navigation or a server round trip. */
+function writeFilter(key: "severity" | "category", value: string) {
+  const params = new URLSearchParams(window.location.search);
+  if (value === "all") params.delete(key);
+  else params.set(key, value);
+  const query = params.toString();
+  window.history.replaceState(null, "", query ? `?${query}` : window.location.pathname);
+}
+
 export function IssuesDashboard({
   projectId,
   issues,
@@ -39,8 +55,23 @@ export function IssuesDashboard({
   projectId: string;
   issues: ReportIssue[];
 }) {
-  const [severity, setSeverity] = useState<SeverityFilter>("all");
-  const [category, setCategory] = useState<CategoryFilter>("all");
+  const searchParams = useSearchParams();
+  const [severity, setSeverityState] = useState<SeverityFilter>(() =>
+    parseFilter(searchParams.get("severity"), ALL_SEVERITIES),
+  );
+  const [category, setCategoryState] = useState<CategoryFilter>(() =>
+    parseFilter(searchParams.get("category"), ALL_CATEGORIES),
+  );
+
+  function setSeverity(value: SeverityFilter) {
+    setSeverityState(value);
+    writeFilter("severity", value);
+  }
+
+  function setCategory(value: CategoryFilter) {
+    setCategoryState(value);
+    writeFilter("category", value);
+  }
 
   const filtered = useMemo(
     () => filterIssues(issues, { severity, category }),
@@ -56,9 +87,7 @@ export function IssuesDashboard({
           <button
             key={value}
             type="button"
-            onClick={() =>
-              setSeverity((current) => (current === value ? "all" : value))
-            }
+            onClick={() => setSeverity(severity === value ? "all" : value)}
             aria-pressed={severity === value}
             // Active: same look as the severity badge on the issue items.
             className={`inline-flex items-center gap-2 border px-3 py-1 font-mono text-[0.68rem] tracking-[0.04em] uppercase transition-colors ${
