@@ -322,7 +322,11 @@ medido antes e depois.
       real + pgvector real, modelo trocado por vetores determinísticos),
       verificada com mutações; módulo com o caso de uso `storeKnowledge`,
       portas `Embedder` e `VectorStore` (testadas com fakes) e TD-04;
-      `SourceProvider` fica para a v2.2 (a 3ª implementação, pasta local). Convenção
+      `SourceProvider` fica para a v2.2 (a 3ª implementação, pasta local).
+      **analysis** — caracterização: snapshot completo das heurísticas
+      (inclusive os falsos positivos conhecidos) e da geração do relatório
+      em Postgres real (notas, ordem das issues, roadmap), verificada com
+      mutações; próximo: `Rule`/`Finding`/`ScoringPolicy`. Convenção
       provisória em [`docs/modules.md`](modules.md).
 - [ ] identity: acesso a dados atrás do módulo.
 - [ ] Queries por módulo para todas as pages (sai o Drizzle de `src/app`).
