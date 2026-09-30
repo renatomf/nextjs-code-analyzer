@@ -50,6 +50,9 @@ export type LlmReportResult = {
   securitySummary: string;
   performanceSummary: string;
   issues: ReportIssue[];
+  /** For the evals: which files the model saw, and the tokens it used. */
+  sentFilePaths: string[];
+  usage: { inputTokens?: number; outputTokens?: number };
 };
 
 export async function runLlmHealthReview(options: {
@@ -76,7 +79,7 @@ export async function runLlmHealthReview(options: {
   }
 
   const boundary = newDataBoundary();
-  const { object } = await generateObject({
+  const { object, usage } = await generateObject({
     model: getStructuredLanguageModel(),
     schema: reportSchema,
     instructions: [
@@ -108,5 +111,7 @@ export async function runLlmHealthReview(options: {
     securitySummary: object.securitySummary,
     performanceSummary: object.performanceSummary,
     issues: object.issues,
+    sentFilePaths: [...new Set(sampled.map((chunk) => chunk.filePath))],
+    usage: { inputTokens: usage.inputTokens, outputTokens: usage.outputTokens },
   };
 }
