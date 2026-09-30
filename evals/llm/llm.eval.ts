@@ -21,6 +21,17 @@ import { LLM_CASES } from "./cases";
 const enabled = process.env.RUN_LLM_EVAL === "1";
 const RUNS = Number(process.env.LLM_EVAL_RUNS ?? 3);
 const PAUSE_MS = Number(process.env.LLM_EVAL_PAUSE_MS ?? 20_000);
+// Comma-separated case names, to spend less of the daily quota (e.g. nodegoat).
+const ONLY = process.env.LLM_EVAL_CASES?.split(",").map((name) => name.trim());
+
+/** Provider errors name the Groq organization: never write it to results. */
+function describeError(error: unknown) {
+  const mask = (text: string) => text.replace(/org_[A-Za-z0-9]+/g, "org_***");
+  // After the SDK's retries the provider's answer is on the last error.
+  const cause = (error as { lastError?: unknown }).lastError ?? error;
+  const body = (cause as { responseBody?: string }).responseBody;
+  return { error: mask(String(error)), responseBody: body ? mask(body).slice(0, 4000) : undefined };
+}
 
 type Expected = { categories: IssueCategory[]; filePath: string; line?: number; note?: string };
 type EvalCase = { name: string; files: { relativePath: string; content: string }[]; expected: Expected[] };
@@ -41,9 +52,12 @@ async function allCases(): Promise<EvalCase[]> {
     expected: c.expected.map((e) => ({ categories: [e.category], filePath: e.filePath })),
   }));
   const repos = await Promise.all(
-    REPO_CASES.map(async (c) => ({ name: c.name, files: await loadRepo(c), expected: c.expected })),
+    REPO_CASES.filter((c) => !ONLY || ONLY.includes(c.name)).map(async (c) => ({ name: c.name, files: await loadRepo(c), expected: c.expected })),
   );
-  return [...synthetic, ...repos];
+  const all = [...synthetic, ...repos];
+  const selected = ONLY ? all.filter((c) => ONLY.includes(c.name)) : all;
+  if (selected.length === 0) throw new Error(`No eval case named ${ONLY?.join(", ")}`);
+  return selected;
 }
 
 it.skipIf(!enabled)(
@@ -86,8 +100,7 @@ it.skipIf(!enabled)(
           });
         } catch (error) {
           // A failed call is a result too (reliability), not the end of the eval.
-          const body = (error as { responseBody?: string }).responseBody;
-          failures.push({ error: String(error), responseBody: body?.slice(0, 4000) });
+          failures.push(describeError(error));
           continue;
         }
         const found = new Set(review.issues.map((issue) => key(issue.category, issue.filePath)));
@@ -133,8 +146,10 @@ it.skipIf(!enabled)(
       for (let i = 0; i < sets.length; i += 1) {
         for (let j = i + 1; j < sets.length; j += 1) pairs.push(jaccard(sets[i], sets[j]));
       }
+      // No successful run (or, for stability, fewer than 2): no number, not a perfect one.
       const mean = (values: number[]) =>
-        values.length === 0 ? 1 : values.reduce((sum, v) => sum + v, 0) / values.length;
+        values.length === 0 ? null : values.reduce((sum, v) => sum + v, 0) / values.length;
+      const round = (value: number | null) => (value === null ? null : Math.round(value));
 
       cases.push({
         name: evalCase.name,
@@ -144,14 +159,14 @@ it.skipIf(!enabled)(
         failedRuns: failures.length,
         meanExpectedSent: mean(runs.map((r) => r.expectedSent)),
         meanRecall: mean(runs.map((r) => r.recall)),
-        minRecall: runs.length === 0 ? 0 : Math.min(...runs.map((r) => r.recall)),
+        minRecall: runs.length === 0 ? null : Math.min(...runs.map((r) => r.recall)),
         meanEvidenceValidity: mean(runs.map((r) => r.evidenceValidity)),
         stability: mean(pairs),
         meanFindings: mean(runs.map((r) => r.issues.length)),
         meanDroppedUnverified: mean(runs.map((r) => r.droppedUnverified)),
-        meanLatencyMs: Math.round(mean(runs.map((r) => r.latencyMs))),
-        meanInputTokens: Math.round(mean(runs.map((r) => r.usage.inputTokens ?? 0))),
-        meanOutputTokens: Math.round(mean(runs.map((r) => r.usage.outputTokens ?? 0))),
+        meanLatencyMs: round(mean(runs.map((r) => r.latencyMs))),
+        meanInputTokens: round(mean(runs.map((r) => r.usage.inputTokens ?? 0))),
+        meanOutputTokens: round(mean(runs.map((r) => r.usage.outputTokens ?? 0))),
         // Per expected problem: share of runs in which it was sent / found.
         perExpected: evalCase.expected.map((e, index) => ({
           filePath: e.filePath,
@@ -178,14 +193,15 @@ it.skipIf(!enabled)(
     const file = join(dir, `${date.slice(0, 10)}-${commit}-llm.json`);
     writeFileSync(file, `${JSON.stringify(result, null, 2)}\n`);
 
+    const fmt = (value: number | null, digits = 2) => (value === null ? "n/a" : value.toFixed(digits));
     console.log(
       [
         `llm eval @ ${commit} (${result.model}) → ${file}`,
         ...cases.map(
           (c) =>
-            `  ${c.name}: sent ${c.meanExpectedSent.toFixed(2)}, recall ${c.meanRecall.toFixed(2)} (min ${c.minRecall.toFixed(2)}), ` +
-            `evidence ${c.meanEvidenceValidity.toFixed(2)}, stability ${c.stability.toFixed(2)}, ` +
-            `${c.failedRuns} failed, ${c.meanFindings.toFixed(1)} findings (${c.meanDroppedUnverified.toFixed(1)} dropped), ${c.meanLatencyMs} ms, ${c.meanInputTokens}+${c.meanOutputTokens} tokens`,
+            `  ${c.name}: ${c.runs} ok, ${c.failedRuns} failed; sent ${fmt(c.meanExpectedSent)}, recall ${fmt(c.meanRecall)} (min ${fmt(c.minRecall)}), ` +
+            `evidence ${fmt(c.meanEvidenceValidity)}, stability ${fmt(c.stability)}, ` +
+            `${fmt(c.meanFindings, 1)} findings (${fmt(c.meanDroppedUnverified, 1)} dropped), ${c.meanLatencyMs ?? "n/a"} ms, ${c.meanInputTokens ?? "n/a"}+${c.meanOutputTokens ?? "n/a"} tokens`,
         ),
       ].join("\n"),
     );
