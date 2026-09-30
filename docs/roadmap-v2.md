@@ -583,13 +583,19 @@ Vem antes da ingestão assíncrona: job em segundo plano sem log é caixa preta.
       então não roda o eval do prompt ele mesmo). Retrieval: o eval roda no
       CI com gate. Falta: o CI rodar o eval do LLM e falhar se a qualidade
       cair (precisa de uma chave de LLM no CI, conta Groq separada).
-- [ ] **Dogfooding:** o analisador roda no próprio repo a cada PR e publica
+- [x] **Dogfooding:** o analisador roda no próprio repo a cada PR e publica
       score e achados; gráfico do score ao longo das fases no README.
       Progresso: job `eval` no CI (parte determinística, sem LLM, sem custo
       nem segredo) analisa este repo e o NodeGoat a cada PR, publica os
       números no resumo do job e falha se a qualidade cair: precisão e
       recall dos casos anotados ≥ 1,00 e linhas vulneráveis do NodeGoat na
-      amostra ≥ 5/9 (limites só sobem). Falta: gráfico do score no README.
+      amostra ≥ 5/9 (limites só sobem). ✅ Gráfico no README
+      (`npm run eval:chart` → `docs/assets/dogfooding.svg`): a nota
+      determinística deste repo em cada resultado versionado, 53 → 69, com a
+      mesma medida na fórmula v1 tracejada para separar o efeito da fórmula
+      (ADR-010) do efeito das correções da análise. Antes da Fase 7 não há medida comparável (a nota 30 do baseline é
+      de um relatório completo, com as categorias do LLM): ela é citada no
+      texto, não plotada.
 - [x] Melhorias, cada uma num PR com eval antes × depois:
   1. ✅ Excluir `.claude` e outras pastas de ferramenta/docs em
      `ALWAYS_EXCLUDE_DIR_NAMES` (`src/lib/limits.ts`). Feito: pastas de
