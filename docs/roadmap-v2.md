@@ -497,10 +497,12 @@ Vem antes da ingestão assíncrona: job em segundo plano sem log é caixa preta.
      `ALWAYS_EXCLUDE_DIR_NAMES` (`src/lib/limits.ts`).
   2. Amostrar chunks do projeto inteiro no relatório, em vez dos 80 primeiros
      em ordem alfabética (`report.ts`).
-  3. Agrupar achados repetidos (uma linha "Critical area may lack tests" com a
+  3. ✅ Agrupar achados repetidos (uma linha "Critical area may lack tests" com a
      lista de arquivos).
-  4. Score com penalidade limitada por regra ou decrescente
-     (`scoreFromIssues`).
+  4. ✅ Score com penalidade limitada por regra ou decrescente
+     (`scoreFromIssues`). Feito com o 3 na
+     [ADR-010](decisions/010-score-formula.md): Code Quality 0 → 45, Testing
+     0 → 10, nota determinística 53 → 64, 22 → 4 linhas no relatório.
   5. Achados high/critical exigem arquivo + trecho como evidência; prompt mais
      restritivo; código tratado como dado, não como instrução (TD-28).
   6. Heurísticas determinísticas: não medir componentes React só por

@@ -31,11 +31,11 @@ estes termos; ao precisar de um conceito novo, acrescente-o aqui no mesmo PR.
 | Termo | Significado | No código |
 |---|---|---|
 | **Analysis** | Execução completa sobre um projeto: knowledge + métricas + revisão do LLM + relatório. | `runFullProjectAnalysis` |
-| **Finding** (na UI: *issue*) | Um problema encontrado, com severidade, categoria e, quando possível, evidência (arquivo, linhas, trecho). | `Finding` (`evidence` opcional) |
+| **Finding** (na UI: *issue*) | Um problema encontrado, com severidade, categoria e, quando possível, evidência (arquivo, linhas, trecho). Repetido em vários lugares, vira um só com a lista de ocorrências. | `Finding` (`evidence` e `occurrences` opcionais), `groupFindings` |
 | **Severity** | `critical`, `high`, `medium`, `low`. | `IssueSeverity` |
 | **Category** | `architecture`, `security`, `performance`, `codeQuality`, `testing`. | `IssueCategory` |
 | **Rule** | Uma heurística determinística que transforma as medidas do projeto em findings, com um limite de achados. | `Rule`, `DETERMINISTIC_RULES` |
-| **Score** | Nota de 0 a 100 por categoria; o **health score** é a média das categorias. | `ScoringPolicy` (hoje `linearPenaltyPolicy`) |
+| **Score** | Nota de 0 a 100 por categoria; o **health score** é a média das categorias. | `ScoringPolicy` (hoje `diminishingPenaltyPolicy`, [ADR-010](decisions/010-score-formula.md)) |
 | **Report** | Resultado de uma análise: scores, resumos por categoria e findings. Um por projeto. | `reports` |
 | **Roadmap** (na UI) | Os findings mais prioritários do relatório, em ordem. | `report.roadmap` |
 

@@ -10,7 +10,9 @@ export {
   type Finding,
   type IssueCategory,
   type IssueSeverity,
+  type Occurrence,
 } from "./domain/finding";
+export { buildReportFindings, groupFindings } from "./domain/grouping";
 export {
   computeDeterministicMetrics,
   type DeterministicMetrics,
@@ -23,6 +25,8 @@ export {
 } from "./domain/rules";
 export {
   SEVERITY_PENALTY,
+  diminishingPenaltyPolicy,
+  findingPenalty,
   linearPenaltyPolicy,
   scoreFromIssues,
   type CategoryScores,

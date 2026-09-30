@@ -34,9 +34,72 @@ export function scoreFromIssues(
 }
 
 /**
- * Today's policy (v1): a base per category, adjusted by a few measures, minus
- * the linear penalty; the health score is the plain average. Phase 7 replaces
- * it (capped or diminishing penalty per rule), measured with an eval.
+ * ADR-010: the penalty of a finding. A grouped finding pays its most severe
+ * occurrence in full and each further occurrence half of the previous one,
+ * so repetitions weigh at most 2x one occurrence and never zero a category.
+ */
+export function findingPenalty(finding: Finding): number {
+  if (!finding.occurrences?.length) return SEVERITY_PENALTY[finding.severity];
+  return finding.occurrences.reduce(
+    (sum, occurrence, index) => sum + SEVERITY_PENALTY[occurrence.severity] * 0.5 ** index,
+    0,
+  );
+}
+
+function scoreWith(
+  penalty: (finding: Finding) => number,
+  base: number,
+  findings: Finding[],
+  category: IssueCategory,
+): number {
+  const total = findings
+    .filter((finding) => finding.category === category)
+    .reduce((sum, finding) => sum + penalty(finding), 0);
+  return clampScore(base - total);
+}
+
+/** Base per category, adjusted by a few measures (unchanged since v1). */
+function categoryBases(measures: ProjectMeasures): CategoryScores {
+  return {
+    architecture: 88,
+    security: measures.secretHits.length > 0 ? 70 : 90,
+    performance: 86,
+    codeQuality: measures.largeFiles.length + measures.complexFunctions.length > 8 ? 72 : 85,
+    testing: Math.max(40, measures.testedSourceApproxPercent),
+  };
+}
+
+function healthOf(categoryScores: CategoryScores): number {
+  return clampScore(
+    (categoryScores.architecture +
+      categoryScores.security +
+      categoryScores.performance +
+      categoryScores.codeQuality +
+      categoryScores.testing) /
+      5,
+  );
+}
+
+/**
+ * ADR-010 (current): the category bases minus `findingPenalty` per finding;
+ * the health score is the plain average. Expects grouped findings
+ * (`buildReportFindings`).
+ */
+export const diminishingPenaltyPolicy: ScoringPolicy = ({ measures, findings }) => {
+  const bases = categoryBases(measures);
+  const categoryScores = Object.fromEntries(
+    (Object.keys(bases) as IssueCategory[]).map((category) => [
+      category,
+      scoreWith(findingPenalty, bases[category], findings, category),
+    ]),
+  ) as CategoryScores;
+  return { categoryScores, healthScore: healthOf(categoryScores) };
+};
+
+/**
+ * v1 policy, kept for the eval's before x after: a base per category minus
+ * a linear, uncapped penalty per finding (one repeated rule could zero a
+ * category).
  */
 export const linearPenaltyPolicy: ScoringPolicy = ({ measures, findings }) => {
   const categoryScores: CategoryScores = {

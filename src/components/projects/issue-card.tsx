@@ -11,7 +11,8 @@ import type { ReportIssue } from "@/lib/analysis/report-types";
 import { cn } from "@/lib/utils";
 
 // One issue card for every list (report "Top issues" and the Issues page):
-// severity-colored left rule + icon + badges, file linked to the explorer.
+// severity-colored left rule + icon + badges, files linked to the explorer.
+// A grouped finding (ADR-010) lists each occurrence.
 // No hooks, so it renders from both server and client components.
 // Without `projectId` (public shared report) the file is plain text.
 export function IssueCard({
@@ -39,22 +40,40 @@ export function IssueCard({
         <Badge variant="outline">{CATEGORY_LABELS[issue.category]}</Badge>
       </div>
       <p className="leading-relaxed text-foreground/75">{issue.description}</p>
-      {issue.filePath && !projectId ? (
-        <p className="mt-2 font-mono text-xs break-all text-(--ca-muted)">
-          {issue.filePath}
-        </p>
+      {issue.occurrences?.length ? (
+        <ul className="mt-2 space-y-1">
+          {issue.occurrences.map((occurrence, index) => (
+            <li key={`${occurrence.filePath}-${index}`} className="text-xs text-(--ca-muted)">
+              <FileRef filePath={occurrence.filePath} projectId={projectId} />
+              <span> — {occurrence.title}</span>
+            </li>
+          ))}
+        </ul>
       ) : issue.filePath ? (
-        <Link
-          href={`/projects/${projectId}/explorer?file=${encodeURIComponent(issue.filePath)}`}
-          className="mt-2 inline-block font-mono text-xs break-all text-(--ca-muted) underline-offset-4 hover:text-(--ca-ink) hover:underline"
-        >
-          {issue.filePath}
-        </Link>
+        <div className="mt-2">
+          <FileRef filePath={issue.filePath} projectId={projectId} />
+        </div>
       ) : (
         <p className="mt-2 font-mono text-xs text-(--ca-muted)">
           Project-wide finding
         </p>
       )}
     </div>
+  );
+}
+
+/** A file of a finding: linked to the explorer for the owner, plain text in public. */
+function FileRef({ filePath, projectId }: { filePath: string | null; projectId?: string }) {
+  if (!filePath) return <span className="font-mono text-xs">Project-wide</span>;
+  if (!projectId) {
+    return <span className="font-mono text-xs break-all text-(--ca-muted)">{filePath}</span>;
+  }
+  return (
+    <Link
+      href={`/projects/${projectId}/explorer?file=${encodeURIComponent(filePath)}`}
+      className="font-mono text-xs break-all text-(--ca-muted) underline-offset-4 hover:text-(--ca-ink) hover:underline"
+    >
+      {filePath}
+    </Link>
   );
 }
