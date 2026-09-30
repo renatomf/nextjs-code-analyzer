@@ -140,6 +140,8 @@ const falsePositiveTraps: EvalCase = {
     },
     { relativePath: "src/components/Dashboard.test.tsx", content: test("Dashboard") },
     { relativePath: "src/components/oauth-icons.tsx", content: small("GitHubIcon") },
+    // Screen, not security logic: the checks run on the server.
+    { relativePath: "src/components/auth/login-form.tsx", content: small("LoginForm") },
     {
       relativePath: "src/i18n/messages.ts",
       content: `export const messages = {\n  token: ${quoted("Paste your access token here")},\n};\n`,
