@@ -1,0 +1,67 @@
+# ADR-010 — Fórmula da nota: achados agrupados e penalidade decrescente
+
+- **Status:** aceita
+- **Data:** 2026-09-30
+- **Fase do roadmap:** 7 — Evals + qualidade da análise
+
+## Contexto
+
+A nota de cada categoria era uma base menos uma penalidade **linear e sem
+teto** por achado (crítico 20, alto 12, médio 6, baixo 2). Uma regra que se
+repete zerava a categoria sozinha: neste repositório, 8 "Critical area may
+lack tests" (8 × 12 = 96) zeravam Testing, e 12 "Complex function" zeravam
+Code Quality. O relatório também listava cada repetição como uma linha
+separada (22 linhas para 4 problemas). Medido com o eval da Fase 7
+([evals/](../../evals/README.md), `2026-09-30-a853a30`).
+
+## Problema
+
+Como uma categoria deve pesar um problema repetido, para que a nota continue
+distinguindo "pouco" de "muito" sem que uma única regra a anule?
+
+## Opções consideradas
+
+Simuladas sobre os achados deste repositório (parte determinística):
+
+| Opção | Code Quality | Testing | Nota |
+|---|---|---|---|
+| Hoje: linear, sem teto | 0 | 0 | 53 |
+| A. Teto fixo de 25 pontos por regra | 41 | 9 | 63 |
+| **B. Agrupar + penalidade decrescente por grupo** | **42** | **10** | **63** |
+| C. Logarítmica (1 + log₂ n) | 11 | 0 | 55 |
+
+- **A** resolve o zero, mas 3 e 30 ocorrências passam a valer o mesmo.
+- **C** ainda zera Testing no caso real.
+- **B** mantém proporção e é simples de explicar.
+
+## Decisão
+
+Opção B:
+
+1. **Um achado por problema.** Repetições da mesma regra determinística (ou
+   achados do LLM com a mesma categoria e o mesmo título) viram um achado
+   com a lista de ocorrências, a mais grave primeiro; a severidade do grupo
+   é a da ocorrência mais grave (`groupFindings`, `buildReportFindings`).
+2. **Penalidade decrescente:** a ocorrência mais grave paga a penalidade
+   cheia e cada ocorrência seguinte paga metade da anterior
+   (`findingPenalty`). Repetições pesam no máximo 2× uma ocorrência.
+   Achados distintos continuam somando normalmente.
+3. **Bases por categoria inalteradas;** a nota geral continua a média das
+   cinco. `linearPenaltyPolicy` fica no código para o eval comparar.
+
+Resultado medido (`2026-09-30-898f501`): Code Quality 0 → 45, Testing 0 → 10,
+nota determinística 53 → 64, 22 → 4 linhas no relatório; precisão e recall
+do eval inalterados (o agrupamento não esconde nem inventa achados).
+
+## Trade-offs e consequências
+
+- Dez segredos pesam menos que dez vezes um. Aceito: o primeiro já derruba
+  Security (base 70), e cada ocorrência continua listada no relatório.
+- Relatórios antigos continuam com o formato antigo (sem `occurrences`); a
+  interface mostra os dois. A nota muda só em análises novas.
+- O link público redige também título e descrição de cada ocorrência.
+- Testing continua baixo neste repositório porque a **heurística** de
+  cobertura compara nomes de arquivo; isso é o item 6 da Fase 7, não a
+  fórmula.
+- Revisar se o eval mostrar que um grupo grande (ex.: dezenas de segredos)
+  merece pesar mais que 2×.

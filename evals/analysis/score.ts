@@ -16,6 +16,22 @@ const matches = (finding: Finding, expected: ExpectedFinding) =>
   expected.title.test(finding.title);
 
 /**
+ * A grouped finding (ADR-010) counts once per occurrence, so precision and
+ * recall stay comparable with ungrouped results.
+ */
+export function expandOccurrences(findings: Finding[]): Finding[] {
+  return findings.flatMap((finding) =>
+    finding.occurrences?.length
+      ? finding.occurrences.map((occurrence) => ({
+          ...finding,
+          ...occurrence,
+          occurrences: undefined,
+        }))
+      : [finding],
+  );
+}
+
+/**
  * Each expected finding can be matched once. Unmatched findings are false
  * positives (the cases are fully annotated). An empty expectation with no
  * findings scores 1 on both.
@@ -25,7 +41,7 @@ export function scoreCase(findings: Finding[], expected: ExpectedFinding[]): Cas
   const falsePositives: Finding[] = [];
   let truePositives = 0;
 
-  for (const finding of findings) {
+  for (const finding of expandOccurrences(findings)) {
     const index = remaining.findIndex((candidate) => matches(finding, candidate));
     if (index === -1) {
       falsePositives.push(finding);

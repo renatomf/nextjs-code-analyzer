@@ -47,6 +47,18 @@ describe("scoreCase", () => {
     expect(score.truePositives).toBe(0);
   });
 
+  it("counts each occurrence of a grouped finding", () => {
+    const grouped: Finding = {
+      ...finding("Critical areas may lack tests (2)", "src/a.ts"),
+      occurrences: [
+        { filePath: "src/a.ts", severity: "high", title: "Critical area may lack tests", description: "d" },
+        { filePath: "src/b.ts", severity: "high", title: "Critical area may lack tests", description: "d" },
+      ],
+    };
+
+    expect(scoreCase([grouped], expected)).toMatchObject({ truePositives: 2, precision: 1, recall: 1 });
+  });
+
   it("scores 1 when nothing is expected and nothing is found", () => {
     expect(scoreCase([], [])).toMatchObject({ precision: 1, recall: 1 });
   });

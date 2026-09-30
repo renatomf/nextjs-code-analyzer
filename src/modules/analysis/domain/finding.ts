@@ -19,6 +19,14 @@ export type Evidence = {
   snippet?: string;
 };
 
+/** One place where a grouped finding occurs, with its own details. */
+export type Occurrence = {
+  filePath: string | null;
+  severity: IssueSeverity;
+  title: string;
+  description: string;
+};
+
 export type Finding = {
   title: string;
   description: string;
@@ -26,6 +34,14 @@ export type Finding = {
   category: IssueCategory;
   filePath: string | null;
   evidence?: Evidence;
+  /** Id of the deterministic rule that produced it (none for the LLM). */
+  rule?: string;
+  /**
+   * Set when the same problem was found in several places (ADR-010): the
+   * finding stands for all of them, the most severe first. `filePath` is the
+   * first occurrence's.
+   */
+  occurrences?: Occurrence[];
 };
 
 export const SEVERITY_ORDER: Record<IssueSeverity, number> = {

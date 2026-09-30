@@ -6,7 +6,12 @@ import { expect, it } from "vitest";
 
 import { extractFromZipBuffer } from "@/lib/files/extract";
 import { isSourceFile } from "@/lib/files/filters";
-import { computeDeterministicMetrics, linearPenaltyPolicy } from "@/modules/analysis";
+import {
+  buildReportFindings,
+  computeDeterministicMetrics,
+  diminishingPenaltyPolicy,
+  linearPenaltyPolicy,
+} from "@/modules/analysis";
 
 import { ANALYSIS_CASES } from "./cases";
 import { scoreCase } from "./score";
@@ -28,10 +33,10 @@ async function thisRepository() {
     .map(({ relativePath, content }) => ({ relativePath, content }));
 
   const metrics = computeDeterministicMetrics(files);
-  const { categoryScores, healthScore } = linearPenaltyPolicy({
-    measures: metrics,
-    findings: metrics.issues,
-  });
+  // As the report shows them: grouped (ADR-010).
+  const findings = buildReportFindings(metrics.issues, []);
+  const current = diminishingPenaltyPolicy({ measures: metrics, findings });
+  const v1 = linearPenaltyPolicy({ measures: metrics, findings: metrics.issues });
   const byTitle: Record<string, number> = {};
   for (const finding of metrics.issues) {
     const rule = finding.title.replace(/ \(.*\)$/, "").replace(/^Complex function .*/, "Complex function");
@@ -40,11 +45,15 @@ async function thisRepository() {
   return {
     sourceFiles: files.length,
     findings: metrics.issues.length,
+    reportFindings: findings.length,
     findingsByRule: byTitle,
     // Deterministic part only: architecture and performance come from the
-    // LLM in the product, so here they stay at their base score.
-    deterministicCategoryScores: categoryScores,
-    deterministicHealthScore: healthScore,
+    // LLM in the product, so here they stay at their base score. `v1` is the
+    // linear policy, kept for comparison.
+    deterministicCategoryScores: current.categoryScores,
+    deterministicHealthScore: current.healthScore,
+    v1DeterministicCategoryScores: v1.categoryScores,
+    v1DeterministicHealthScore: v1.healthScore,
     issues: metrics.issues.map(({ title, severity, category, filePath }) => ({
       title,
       severity,
@@ -56,7 +65,7 @@ async function thisRepository() {
 
 it("measures the deterministic analysis", async () => {
   const cases = ANALYSIS_CASES.map((evalCase) => {
-    const findings = computeDeterministicMetrics(evalCase.files).issues;
+    const findings = buildReportFindings(computeDeterministicMetrics(evalCase.files).issues, []);
     const score = scoreCase(findings, evalCase.expected);
     return {
       name: evalCase.name,
@@ -106,7 +115,7 @@ it("measures the deterministic analysis", async () => {
           `${c.falsePositives.length} false positive(s), ${c.missed.length} missed`,
       ),
       `  total: precision ${result.analysis.totals.precision.toFixed(2)}, recall ${result.analysis.totals.recall.toFixed(2)}`,
-      `  this repository: ${result.analysis.thisRepository.findings} findings, deterministic health ${result.analysis.thisRepository.deterministicHealthScore}`,
+      `  this repository: ${result.analysis.thisRepository.findings} findings in ${result.analysis.thisRepository.reportFindings} report lines, deterministic health ${result.analysis.thisRepository.deterministicHealthScore} (v1: ${result.analysis.thisRepository.v1DeterministicHealthScore})`,
     ].join("\n"),
   );
 

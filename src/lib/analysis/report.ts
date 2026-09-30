@@ -12,9 +12,9 @@ import type {
 } from "@/lib/analysis/report-types";
 import { db } from "@/lib/db";
 import {
+  buildReportFindings,
   computeDeterministicMetrics,
-  linearPenaltyPolicy,
-  sortFindings,
+  diminishingPenaltyPolicy,
 } from "@/modules/analysis";
 import { setProjectStatus } from "@/modules/projects/server";
 
@@ -76,9 +76,10 @@ export async function generateProjectReport(
       chunks,
     });
 
-    const issues = sortFindings([...metrics.issues, ...llm.issues]);
+    // One finding per problem, most severe first (ADR-010).
+    const issues = buildReportFindings(metrics.issues, llm.issues);
 
-    const { categoryScores, healthScore } = linearPenaltyPolicy({
+    const { categoryScores, healthScore } = diminishingPenaltyPolicy({
       measures: metrics,
       findings: issues,
     });

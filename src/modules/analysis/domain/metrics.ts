@@ -220,7 +220,9 @@ export function computeDeterministicMetrics(
     untestedCriticalPaths,
     secretHits,
   };
-  const issues = DETERMINISTIC_RULES.flatMap((rule) => rule.findings(measures));
+  const issues = DETERMINISTIC_RULES.flatMap((rule) =>
+    rule.findings(measures).map((finding) => ({ ...finding, rule: rule.id })),
+  );
 
   return {
     ...measures,
