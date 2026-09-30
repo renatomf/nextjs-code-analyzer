@@ -6,8 +6,8 @@
   },
   "chat": {
     "version": "86e19fe0",
-    "measuredBy": null,
-    "note": "No LLM eval of the chat answers yet (groundedness is pending); retrieval is measured without the prompt."
+    "measuredBy": "evals/results/2026-09-30-c75ebff-chat.json",
+    "note": "Groundedness baseline: citation validity 1.00 in the 3 repositories, abstains on the 3 unanswerable questions; cites the expected file when retrieved (NodeGoat 2/3, this repository 2/2; Juice Shop: not retrieved)."
   },
   "explain": {
     "version": "bfefbf95",

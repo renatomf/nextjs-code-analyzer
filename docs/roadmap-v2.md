@@ -80,8 +80,10 @@ caracterização da análise em snapshot). As Fases 4 a 6 não dependem da 7.
 - [ ] Análise rodando em job, com retry e sem projetos travados
 - [ ] Relatório sai (só determinístico) mesmo com o LLM fora
 - [ ] Token de GitHub só com leitura (GitHub App)
-- [ ] `npm run eval` com resultado versionado; nenhuma categoria do próprio
-      repo zerada por ruído
+- [x] `npm run eval` com resultado versionado; nenhuma categoria do próprio
+      repo zerada por ruído (2026-09-30, `c75ebff`: Code Quality 0 → 67,
+      Testing 0 → 16; Testing segue baixo pelo limite do proxy de testes,
+      v2.1)
 - [ ] `baseline.md` × números atuais publicados no README
 
 ---
@@ -473,12 +475,18 @@ Vem antes da ingestão assíncrona: job em segundo plano sem log é caixa preta.
 ## Fase 7 — Evals + qualidade da análise
 
 > Executada logo depois da Fase 3 (ver "Ordem de execução" no início).
+> **Concluída em 2026-09-30** (PRs a partir do #55): todos os itens obrigatórios.
+> Principal conclusão medida: o modelo encontra o que recebe (revisão:
+> toda vulnerabilidade enviada foi achada; chat: citações válidas 1,00 e
+> abstém quando não há resposta); o limite é o que chega a ele (amostra da
+> revisão e retrieval do chat nos repositórios grandes). Próximas: Fases 4,
+> 5 e 6. Os itens "Se sobrar" e as alavancas do retrieval ficam para depois.
 
 **Primeiro o harness, depois as melhorias**, sempre comparando com o baseline.
 
 **Obrigatório**
 
-- [ ] `evals/` com dataset versionado: este repo, OWASP Juice Shop e 2 ou 3
+- [x] `evals/` com dataset versionado: este repo, OWASP Juice Shop e 2 ou 3
       repositórios pequenos com violações conhecidas e anotadas, mais casos
       de prompt injection (TD-28).
       Progresso: OWASP NodeGoat (commit fixo, lido como importação do
@@ -551,7 +559,18 @@ Vem antes da ingestão assíncrona: job em segundo plano sem log é caixa preta.
       orçamento de 16 mil caracteres. Avançar pede mais orçamento por
       análise (várias chamadas em lotes ou outro provedor, ADR-011),
       decisão de custo/cota a tomar depois do eval do LLM.
-- [ ] `npm run eval` → `evals/results/<data>.json`: precisão/recall dos
+      ✅ **Eval do LLM nos repositórios reais** (`d7c5284`, conta Groq só
+      de evals, 3 execuções por caso, 0 falhas em 21 chamadas): casos
+      sintéticos com todos os problemas encontrados; NodeGoat 6–7 de 9
+      (recall 0,74); Juice Shop 1–2 de 8 (0,17). Toda vulnerabilidade que
+      chegou ao modelo foi encontrada (NodeGoat 5 de 5; `login.ts` do Juice
+      Shop 3 de 3): **o gargalo é a amostra, não o modelo nem o prompt.**
+      **Dataset fechado** com este repo, NodeGoat, Juice Shop, os casos
+      sintéticos e os de injeção de prompt: os "2 ou 3 repositórios
+      pequenos" ficam cobertos pelo NodeGoat e pelos casos sintéticos (um
+      terceiro repositório real custaria cota e tempo de CI sem trazer um
+      tipo de caso novo).
+- [x] `npm run eval` → `evals/results/<data>.json`: precisão/recall dos
       achados, falsos positivos, groundedness do chat, recall do retrieval,
       latência, tokens e custo.
       Progresso: harness da análise determinística (casos anotados + este
@@ -573,8 +592,20 @@ Vem antes da ingestão assíncrona: job em segundo plano sem log é caixa preta.
       disputam a vaga (`finding.ts` × `evidence.ts`). Próximas alavancas,
       cada uma com antes × depois: remover chunks quase duplicados, dar
       menos peso a arquivos servidos/dados, busca híbrida (palavra-chave +
-      embedding). Falta: groundedness da resposta (usa o LLM).
-- [ ] Prompts em arquivos versionados; PR que altera prompt ou retrieval roda
+      embedding). ✅ **Groundedness do chat** (`c75ebff`): o chat como a
+      produção roda, 3 perguntas + 1 sem resposta (assunto ausente,
+      conferido por busca) por repositório, checagens determinísticas sem
+      um segundo modelo. Citações válidas 1,00 nos 3 repositórios (nenhum
+      arquivo do projeto citado sem ter sido recebido); diz que não sabe nas
+      3 perguntas sem resposta; cita o arquivo certo quando ele foi
+      recuperado (NodeGoat 2 de 3, este repo 2 de 2; no Juice Shop ele não
+      foi recuperado). Ler as respostas uma a uma achou 3 erros da própria
+      medição, corrigidos com as frases reais como teste (hífen U+2011 nos
+      nomes de arquivo, apóstrofo tipográfico, sugestão de arquivo contada
+      como citação) e a pasta `evals/` tirada do corpus deste repo (contém
+      as perguntas). Custo: tokens por chamada no resultado; US$ 0 no plano
+      gratuito, numa conta Groq só para evals.
+- [x] Prompts em arquivos versionados; PR que altera prompt ou retrieval roda
       o eval e falha se a qualidade cair.
       Progresso: os 3 prompts em módulos próprios (`analysis/domain/
       review-prompt.ts`, `chat/domain/prompt.ts`, `chat/domain/
@@ -583,8 +614,12 @@ Vem antes da ingestão assíncrona: job em segundo plano sem log é caixa preta.
       registra a versão de cada prompt e o resultado de eval que a mediu, e
       o CI falha se um prompt muda sem o lock (o CI não tem chave do LLM,
       então não roda o eval do prompt ele mesmo). Retrieval: o eval roda no
-      CI com gate. Falta: o CI rodar o eval do LLM e falhar se a qualidade
-      cair (precisa de uma chave de LLM no CI, conta Groq separada).
+      CI com gate. ✅ Workflow **LLM eval**: quando um PR do próprio
+      repositório muda a análise, o prompt, o modelo ou o eval, roda a
+      revisão com o modelo real (secret `GROQ_EVAL_API_KEY`, conta separada:
+      o eval nunca usa a chave de produção) e falha abaixo do baseline
+      (sintéticos todos, NodeGoat 6 de 9, Juice Shop 1 de 8) ou com citação
+      de arquivo não recebido.
 - [x] **Dogfooding:** o analisador roda no próprio repo a cada PR e publica
       score e achados; gráfico do score ao longo das fases no README.
       Progresso: job `eval` no CI (parte determinística, sem LLM, sem custo

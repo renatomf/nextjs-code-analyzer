@@ -47,6 +47,7 @@ describe("abstains", () => {
     // A real answer (gpt-oss): words between the subject and the verb, U+2011
     // and a typographic apostrophe.
     "The snippets you provided do not contain any GraphQL‑related code, so I can’t show you the actual resolver implementation.",
+    "The repository you’ve shown does not contain any code that deals with Twilio or sending SMS messages.",
   ])("recognizes: %s", (answer) => {
     expect(abstains(answer)).toBe(true);
   });

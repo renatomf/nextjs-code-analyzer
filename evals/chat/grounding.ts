@@ -28,12 +28,12 @@ export const refersTo = (cited: string, paths: Iterable<string>) =>
   [...paths].some((path) => path === cited || basename(path) === cited);
 
 // Phrases that say the context is not enough (the chat answers in English).
-const SOURCES = "(?:sources|snippets|code|files)";
+const SOURCES = "(?:sources|snippets|code|files|repository|project)";
 const ABSTAINS = new RegExp(
   [
     `not (?:in|included in|present in|shown in|part of|covered by|found in) the (?:provided |retrieved )?${SOURCES}`,
     // "the snippets (you provided) do not contain any ..."
-    `${SOURCES}(?: (?:you |that were |that you )?(?:provided|retrieved|shared|given))? (?:do(?:es)? not|don't|doesn't) (?:show|contain|include|mention|cover|define|reference)`,
+    `${SOURCES}(?: (?:you |that were |that you )?(?:provided|retrieved|shared|given)| you've shown| you have shown)? (?:do(?:es)? not|don't|doesn't) (?:show|contain|include|mention|cover|define|reference)`,
     `no (?:relevant )?(?:code|sources?|snippets?|mention|reference)`,
     "insufficient",
     "(?:cannot|can't|could not|couldn't) (?:find|determine|tell|see|show|locate|answer)",
