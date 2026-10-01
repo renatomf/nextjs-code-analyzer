@@ -7,7 +7,8 @@ import { getLanguageModel, languageModelId } from "@/lib/ai/llm";
 import { auth } from "@/lib/auth";
 import { readProjectFile } from "@/lib/files/explorer";
 import { assertChatRateLimit, RateLimitError } from "@/lib/rate-limit";
-import { recordLlmCall } from "@/modules/billing/server";
+import { BillingLimitError } from "@/modules/billing";
+import { assertLlmBudget, recordLlmCall } from "@/modules/billing/server";
 import { explainInstructions } from "@/modules/chat";
 import { findOwnedProject } from "@/modules/projects/server";
 
@@ -43,6 +44,7 @@ export async function POST(request: Request) {
     }
 
     await assertChatRateLimit(session.user.id);
+    await assertLlmBudget(session.user.id);
 
     const file = await readProjectFile(session.user.id, project.id, filePath);
     if (!file) {
@@ -67,6 +69,8 @@ export async function POST(request: Request) {
     const llmStarted = performance.now();
     const { text, usage } = await generateText({
       model: getLanguageModel(),
+      // Same output cap as the chat route.
+      maxOutputTokens: 4_000,
       instructions: explainInstructions(boundary),
       prompt: [
         `Project: ${project.name}`,
@@ -88,7 +92,7 @@ export async function POST(request: Request) {
       { headers: { "Cache-Control": "no-store" } },
     );
   } catch (error) {
-    if (error instanceof RateLimitError) {
+    if (error instanceof RateLimitError || error instanceof BillingLimitError) {
       return Response.json({ error: error.message }, { status: 429 });
     }
     // Details stay in the server log, never in the response.

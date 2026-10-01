@@ -427,8 +427,20 @@ Vem antes da ingestão assíncrona: job em segundo plano sem log é caixa preta.
       gasto do dia (`ON DELETE SET NULL`). Gravar nunca derruba a
       requisição do usuário (falha vai para o log). No chat, o uso vem do
       `onEnd` do stream (`onError`/`onAbort` gravam falha).
-- [ ] Orçamento de tokens por usuário/dia e teto por análise (hoje o limite é
-      por número de requisições, não por custo).
+- [x] Orçamento de tokens por usuário/dia e teto por análise. Feito:
+      orçamento diário por plano (entrada + saída, falhas incluídas, dia de
+      cota em UTC), somado da `llm_calls` e checado antes de cada chamada do
+      relatório, do chat e da explicação (`assertLlmBudget`; no relatório,
+      dentro de `generateProjectReport`, onde todos os caminhos terminam).
+      Padrão Free 200k / Premium 2M tokens por dia
+      (`PLAN_FREE_LLM_TOKENS_PER_DAY`, `PLAN_PREMIUM_LLM_TOKENS_PER_DAY`),
+      dimensionado pelos evals de 2026-09-30: relatório até ~8,5k tokens (x2
+      com o retry de JSON), resposta de chat até ~4,3k. Teto por chamada
+      (`maxOutputTokens`): 8k no relatório, 4k no chat/explicação, ~3x o
+      maior valor medido; a entrada já era limitada (`REVIEW_BUDGET`,
+      tamanho da pergunta). É um teto "macio": chamadas já em andamento
+      podem ultrapassá-lo, limitadas pelo teto por chamada e pelos rate
+      limits. Recalibrar com os dados reais da `llm_calls`.
 - [ ] Kill switch (flag) para desligar chat ou relatório por LLM sem deploy.
 
 **Se sobrar**

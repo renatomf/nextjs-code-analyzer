@@ -5,7 +5,7 @@ import { afterAll, describe, expect, it, vi } from "vitest";
 
 import { llmCalls, projects } from "@/db/schema";
 import { db } from "@/lib/db";
-import { recordLlmCall } from "@/modules/billing/server";
+import { assertLlmBudget, recordLlmCall } from "@/modules/billing/server";
 import { logger } from "@/shared/logger";
 import { createUser, deleteUsers } from "@/test/integration/factories";
 
@@ -114,5 +114,44 @@ describe("recordLlmCall", () => {
     expect(error).toHaveBeenCalledWith("llm_usage.record_failed", expect.objectContaining({ feature: "chat" }));
 
     error.mockRestore();
+  });
+});
+
+describe("assertLlmBudget", () => {
+  afterAll(() => {
+    delete process.env.PLAN_FREE_LLM_TOKENS_PER_DAY;
+  });
+
+  const row = (userId: string, tokens: number, createdAt?: Date) => ({
+    userId,
+    feature: "chat" as const,
+    model: "openai/gpt-oss-120b",
+    inputTokens: tokens,
+    outputTokens: 0,
+    latencyMs: 1,
+    ok: true,
+    ...(createdAt ? { createdAt } : {}),
+  });
+
+  it("counts only this user's tokens of today, failed calls included", async () => {
+    process.env.PLAN_FREE_LLM_TOKENS_PER_DAY = "1000";
+    const userId = await newUser();
+    const other = await newUser();
+    const yesterday = new Date(Date.now() - 36 * 60 * 60 * 1000);
+
+    await db.insert(llmCalls).values([
+      row(userId, 5_000, yesterday),
+      row(other, 5_000),
+      row(userId, 600),
+      { ...row(userId, 300), outputTokens: 99, ok: false },
+    ]);
+    // 999 of 1000 today: one more call is allowed.
+    await expect(assertLlmBudget(userId)).resolves.toBeUndefined();
+
+    await db.insert(llmCalls).values(row(userId, 1));
+    await expect(assertLlmBudget(userId)).rejects.toMatchObject({
+      name: "BillingLimitError",
+      code: "llm_tokens",
+    });
   });
 });

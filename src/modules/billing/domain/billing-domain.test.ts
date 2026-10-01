@@ -9,6 +9,7 @@ import {
 } from "./plan";
 import {
   assertAnalysisQuota,
+  assertLlmTokenBudget,
   assertProjectQuota,
   BillingLimitError,
   quotaDayStart,
@@ -17,8 +18,8 @@ import {
 // Pure domain rules: no database, no environment variables.
 
 const config: PlanConfig = {
-  free: { label: "Free", priceLabel: "$0", analysesPerDay: 5, chatPerHour: 20, maxProjects: 3 },
-  premium: { label: "Premium", priceLabel: "", analysesPerDay: 50, chatPerHour: 200 },
+  free: { label: "Free", priceLabel: "$0", analysesPerDay: 5, chatPerHour: 20, maxProjects: 3, llmTokensPerDay: 1_000 },
+  premium: { label: "Premium", priceLabel: "", analysesPerDay: 50, chatPerHour: 200, llmTokensPerDay: 10_000 },
 };
 const catalog = buildPlanCatalog(config);
 
@@ -86,5 +87,26 @@ describe("quota", () => {
       expect(error).toMatchObject({ code: "analyses", canUpgrade: false });
       expect((error as Error).message).toContain("Try again tomorrow.");
     }
+  });
+});
+
+describe("LLM token budget", () => {
+  it("allows calls until the plan's daily budget is spent", () => {
+    expect(() => assertLlmTokenBudget(catalog, catalog.free, 999)).not.toThrow();
+
+    try {
+      assertLlmTokenBudget(catalog, catalog.free, 1_000);
+      expect.unreachable();
+    } catch (error) {
+      expect(error).toMatchObject({ code: "llm_tokens", canUpgrade: true });
+      expect((error as Error).message).toContain("Upgrade to Premium");
+    }
+  });
+
+  it("offers no upgrade to a premium user", () => {
+    expect(() => assertLlmTokenBudget(catalog, catalog.premium, 9_999)).not.toThrow();
+    expect(() => assertLlmTokenBudget(catalog, catalog.premium, 10_000)).toThrow(
+      expect.objectContaining({ code: "llm_tokens", canUpgrade: false }),
+    );
   });
 });

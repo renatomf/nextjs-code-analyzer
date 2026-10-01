@@ -3,7 +3,7 @@ import { DomainError } from "@/shared/errors";
 import type { PlanCatalog, PlanLimits } from "./plan";
 
 export class BillingLimitError extends DomainError {
-  code: "analyses" | "projects" | "chat";
+  code: "analyses" | "projects" | "chat" | "llm_tokens";
   upgradeRequired = true;
   /** Short heading and body for UIs that lay the notice out (see `message`). */
   title?: string;
@@ -68,6 +68,30 @@ export function assertAnalysisQuota(
       detail: `You've used all ${limits.analysesPerDay} analyses for today on the ${limits.label} plan. ${
         canUpgrade
           ? `Upgrade to ${paid.label} for up to ${paid.analysesPerDay} a day, or try again tomorrow.`
+          : "Try again tomorrow."
+      }`,
+      canUpgrade,
+    });
+  }
+}
+
+/**
+ * The daily LLM token budget (roadmap Phase 4). A soft cap: it is checked
+ * before each call, so the calls already in flight may go over it; the
+ * per-call output caps and the rate limits bound by how much.
+ */
+export function assertLlmTokenBudget(
+  catalog: PlanCatalog,
+  limits: PlanLimits,
+  usedToday: number,
+): void {
+  if (usedToday >= limits.llmTokensPerDay) {
+    const canUpgrade = limits.label === catalog.free.label;
+    throw limitError("llm_tokens", {
+      title: "Daily AI usage limit reached",
+      detail: `You've used today's AI budget on the ${limits.label} plan. ${
+        canUpgrade
+          ? `Upgrade to ${catalog.premium.label} for a larger budget, or try again tomorrow.`
           : "Try again tomorrow."
       }`,
       canUpgrade,

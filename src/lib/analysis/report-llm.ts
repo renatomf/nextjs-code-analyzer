@@ -8,6 +8,10 @@ import { z } from "zod";
 
 // A slow provider must not hold the analysis request (TD-29).
 const LLM_TIMEOUT_MS = 120_000;
+// Per-analysis ceiling (roadmap Phase 4): about 3x the longest review in the
+// evals of 2026-09-30 (2.9k output tokens). The input is already bounded by
+// REVIEW_BUDGET.
+const MAX_OUTPUT_TOKENS = 8_000;
 // The prompt asks for at most 10; the server enforces it (stored in reports).
 const MAX_ISSUES = 10;
 const MAX_TITLE = 200;
@@ -99,6 +103,7 @@ export async function runLlmHealthReview(options: {
       output: Output.object({ schema: reportSchema }),
       // Same code, same review: needed for a stable report and a fair eval.
       temperature: 0,
+      maxOutputTokens: MAX_OUTPUT_TOKENS,
       abortSignal: AbortSignal.timeout(LLM_TIMEOUT_MS),
       instructions: reviewInstructions(boundary),
       prompt: [

@@ -7,11 +7,12 @@ import { logger } from "@/shared/logger";
 
 import { createQuota, getBillingSnapshot as snapshotFor } from "./application/quota";
 import { estimateCostMicroUsd, type LlmFeature } from "./domain/llm-cost";
+import { assertLlmTokenBudget, quotaDayStart } from "./domain/quota";
 import {
   createBillingRepository,
   type Executor,
 } from "./infrastructure/drizzle-billing-repository";
-import { insertLlmCall } from "./infrastructure/drizzle-llm-calls";
+import { insertLlmCall, sumLlmTokensSince } from "./infrastructure/drizzle-llm-calls";
 import { getPlanCatalog, limitsFor, type PlanCatalog, type PlanLimits } from "./index";
 
 /**
@@ -129,6 +130,17 @@ export async function recordLlmCall(call: {
       feature: call.feature,
     });
   }
+}
+
+/**
+ * Throws `BillingLimitError` ("llm_tokens") once the user has spent the
+ * daily LLM token budget of their plan. Call it right before each LLM call.
+ * `userId` must come from the server session.
+ */
+export async function assertLlmBudget(userId: string): Promise<void> {
+  const limits = await getPlanLimitsFor(userId);
+  const used = await sumLlmTokensSince(userId, quotaDayStart(new Date()));
+  assertLlmTokenBudget(getPlanCatalog(), limits, used);
 }
 
 // Stripe: loaded on first use, so quota callers (analysis, chat) do not pay

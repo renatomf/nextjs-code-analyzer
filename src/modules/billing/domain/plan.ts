@@ -9,6 +9,8 @@ export type PlanLimits = {
   analysesPerDay: number;
   chatPerHour: number;
   maxProjects: number;
+  /** LLM tokens (input + output) a user may spend per quota day. */
+  llmTokensPerDay: number;
   label: string;
   priceLabel: string;
   features: string[];
@@ -24,6 +26,7 @@ export type PlanConfig = {
     analysesPerDay: number;
     chatPerHour: number;
     maxProjects: number;
+    llmTokensPerDay: number;
   };
   premium: {
     label: string;
@@ -31,6 +34,7 @@ export type PlanConfig = {
     priceLabel: string;
     analysesPerDay: number;
     chatPerHour: number;
+    llmTokensPerDay: number;
   };
 };
 
@@ -46,6 +50,7 @@ export function buildPlanCatalog(config: PlanConfig): PlanCatalog {
       analysesPerDay: free.analysesPerDay,
       chatPerHour: free.chatPerHour,
       maxProjects: free.maxProjects,
+      llmTokensPerDay: free.llmTokensPerDay,
       features: [
         `${free.analysesPerDay} analyses / day`,
         `${free.maxProjects} projects`,
@@ -58,6 +63,7 @@ export function buildPlanCatalog(config: PlanConfig): PlanCatalog {
       analysesPerDay: premium.analysesPerDay,
       chatPerHour: premium.chatPerHour,
       maxProjects: Number.POSITIVE_INFINITY,
+      llmTokensPerDay: premium.llmTokensPerDay,
       features: [
         `${premium.analysesPerDay} analyses / day`,
         "Unlimited projects",
