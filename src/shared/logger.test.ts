@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { logger, redactText, requestIdFrom } from "@/shared/logger";
+import { logger, redactText, requestIdFrom, setErrorReporter } from "@/shared/logger";
 
 function captureLines(method: "error" | "warn" | "log") {
   const spy = vi.spyOn(console, method).mockImplementation(() => {});
@@ -108,5 +108,35 @@ describe("requestIdFrom", () => {
 
   it("falls back to a new id", () => {
     expect(requestIdFrom(null)).toMatch(/^[0-9a-f-]{36}$/);
+  });
+});
+
+describe("error reporter (Sentry)", () => {
+  afterEach(() => {
+    setErrorReporter(undefined);
+  });
+
+  it("forwards only errors, with the event name and request id", () => {
+    captureLines("error");
+    captureLines("warn");
+    const reporter = vi.fn();
+    setErrorReporter(reporter);
+    const err = new Error("boom");
+
+    logger.warn("analysis.report_rejected", { err });
+    logger.error("chat.failed", { err, requestId: "req-1" });
+
+    expect(reporter).toHaveBeenCalledTimes(1);
+    expect(reporter).toHaveBeenCalledWith("chat.failed", err, "req-1");
+  });
+
+  it("never throws when the reporter fails, and still writes the line", () => {
+    const lines = captureLines("error");
+    setErrorReporter(() => {
+      throw new Error("sentry down");
+    });
+
+    expect(() => logger.error("chat.failed")).not.toThrow();
+    expect(lines()).toEqual([expect.objectContaining({ event: "chat.failed" })]);
   });
 });

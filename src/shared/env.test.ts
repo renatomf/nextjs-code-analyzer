@@ -24,7 +24,12 @@ function problemsOf(env: Source): string[] {
 describe("validateEnv", () => {
   it("accepts the minimal required set and reports disabled integrations", () => {
     const { disabledFeatures } = validateEnv(valid);
-    expect(disabledFeatures).toEqual(["GitHub login and import", "Google login", "billing"]);
+    expect(disabledFeatures).toEqual([
+      "GitHub login and import",
+      "Google login",
+      "billing",
+      "error monitoring (Sentry)",
+    ]);
   });
 
   it("names every missing required variable", () => {
@@ -84,6 +89,10 @@ describe("validateEnv", () => {
       STRIPE_WEBHOOK_SECRET: "whsec_x",
       GITHUB_CLIENT_ID: "id",
     });
-    expect(disabledFeatures).toEqual(["GitHub login and import", "Google login"]);
+    expect(disabledFeatures).toEqual([
+      "GitHub login and import",
+      "Google login",
+      "error monitoring (Sentry)",
+    ]);
   });
 });
