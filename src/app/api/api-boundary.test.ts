@@ -20,6 +20,7 @@ const mocks = vi.hoisted(() => {
     generateText: vi.fn(),
     runFullProjectAnalysis: vi.fn(),
     recordLlmCall: vi.fn(),
+    assertLlmBudget: vi.fn(),
     RateLimitError,
   };
 });
@@ -39,6 +40,7 @@ vi.mock("@/lib/ai/llm", () => ({ getLanguageModel: () => "model", languageModelI
 vi.mock("@/modules/billing/server", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/modules/billing/server")>()),
   recordLlmCall: mocks.recordLlmCall,
+  assertLlmBudget: mocks.assertLlmBudget,
 }));
 vi.mock("@/lib/analysis/pipeline", () => ({
   runFullProjectAnalysis: mocks.runFullProjectAnalysis,
@@ -47,6 +49,8 @@ vi.mock("ai", async (importOriginal) => ({
   ...(await importOriginal<typeof import("ai")>()),
   generateText: mocks.generateText,
 }));
+
+import { BillingLimitError } from "@/modules/billing";
 
 import { POST as chat } from "@/app/api/chat/route";
 import { POST as explain } from "@/app/api/explorer/explain/route";
@@ -94,6 +98,7 @@ beforeEach(() => {
     mocks.generateText,
     mocks.runFullProjectAnalysis,
     mocks.recordLlmCall,
+    mocks.assertLlmBudget,
   ]) {
     fn.mockReset();
   }
@@ -164,6 +169,19 @@ describe("POST /api/chat", () => {
     expect(response.status).toBe(429);
   });
 
+  it("answers 429 with the plan notice once the daily token budget is spent", async () => {
+    mocks.limit
+      .mockResolvedValueOnce([{ id: PROJECT, name: "p", framework: null }])
+      .mockResolvedValueOnce([{ id: "chunk" }]);
+    mocks.assertLlmBudget.mockRejectedValueOnce(
+      new BillingLimitError("llm_tokens", "Daily AI usage limit reached. Try again tomorrow."),
+    );
+    const response = await chat(post({ projectId: PROJECT, messages: [userMessage] }));
+    expect(response.status).toBe(429);
+    expect(await response.json()).toEqual({ error: "Daily AI usage limit reached. Try again tomorrow." });
+    expect(mocks.assertLlmBudget).toHaveBeenCalledWith(USER);
+  });
+
   it("hides internal errors behind a generic 500", async () => {
     mocks.limit.mockRejectedValueOnce(new Error(SECRET_DETAIL));
     await expectGeneric500(await chat(post({ projectId: PROJECT, messages: [userMessage] })));
@@ -191,6 +209,14 @@ describe("POST /api/explorer/explain", () => {
     mocks.assertChatRateLimit.mockRejectedValueOnce(new mocks.RateLimitError("Too many"));
     expect((await explain(post(body))).status).toBe(429);
     expect(mocks.readProjectFile).not.toHaveBeenCalled();
+    expect(mocks.generateText).not.toHaveBeenCalled();
+  });
+
+  it("answers 429 once the daily token budget is spent, without calling the LLM", async () => {
+    mocks.limit.mockResolvedValueOnce([{ id: PROJECT, name: "p" }]);
+    mocks.assertLlmBudget.mockRejectedValueOnce(new BillingLimitError("llm_tokens", "Daily AI usage limit reached."));
+    expect((await explain(post(body))).status).toBe(429);
+    expect(mocks.assertLlmBudget).toHaveBeenCalledWith(USER);
     expect(mocks.generateText).not.toHaveBeenCalled();
   });
 

@@ -11,7 +11,8 @@ import {
   extractLastUserText,
   type ChatSource,
 } from "@/modules/chat";
-import { recordLlmCall } from "@/modules/billing/server";
+import { BillingLimitError } from "@/modules/billing";
+import { assertLlmBudget, recordLlmCall } from "@/modules/billing/server";
 import { retrieveChatContext } from "@/modules/chat/server";
 import { getChatProject } from "@/modules/projects/server";
 import {
@@ -28,6 +29,8 @@ export const maxDuration = 60;
 // Bounds the LLM / embedding cost of a single request.
 const MAX_MESSAGES = 50;
 const MAX_QUESTION_LENGTH = 4000;
+// About 3x the longest answer in the chat eval of 2026-09-30 (1.3k tokens).
+const MAX_OUTPUT_TOKENS = 4_000;
 
 const chatRequestSchema = z.object({
   projectId: z.uuid(),
@@ -77,6 +80,7 @@ export async function POST(request: Request) {
     }
 
     await assertChatRateLimit(session.user.id);
+    await assertLlmBudget(session.user.id);
 
     const question = extractLastUserText(messages);
     if (!question || question.length > MAX_QUESTION_LENGTH) {
@@ -109,6 +113,7 @@ export async function POST(request: Request) {
 
     const result = streamText({
       model: getLanguageModel(),
+      maxOutputTokens: MAX_OUTPUT_TOKENS,
       instructions: buildChatSystemPrompt({
         projectName: project.name,
         framework: project.framework,
@@ -136,7 +141,7 @@ export async function POST(request: Request) {
       }),
     });
   } catch (error) {
-    if (error instanceof RateLimitError) {
+    if (error instanceof RateLimitError || error instanceof BillingLimitError) {
       return Response.json({ error: error.message }, { status: 429 });
     }
 

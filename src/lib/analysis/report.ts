@@ -17,7 +17,7 @@ import {
   computeDeterministicMetrics,
   diminishingPenaltyPolicy,
 } from "@/modules/analysis";
-import { recordLlmCall } from "@/modules/billing/server";
+import { assertLlmBudget, recordLlmCall } from "@/modules/billing/server";
 import { setProjectStatus } from "@/modules/projects/server";
 
 export type GeneratedReport = {
@@ -72,6 +72,9 @@ export async function generateProjectReport(
         "No code chunks available. Build project knowledge before generating a report.",
       );
     }
+
+    // Here, not at the entry points: every path to a report ends in this call.
+    await assertLlmBudget(userId);
 
     // Usage recorded on success and failure (Phase 4); recording never throws.
     const llmCall = { userId, projectId, feature: "report" as const, model: structuredLanguageModelId() };

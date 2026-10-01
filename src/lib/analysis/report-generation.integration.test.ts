@@ -187,6 +187,32 @@ describe("generateProjectReport (characterization)", () => {
     ]);
   });
 
+  it("refuses before calling the LLM once the daily token budget is spent", async () => {
+    process.env.PLAN_FREE_LLM_TOKENS_PER_DAY = "1000";
+    try {
+      const projectId = await analyzedProject();
+      await db.insert(llmCalls).values({
+        userId: owner,
+        feature: "chat",
+        model: "openai/gpt-oss-120b",
+        inputTokens: 1_000,
+        outputTokens: 0,
+        latencyMs: 1,
+        ok: true,
+      });
+
+      await expect(generateProjectReport(owner, projectId)).rejects.toMatchObject({ code: "llm_tokens" });
+      expect(mocks.runLlmHealthReview).not.toHaveBeenCalled();
+      // A plan limit, so the user sees why (DomainError message).
+      expect(await projectState(projectId)).toEqual({
+        status: "failed",
+        errorMessage: expect.stringContaining("Daily AI usage limit reached"),
+      });
+    } finally {
+      delete process.env.PLAN_FREE_LLM_TOKENS_PER_DAY;
+    }
+  });
+
   it("never reports on another user's project", async () => {
     const projectId = await analyzedProject();
     const intruder = await createUser();
