@@ -19,6 +19,7 @@ import {
 } from "@/modules/analysis";
 import { assertLlmBudget, assertLlmEnabled, recordLlmCall } from "@/modules/billing/server";
 import { setProjectStatus } from "@/modules/projects/server";
+import { traced } from "@/shared/tracing";
 
 export type GeneratedReport = {
   healthScore: number;
@@ -52,7 +53,9 @@ export async function generateProjectReport(
 
   try {
     const files = await loadProjectSourceFiles(userId, projectId);
-    const metrics = computeDeterministicMetrics(files);
+    const metrics = await traced("report.metrics", { files: files.length }, async () =>
+      computeDeterministicMetrics(files),
+    );
 
     const chunks = await db
       .select({
@@ -80,11 +83,13 @@ export async function generateProjectReport(
     // Usage recorded on success and failure (Phase 4); recording never throws.
     const llmCall = { userId, projectId, feature: "report" as const, model: structuredLanguageModelId() };
     const llmStarted = performance.now();
-    const llm = await runLlmHealthReview({
-      projectName: project.name,
-      framework: project.framework,
-      chunks,
-    }).catch(async (error: unknown) => {
+    const llm = await traced("report.llm_review", { chunks: chunks.length }, () =>
+      runLlmHealthReview({
+        projectName: project.name,
+        framework: project.framework,
+        chunks,
+      }),
+    ).catch(async (error: unknown) => {
       await recordLlmCall({ ...llmCall, usage: null, latencyMs: performance.now() - llmStarted, ok: false });
       throw error;
     });

@@ -485,6 +485,9 @@ maintainability) · **Low** (cleanup).
   (connection strings, Stripe/GitHub/Groq keys, Bearer tokens). All 26
   `console.*` calls replaced. Server actions do not carry a request id yet
   (would need `headers()`); tracing and error tracking stay in Phase 4.
+- **Done (Phase 4):** every `logger.error` also goes to Sentry, tagged with
+  the event name and request id, and requests are traced, with spans per
+  pipeline step (see roadmap Phase 4).
 - **Phase:** Clean Architecture (moved up from Observability).
 
 ### TD-32 — `publicErrorMessage` duplicated · Low

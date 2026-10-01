@@ -2,6 +2,7 @@ import { and, cosineDistance, eq, exists, sql } from "drizzle-orm";
 
 import { codeChunks, projects } from "@/db/schema";
 import { db } from "@/lib/db";
+import { traced } from "@/shared/tracing";
 
 import type { VectorStore } from "../application/ports";
 
@@ -18,33 +19,43 @@ export type StoredChunk = {
 // never from the client) in addition to `projectId`.
 
 export const pgvectorStore: VectorStore = {
-  async replaceProjectChunks(userId, projectId, chunks) {
-    await db.transaction(async (tx) => {
-      const [project] = await tx
-        .select({ id: projects.id })
-        .from(projects)
-        .where(and(eq(projects.id, projectId), eq(projects.userId, userId)));
-      if (!project) throw new Error("Project not found");
-
-      await tx.delete(codeChunks).where(eq(codeChunks.projectId, projectId));
-
-      const INSERT_BATCH = 100;
-      for (let i = 0; i < chunks.length; i += INSERT_BATCH) {
-        const batch = chunks.slice(i, i + INSERT_BATCH);
-        await tx.insert(codeChunks).values(
-          batch.map((chunk) => ({
-            projectId,
-            filePath: chunk.filePath,
-            content: chunk.content,
-            startLine: chunk.startLine,
-            endLine: chunk.endLine,
-            embedding: chunk.embedding,
-          })),
-        );
-      }
-    });
+  replaceProjectChunks(userId, projectId, chunks) {
+    return traced("vector.replace_chunks", { chunks: chunks.length }, () =>
+      replaceChunks(userId, projectId, chunks),
+    );
   },
 };
+
+async function replaceChunks(
+  userId: string,
+  projectId: string,
+  chunks: Parameters<VectorStore["replaceProjectChunks"]>[2],
+): Promise<void> {
+  await db.transaction(async (tx) => {
+    const [project] = await tx
+      .select({ id: projects.id })
+      .from(projects)
+      .where(and(eq(projects.id, projectId), eq(projects.userId, userId)));
+    if (!project) throw new Error("Project not found");
+
+    await tx.delete(codeChunks).where(eq(codeChunks.projectId, projectId));
+
+    const INSERT_BATCH = 100;
+    for (let i = 0; i < chunks.length; i += INSERT_BATCH) {
+      const batch = chunks.slice(i, i + INSERT_BATCH);
+      await tx.insert(codeChunks).values(
+        batch.map((chunk) => ({
+          projectId,
+          filePath: chunk.filePath,
+          content: chunk.content,
+          startLine: chunk.startLine,
+          endLine: chunk.endLine,
+          embedding: chunk.embedding,
+        })),
+      );
+    }
+  });
+}
 
 /** Top-k similarity search over a project's code chunks. */
 export async function searchProjectChunks(
@@ -55,7 +66,7 @@ export async function searchProjectChunks(
 ): Promise<StoredChunk[]> {
   const distance = cosineDistance(codeChunks.embedding, queryEmbedding);
 
-  return db
+  return traced("vector.search", { limit }, async () => db
     .select({
       id: codeChunks.id,
       filePath: codeChunks.filePath,
@@ -77,5 +88,5 @@ export async function searchProjectChunks(
       ),
     )
     .orderBy(distance)
-    .limit(limit);
+    .limit(limit));
 }

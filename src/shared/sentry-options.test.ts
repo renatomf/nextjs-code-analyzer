@@ -1,7 +1,14 @@
 import type { ErrorEvent } from "@sentry/nextjs";
 import { describe, expect, it } from "vitest";
 
-import { scrubBreadcrumb, scrubEvent, scrubSpan, scrubUrl, sentryOptions } from "./sentry-options";
+import {
+  scrubBreadcrumb,
+  scrubEvent,
+  scrubSpan,
+  scrubUrl,
+  sentryOptions,
+  tracesSamplerFor,
+} from "./sentry-options";
 
 // What leaves for Sentry (roadmap Phase 4): no PII, none of the user's code,
 // no secrets, no share tokens.
@@ -77,12 +84,31 @@ describe("scrubBreadcrumb", () => {
 });
 
 describe("sentryOptions", () => {
-  it("is off without a DSN and samples traces in production", () => {
-    expect(sentryOptions("", "production")).toMatchObject({ dsn: undefined, tracesSampleRate: 0.1 });
-    expect(sentryOptions("https://k@o1.ingest.sentry.io/1", undefined)).toMatchObject({
-      environment: "development",
-      tracesSampleRate: 1,
+  it("is off without a DSN and defaults to the development environment", () => {
+    expect(sentryOptions("", "production").dsn).toBeUndefined();
+    expect(sentryOptions("https://k@o1.ingest.sentry.io/1", undefined).environment).toBe("development");
+  });
+});
+
+describe("tracesSamplerFor", () => {
+  const sample = (environment: string | undefined, name: string, attributes = {}) =>
+    tracesSamplerFor(environment)({
+      name,
+      attributes,
+      inheritOrSampleWith: (fallback) => fallback,
     });
+
+  it("traces every request of the measured routes, in any environment", () => {
+    expect(sample("production", "POST /api/chat")).toBe(1);
+    expect(sample("production", "POST /api/explorer/explain")).toBe(1);
+    expect(sample("production", "POST", { "http.target": "/api/projects/abc-123/analyze" })).toBe(1);
+  });
+
+  it("samples everything else at 10% in production and fully elsewhere", () => {
+    expect(sample("production", "GET /api/projects/abc-123/status")).toBe(0.1);
+    expect(sample("production", "GET /login")).toBe(0.1);
+    expect(sample("production", "POST /api/chatty")).toBe(0.1);
+    expect(sample("preview", "GET /login")).toBe(1);
   });
 });
 

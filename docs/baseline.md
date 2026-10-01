@@ -90,10 +90,10 @@ Chromium).
 
 | Métrica | Por que falta | Quando / como |
 |---|---|---|
-| Tokens e custo por relatório/chat | nenhum registro de uso do LLM | Fase 4: gravar tokens, custo e latência por chamada |
-| Latência do chat (p50/p95) | Vercel não registra duração; sem instrumentação | Fase 4: tracing; depois 20 perguntas fixas em 3 repos |
-| Cold start (download do modelo, 23 MB) | idem | Fase 4 (tracing por etapa) |
-| Tempo por etapa do pipeline | só existe o total (§1) | Fase 4 (spans por etapa) |
+| Tokens e custo por relatório/chat | nenhum registro de uso do LLM | Instrumentado (Fase 4): tabela `llm_calls`, agregar por `feature` (p50/p95 de tokens, soma de `cost_micro_usd`) |
+| Latência do chat (p50/p95) | Vercel não registra duração; sem instrumentação | Instrumentado (Fase 4): `llm_calls.latency_ms` com `feature = 'chat'` e o trace `POST /api/chat` no Sentry; depois 20 perguntas fixas em 3 repos |
+| Cold start (download do modelo, 23 MB) | idem | Instrumentado (Fase 4): span `embeddings.model_load` no Sentry |
+| Tempo por etapa do pipeline | só existe o total (§1) | Instrumentado (Fase 4): spans `pipeline.load_files`, `pipeline.chunk`, `embeddings.embed`, `vector.replace_chunks`, `report.metrics`, `report.llm_review` |
 | Precisão/recall dos achados | não há dataset rotulado | Fase 7 (evals) |
 | Qualidade da busca (recall@k) | idem | Fase 7 (evals) |
 
