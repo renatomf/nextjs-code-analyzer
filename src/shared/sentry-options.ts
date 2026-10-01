@@ -95,6 +95,22 @@ export function scrubSpan(span: StreamedSpan): StreamedSpan {
   return { ...span, name: scrubUrl(redactSecrets(span.name)), attributes };
 }
 
+// Routes the baseline measures (docs/baseline.md §5): rare and costly, so
+// every request is traced; the rest is sampled.
+const MEASURED_ROUTE = /\/api\/(chat|explorer\/explain|projects\/[^/\s]+\/analyze)(?![\w/])/;
+
+type SamplingContext = Parameters<NonNullable<BrowserOptions["tracesSampler"]>>[0];
+
+export function tracesSamplerFor(environment: string | undefined) {
+  const rate = environment === "production" ? 0.1 : 1;
+  return (context: SamplingContext): number => {
+    const target = [context.name, ...Object.values(context.attributes ?? {})]
+      .filter((value): value is string => typeof value === "string")
+      .join(" ");
+    return MEASURED_ROUTE.test(target) ? 1 : context.inheritOrSampleWith(rate);
+  };
+}
+
 /** `undefined` DSN = Sentry stays off (local dev, tests, CI). */
 export function sentryOptions(dsn: string | undefined, environment: string | undefined) {
   return {
@@ -116,8 +132,9 @@ export function sentryOptions(dsn: string | undefined, environment: string | und
       queues: false,
       stackFrameVariables: false,
     },
-    // Errors are all kept; traces are sampled (Sentry's free tier).
-    tracesSampleRate: environment === "production" ? 0.1 : 1,
+    // Errors are all kept; traces are sampled (Sentry's free tier), except
+    // the measured routes.
+    tracesSampler: tracesSamplerFor(environment),
     beforeSend: scrubEvent,
     // Traces are streamed (SDK 11): beforeSendTransaction would be ignored.
     beforeSendSpan: scrubSpan,

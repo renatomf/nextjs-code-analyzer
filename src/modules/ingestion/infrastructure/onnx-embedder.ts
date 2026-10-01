@@ -1,5 +1,7 @@
 import { env, pipeline } from "@huggingface/transformers";
 
+import { traced } from "@/shared/tracing";
+
 import type { Embedder } from "../application/ports";
 import { EMBEDDING_DIMENSIONS } from "../domain/knowledge";
 
@@ -31,10 +33,13 @@ let extractorPromise: Promise<FeatureExtractor> | null = null;
 
 async function getExtractor(): Promise<FeatureExtractor> {
   if (!extractorPromise) {
-    extractorPromise = pipeline("feature-extraction", MODEL_ID, {
-      revision: MODEL_REVISION,
-      dtype: MODEL_DTYPE,
-    }) as unknown as Promise<FeatureExtractor>;
+    // Cold start: downloads (~23MB) and loads the model once per instance.
+    extractorPromise = traced("embeddings.model_load", {}, () =>
+      pipeline("feature-extraction", MODEL_ID, {
+        revision: MODEL_REVISION,
+        dtype: MODEL_DTYPE,
+      }),
+    ) as unknown as Promise<FeatureExtractor>;
   }
   return extractorPromise;
 }
@@ -47,7 +52,11 @@ function toNumberArray(data: Float32Array | number[]): number[] {
  * Local MiniLM embeddings — no API quota.
  * First call downloads the model (~23MB) into the transformers cache.
  */
-export async function embedTexts(texts: string[]): Promise<number[][]> {
+export function embedTexts(texts: string[]): Promise<number[][]> {
+  return traced("embeddings.embed", { texts: texts.length }, () => embedAll(texts));
+}
+
+async function embedAll(texts: string[]): Promise<number[][]> {
   if (texts.length === 0) return [];
 
   const extractor = await getExtractor();

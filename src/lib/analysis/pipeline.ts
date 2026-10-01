@@ -8,6 +8,7 @@ import {
 import { loadProjectSourceFiles } from "@/lib/analysis/project-files";
 import { generateProjectReport } from "@/lib/analysis/report";
 import { storeProjectChunks } from "@/modules/ingestion/server";
+import { traced } from "@/shared/tracing";
 
 // `userId` must come from the server session: every step below is scoped by
 // it, so a projectId sent by the client can never reach another user's data.
@@ -38,7 +39,9 @@ export async function buildProjectKnowledge(
   });
 
   try {
-    const files = await loadProjectSourceFiles(userId, projectId);
+    const files = await traced("pipeline.load_files", {}, () =>
+      loadProjectSourceFiles(userId, projectId),
+    );
     if (files.length === 0) {
       throw new DomainError(
         "No JavaScript/TypeScript source files found to analyze.",
@@ -51,7 +54,9 @@ export async function buildProjectKnowledge(
       fileCount: files.length,
     });
 
-    const drafts = chunkProjectFiles(files);
+    const drafts = await traced("pipeline.chunk", { files: files.length }, async () =>
+      chunkProjectFiles(files),
+    );
 
     await checkpoint(userId, projectId, {
       step: "Generating embeddings",
