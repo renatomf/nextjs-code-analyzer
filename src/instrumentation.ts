@@ -9,7 +9,20 @@ export async function register() {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
 
   const { validateEnv } = await import("@/shared/env");
-  const { logger } = await import("@/shared/logger");
+  const { logger, setErrorReporter } = await import("@/shared/logger");
+
+  // First, so a bad environment below is reported too. No DSN = off.
+  const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN;
+  if (dsn) {
+    const Sentry = await import("@sentry/nextjs");
+    const { sentryOptions } = await import("@/shared/sentry-options");
+    Sentry.init(sentryOptions(dsn, process.env.VERCEL_ENV));
+    setErrorReporter((event, err, requestId) => {
+      const scope = { tags: { log_event: event, ...(requestId ? { request_id: requestId } : {}) } };
+      if (err === undefined) Sentry.captureMessage(event, { level: "error", ...scope });
+      else Sentry.captureException(err, scope);
+    });
+  }
 
   try {
     const { disabledFeatures, warnings } = validateEnv();
@@ -27,7 +40,8 @@ export async function register() {
 
 /**
  * Unhandled server errors (Server Components, Server Actions, Route
- * Handlers). Headers are not logged: they carry cookies.
+ * Handlers). Headers are not logged: they carry cookies. `logger.error`
+ * also sends it to Sentry (see register).
  */
 export const onRequestError: Instrumentation.onRequestError = async (
   error,

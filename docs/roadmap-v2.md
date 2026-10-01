@@ -416,7 +416,18 @@ Vem antes da ingestão assíncrona: job em segundo plano sem log é caixa preta.
 **Obrigatório**
 
 - [x] ~~Logger estruturado~~ — feito na Fase 3 (ver lá).
-- [ ] Sentry (erros + tracing) com PII e código-fonte fora dos eventos.
+- [x] Sentry (erros + tracing) com PII e código-fonte fora dos eventos.
+      Feito: `@sentry/nextjs` 11 no servidor (`instrumentation.ts`) e no
+      navegador (`instrumentation-client.ts`, `global-error.tsx`); sem
+      `NEXT_PUBLIC_SENTRY_DSN` fica desligado. Todo `logger.error` também
+      vai ao Sentry (os erros tratados com 500 genérico não chegariam). O SDK
+      11 coleta tudo por padrão: `dataCollection` desliga usuário, cookies,
+      headers, corpos HTTP, query string, valores de consulta e,
+      principalmente, entradas e saídas do LLM (o prompt tem o código do
+      usuário). `beforeSend` ainda remove `extra`, contextos fora de uma
+      lista, breadcrumbs de console e tokens de compartilhamento, e mascara
+      segredos. Sem Session Replay (gravaria o código na tela). Traces: 10%
+      em produção. Source maps do navegador: TD-40.
 - [x] Tokens, custo e latência por chamada de LLM, gravados por `userId` e
       `projectId`. Feito: tabela `llm_calls` (migração 0004), uma linha por
       chamada do relatório, do chat e da explicação, com sucesso e falha

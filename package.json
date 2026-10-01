@@ -28,6 +28,7 @@
     "@auth/drizzle-adapter": "^1.11.3",
     "@base-ui/react": "^1.8.0",
     "@huggingface/transformers": "^4.3.0",
+    "@sentry/nextjs": "^11.2.0",
     "@vercel/functions": "^3.9.9",
     "ai": "^7.0.114",
     "bcryptjs": "^3.0.3",

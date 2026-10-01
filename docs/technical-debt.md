@@ -551,6 +551,17 @@ maintainability) · **Low** (cleanup).
   support, remove the ignore and upgrade one at a time, reading the CI log.
 - **Phase:** Maintenance.
 
+### TD-40 — Sentry gets minified browser stack traces · Low
+- **Where:** [next.config.ts](../next.config.ts) (no `withSentryConfig`),
+  [instrumentation-client.ts](../src/instrumentation-client.ts)
+- **Problem:** browser errors reach Sentry with minified frames: no source
+  maps are uploaded. Server frames are readable (Node build, not minified).
+- **Direction:** wrap the config with `withSentryConfig` and a
+  `SENTRY_AUTH_TOKEN` (Production-only secret, TD-36) to upload source maps
+  at build and delete them from the deploy; check the build time and the
+  12-function limit of the Hobby plan.
+- **Phase:** Observability (Phase 4, "se sobrar") or later.
+
 ---
 
 ## Already addressed during the tutorial

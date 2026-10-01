@@ -52,6 +52,7 @@ const optionalSchemas = {
   STRIPE_WEBHOOK_SECRET: z
     .string()
     .regex(/^whsec_/, { message: "must be a Stripe webhook secret" }),
+  NEXT_PUBLIC_SENTRY_DSN: z.url(),
 } satisfies Record<string, z.ZodType<string>>;
 
 type OptionalKey = keyof typeof optionalSchemas;
@@ -61,6 +62,7 @@ const OPTIONAL_FEATURES: Record<string, OptionalKey[]> = {
   "GitHub login and import": ["GITHUB_CLIENT_ID", "GITHUB_CLIENT_SECRET"],
   "Google login": ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"],
   billing: ["STRIPE_SECRET_KEY", "STRIPE_PRICE_PREMIUM", "STRIPE_WEBHOOK_SECRET"],
+  "error monitoring (Sentry)": ["NEXT_PUBLIC_SENTRY_DSN"],
 };
 
 export class EnvValidationError extends Error {

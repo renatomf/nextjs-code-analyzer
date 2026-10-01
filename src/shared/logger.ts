@@ -82,6 +82,26 @@ function write(level: Level, event: string, fields: LogFields = {}) {
   if (level === "error") console.error(line);
   else if (level === "warn") console.warn(line);
   else console.log(line);
+
+  if (level === "error" && errorReporter) {
+    try {
+      errorReporter(event, err, fields.requestId);
+    } catch {
+      // Reporting must never break the request; the log line is written.
+    }
+  }
+}
+
+type ErrorReporter = (event: string, err: unknown, requestId?: string) => void;
+let errorReporter: ErrorReporter | undefined;
+
+/**
+ * Also sends every `logger.error` to an error tracker (Sentry, set once in
+ * `instrumentation.ts`): most server errors are caught and answered with a
+ * generic 500, so the tracker would never see them otherwise.
+ */
+export function setErrorReporter(reporter: ErrorReporter | undefined): void {
+  errorReporter = reporter;
 }
 
 export const logger = {
