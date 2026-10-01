@@ -140,3 +140,25 @@ describe("error reporter (Sentry)", () => {
     expect(lines()).toEqual([expect.objectContaining({ event: "chat.failed" })]);
   });
 });
+
+describe("error reporter across bundles", () => {
+  afterEach(() => {
+    setErrorReporter(undefined);
+  });
+
+  // Next gives instrumentation.ts and each route their own copy of this
+  // module: the reporter set in one copy must reach the others.
+  it("reaches logger.error from another copy of the module", async () => {
+    captureLines("error");
+    const reporter = vi.fn();
+    setErrorReporter(reporter);
+
+    vi.resetModules();
+    const otherCopy = await import("@/shared/logger");
+    expect(otherCopy.logger).not.toBe(logger);
+
+    const err = new Error("boom");
+    otherCopy.logger.error("analysis.report_failed", { err });
+    expect(reporter).toHaveBeenCalledWith("analysis.report_failed", err, undefined);
+  });
+});
