@@ -29,6 +29,13 @@
       "when": 1790716899843,
       "tag": "0003_report_shares",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1790864220346,
+      "tag": "0004_llm_calls",
+      "breakpoints": true
     }
   ]
 }

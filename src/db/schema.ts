@@ -1,5 +1,6 @@
 import { relations } from "drizzle-orm";
 import {
+  boolean,
   index,
   integer,
   jsonb,
@@ -221,6 +222,33 @@ export const reportShares = pgTable("report_shares", {
   revokedAt: timestamp("revoked_at", { withTimezone: true }),
   createdAt: createdAt(),
 }).enableRLS();
+
+export const llmFeatureEnum = pgEnum("llm_feature", ["report", "chat", "explain"]);
+
+// One row per LLM call (roadmap Phase 4): counts only, never the prompt or
+// the answer. The project link is cleared, not cascaded, when a project is
+// deleted: the user's spending of the day must not disappear with it.
+// costMicroUsd is the estimate at the provider's list price (null for a
+// model without a known price).
+export const llmCalls = pgTable(
+  "llm_calls",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    projectId: uuid("project_id").references(() => projects.id, { onDelete: "set null" }),
+    feature: llmFeatureEnum("feature").notNull(),
+    model: text("model").notNull(),
+    inputTokens: integer("input_tokens").notNull(),
+    outputTokens: integer("output_tokens").notNull(),
+    latencyMs: integer("latency_ms").notNull(),
+    ok: boolean("ok").notNull(),
+    costMicroUsd: integer("cost_micro_usd"),
+    createdAt: createdAt(),
+  },
+  (t) => [index("llm_calls_user_id_created_at_idx").on(t.userId, t.createdAt)],
+).enableRLS();
 
 // Relations
 

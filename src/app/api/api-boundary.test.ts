@@ -19,6 +19,7 @@ const mocks = vi.hoisted(() => {
     readProjectFile: vi.fn(),
     generateText: vi.fn(),
     runFullProjectAnalysis: vi.fn(),
+    recordLlmCall: vi.fn(),
     RateLimitError,
   };
 });
@@ -34,7 +35,11 @@ vi.mock("@/lib/rate-limit", () => ({
   RateLimitError: mocks.RateLimitError,
 }));
 vi.mock("@/lib/files/explorer", () => ({ readProjectFile: mocks.readProjectFile }));
-vi.mock("@/lib/ai/llm", () => ({ getLanguageModel: () => "model" }));
+vi.mock("@/lib/ai/llm", () => ({ getLanguageModel: () => "model", languageModelId: () => "model" }));
+vi.mock("@/modules/billing/server", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/modules/billing/server")>()),
+  recordLlmCall: mocks.recordLlmCall,
+}));
 vi.mock("@/lib/analysis/pipeline", () => ({
   runFullProjectAnalysis: mocks.runFullProjectAnalysis,
 }));
@@ -88,6 +93,7 @@ beforeEach(() => {
     mocks.readProjectFile,
     mocks.generateText,
     mocks.runFullProjectAnalysis,
+    mocks.recordLlmCall,
   ]) {
     fn.mockReset();
   }
@@ -191,17 +197,32 @@ describe("POST /api/explorer/explain", () => {
   it("returns the answer with no-store (private code)", async () => {
     mocks.limit.mockResolvedValueOnce([{ id: PROJECT, name: "p" }]);
     mocks.readProjectFile.mockResolvedValueOnce({ relativePath: "src/a.ts", content: "x", sizeBytes: 1 });
-    mocks.generateText.mockResolvedValueOnce({ text: "It exports x." });
+    mocks.generateText.mockResolvedValueOnce({ text: "It exports x.", usage: { inputTokens: 120, outputTokens: 30 } });
 
     const response = await explain(post(body));
     expect(response.status).toBe(200);
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(mocks.readProjectFile).toHaveBeenCalledWith(USER, PROJECT, "src/a.ts");
+    // Usage recorded for the session user and the owned project (Phase 4).
+    expect(mocks.recordLlmCall).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: USER, projectId: PROJECT, feature: "explain", ok: true, usage: { inputTokens: 120, outputTokens: 30 } }),
+    );
   });
 
   it("hides internal errors behind a generic 500", async () => {
     mocks.limit.mockRejectedValueOnce(new Error(SECRET_DETAIL));
     await expectGeneric500(await explain(post(body)));
+  });
+
+  it("records a failed LLM call and still answers a generic 500", async () => {
+    mocks.limit.mockResolvedValueOnce([{ id: PROJECT, name: "p" }]);
+    mocks.readProjectFile.mockResolvedValueOnce({ relativePath: "src/a.ts", content: "x", sizeBytes: 1 });
+    mocks.generateText.mockRejectedValueOnce(new Error(SECRET_DETAIL));
+
+    await expectGeneric500(await explain(post(body)));
+    expect(mocks.recordLlmCall).toHaveBeenCalledWith(
+      expect.objectContaining({ feature: "explain", ok: false, usage: null }),
+    );
   });
 });
 

@@ -3,10 +3,11 @@ import { dataBlock, newDataBoundary } from "@/shared/prompt-data";
 import { generateText } from "ai";
 import { z } from "zod";
 
-import { getLanguageModel } from "@/lib/ai/llm";
+import { getLanguageModel, languageModelId } from "@/lib/ai/llm";
 import { auth } from "@/lib/auth";
 import { readProjectFile } from "@/lib/files/explorer";
 import { assertChatRateLimit, RateLimitError } from "@/lib/rate-limit";
+import { recordLlmCall } from "@/modules/billing/server";
 import { explainInstructions } from "@/modules/chat";
 import { findOwnedProject } from "@/modules/projects/server";
 
@@ -56,7 +57,15 @@ export async function POST(request: Request) {
     // The file is untrusted (TD-28): it goes in a data block, the rules in
     // the instructions.
     const boundary = newDataBoundary();
-    const { text } = await generateText({
+    // Usage recorded on success and failure (Phase 4); recording never throws.
+    const llmCall = {
+      userId: session.user.id,
+      projectId: project.id,
+      feature: "explain" as const,
+      model: languageModelId(),
+    };
+    const llmStarted = performance.now();
+    const { text, usage } = await generateText({
       model: getLanguageModel(),
       instructions: explainInstructions(boundary),
       prompt: [
@@ -65,7 +74,11 @@ export async function POST(request: Request) {
         "",
         dataBlock(boundary, `File: ${file.relativePath}`, truncated),
       ].join("\n"),
+    }).catch(async (error: unknown) => {
+      await recordLlmCall({ ...llmCall, usage: null, latencyMs: performance.now() - llmStarted, ok: false });
+      throw error;
     });
+    await recordLlmCall({ ...llmCall, usage, latencyMs: performance.now() - llmStarted, ok: true });
 
     return Response.json(
       {

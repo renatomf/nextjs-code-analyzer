@@ -7,6 +7,8 @@ import {
   getLanguageModel,
   getStructuredLanguageModel,
   isFakeLlmEnabled,
+  languageModelId,
+  structuredLanguageModelId,
 } from "@/lib/ai/llm";
 
 afterEach(() => {
@@ -24,6 +26,20 @@ describe("fake LLM switch", () => {
     vi.stubEnv("VERCEL", "1");
     expect(() => isFakeLlmEnabled()).toThrow(/never be set on a Vercel/);
     expect(() => getLanguageModel()).toThrow(/never be set on a Vercel/);
+  });
+
+  it("names the model each call uses (recorded with its usage)", () => {
+    vi.stubEnv("E2E_FAKE_LLM", "");
+    vi.stubEnv("GROQ_MODEL", "");
+    vi.stubEnv("GROQ_STRUCTURED_MODEL", "openai/gpt-oss-20b");
+    // An empty variable is not set: same as the shell without it.
+    delete process.env.GROQ_MODEL;
+    expect(languageModelId()).toBe("openai/gpt-oss-120b");
+    expect(structuredLanguageModelId()).toBe("openai/gpt-oss-20b");
+
+    vi.stubEnv("E2E_FAKE_LLM", "1");
+    vi.stubEnv("VERCEL", "");
+    expect(languageModelId()).toBe("e2e-fake-model");
   });
 
   it("still requires GROQ_API_KEY when the fake is off", () => {

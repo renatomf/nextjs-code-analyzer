@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { codeChunks, projects, reports } from "@/db/schema";
+import { codeChunks, llmCalls, projects, reports } from "@/db/schema";
 import { db } from "@/lib/db";
 import { persistProjectFiles } from "@/lib/files/storage";
 import { analysisFixtureFiles } from "@/test/fixtures/analysis-project";
@@ -47,7 +47,14 @@ const LLM_REVIEW = {
       filePath: "src/payment.ts",
     },
   ],
+  usage: { inputTokens: 5_500, outputTokens: 1_400 },
 };
+
+const llmCallsOf = (projectId: string) =>
+  db
+    .select({ feature: llmCalls.feature, ok: llmCalls.ok, inputTokens: llmCalls.inputTokens, outputTokens: llmCalls.outputTokens })
+    .from(llmCalls)
+    .where(eq(llmCalls.projectId, projectId));
 
 const created: string[] = [];
 let owner: string;
@@ -164,6 +171,20 @@ describe("generateProjectReport (characterization)", () => {
       errorMessage: "Failed to generate health report.",
     });
     expect(await db.select().from(reports).where(eq(reports.projectId, projectId))).toEqual([]);
+    // The failed call is recorded too (Phase 4): latency, no tokens.
+    expect(await llmCallsOf(projectId)).toEqual([
+      { feature: "report", ok: false, inputTokens: 0, outputTokens: 0 },
+    ]);
+  });
+
+  it("records the LLM call's usage with the report", async () => {
+    const projectId = await analyzedProject();
+
+    await generateProjectReport(owner, projectId);
+
+    expect(await llmCallsOf(projectId)).toEqual([
+      { feature: "report", ok: true, inputTokens: 5_500, outputTokens: 1_400 },
+    ]);
   });
 
   it("never reports on another user's project", async () => {

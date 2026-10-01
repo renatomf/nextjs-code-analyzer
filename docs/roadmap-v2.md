@@ -417,8 +417,16 @@ Vem antes da ingestão assíncrona: job em segundo plano sem log é caixa preta.
 
 - [x] ~~Logger estruturado~~ — feito na Fase 3 (ver lá).
 - [ ] Sentry (erros + tracing) com PII e código-fonte fora dos eventos.
-- [ ] Tokens, custo e latência por chamada de LLM, gravados por `userId` e
-      `projectId`.
+- [x] Tokens, custo e latência por chamada de LLM, gravados por `userId` e
+      `projectId`. Feito: tabela `llm_calls` (migração 0004), uma linha por
+      chamada do relatório, do chat e da explicação, com sucesso e falha
+      (tokens, latência, modelo e custo estimado a preço de tabela do Groq:
+      gpt-oss-120b US$ 0,15/0,60 por 1M de tokens de entrada/saída, lido em
+      2026-10-01; modelo sem preço conhecido fica sem estimativa). Só
+      números, nunca o prompt ou a resposta. Apagar um projeto não apaga o
+      gasto do dia (`ON DELETE SET NULL`). Gravar nunca derruba a
+      requisição do usuário (falha vai para o log). No chat, o uso vem do
+      `onEnd` do stream (`onError`/`onAbort` gravam falha).
 - [ ] Orçamento de tokens por usuário/dia e teto por análise (hoje o limite é
       por número de requisições, não por custo).
 - [ ] Kill switch (flag) para desligar chat ou relatório por LLM sem deploy.

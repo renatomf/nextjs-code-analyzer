@@ -19,6 +19,7 @@ export {
   type PlanStatus,
 } from "./domain/plan";
 export { BillingLimitError } from "./domain/quota";
+export { estimateCostMicroUsd, type LlmFeature, type LlmUsage } from "./domain/llm-cost";
 
 /** Plan catalog from the current configuration (read on every call). */
 export function getPlanCatalog(): PlanCatalog {
