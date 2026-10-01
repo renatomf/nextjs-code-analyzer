@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { codeChunks, llmCalls, projects, reports } from "@/db/schema";
+import { codeChunks, llmCalls, llmSwitches, projects, reports } from "@/db/schema";
 import { db } from "@/lib/db";
 import { persistProjectFiles } from "@/lib/files/storage";
 import { analysisFixtureFiles } from "@/test/fixtures/analysis-project";
@@ -210,6 +210,24 @@ describe("generateProjectReport (characterization)", () => {
       });
     } finally {
       delete process.env.PLAN_FREE_LLM_TOKENS_PER_DAY;
+    }
+  });
+
+  it("refuses before calling the LLM while the report's kill switch is off", async () => {
+    await db.insert(llmSwitches).values({ feature: "report", enabled: false });
+    try {
+      const projectId = await analyzedProject();
+
+      await expect(generateProjectReport(owner, projectId)).rejects.toMatchObject({
+        name: "LlmUnavailableError",
+      });
+      expect(mocks.runLlmHealthReview).not.toHaveBeenCalled();
+      expect(await projectState(projectId)).toEqual({
+        status: "failed",
+        errorMessage: "The AI review is temporarily unavailable. Try again later.",
+      });
+    } finally {
+      await db.delete(llmSwitches).where(eq(llmSwitches.feature, "report"));
     }
   });
 

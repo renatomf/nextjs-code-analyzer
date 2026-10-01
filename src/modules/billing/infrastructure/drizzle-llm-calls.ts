@@ -1,6 +1,6 @@
 import { and, eq, gte, sql } from "drizzle-orm";
 
-import { llmCalls } from "@/db/schema";
+import { llmCalls, llmSwitches } from "@/db/schema";
 import { db } from "@/lib/db";
 
 import type { LlmFeature } from "../domain/llm-cost";
@@ -30,4 +30,14 @@ export async function sumLlmTokensSince(userId: string, since: Date): Promise<nu
     .from(llmCalls)
     .where(and(eq(llmCalls.userId, userId), gte(llmCalls.createdAt, since)));
   return row?.total ?? 0;
+}
+
+/** The feature's kill switch: on unless a row turns it off. */
+export async function isLlmFeatureEnabled(feature: LlmFeature): Promise<boolean> {
+  const [row] = await db
+    .select({ enabled: llmSwitches.enabled })
+    .from(llmSwitches)
+    .where(eq(llmSwitches.feature, feature))
+    .limit(1);
+  return row?.enabled ?? true;
 }

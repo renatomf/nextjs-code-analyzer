@@ -11,8 +11,8 @@ import {
   extractLastUserText,
   type ChatSource,
 } from "@/modules/chat";
-import { BillingLimitError } from "@/modules/billing";
-import { assertLlmBudget, recordLlmCall } from "@/modules/billing/server";
+import { BillingLimitError, LlmUnavailableError } from "@/modules/billing";
+import { assertLlmBudget, assertLlmEnabled, recordLlmCall } from "@/modules/billing/server";
 import { retrieveChatContext } from "@/modules/chat/server";
 import { getChatProject } from "@/modules/projects/server";
 import {
@@ -79,6 +79,8 @@ export async function POST(request: Request) {
       );
     }
 
+    // Kill switch first: a feature that is off uses up no rate limit.
+    await assertLlmEnabled("chat");
     await assertChatRateLimit(session.user.id);
     await assertLlmBudget(session.user.id);
 
@@ -141,6 +143,9 @@ export async function POST(request: Request) {
       }),
     });
   } catch (error) {
+    if (error instanceof LlmUnavailableError) {
+      return Response.json({ error: error.message }, { status: 503 });
+    }
     if (error instanceof RateLimitError || error instanceof BillingLimitError) {
       return Response.json({ error: error.message }, { status: 429 });
     }
