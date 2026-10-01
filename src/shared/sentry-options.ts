@@ -69,6 +69,32 @@ export function scrubEvent<T extends Event>(event: T): T {
   return event;
 }
 
+type StreamedSpan = Parameters<NonNullable<BrowserOptions["beforeSendSpan"]>>[0];
+
+// Span attributes that can carry a query, cookies, headers, a body or the
+// visitor's address: dropped whatever the SDK's dataCollection does.
+const DROPPED_ATTRIBUTE = /(^|\.)(query|cookies?|headers?|body)(\.|$)|^user\.|^client\.address$|\.ip$/i;
+const URL_ATTRIBUTE = /url|target|path|route|referr?er|location/i;
+
+/**
+ * Traces are streamed as spans (SDK 11 default), which `beforeSend*` never
+ * sees: the span name and URL attributes (`url.full`) would carry share
+ * tokens (`/r/<token>`) to Sentry. Same rules as scrubEvent.
+ */
+export function scrubSpan(span: StreamedSpan): StreamedSpan {
+  const attributes: StreamedSpan["attributes"] = {};
+  for (const [key, value] of Object.entries(span.attributes)) {
+    if (DROPPED_ATTRIBUTE.test(key)) continue;
+    if (typeof value !== "string") {
+      attributes[key] = value;
+      continue;
+    }
+    const isUrl = URL_ATTRIBUTE.test(key) || /^(https?:\/)?\//.test(value);
+    attributes[key] = isUrl ? scrubUrl(redactSecrets(value)) : redactSecrets(value);
+  }
+  return { ...span, name: scrubUrl(redactSecrets(span.name)), attributes };
+}
+
 /** `undefined` DSN = Sentry stays off (local dev, tests, CI). */
 export function sentryOptions(dsn: string | undefined, environment: string | undefined) {
   return {
@@ -93,7 +119,8 @@ export function sentryOptions(dsn: string | undefined, environment: string | und
     // Errors are all kept; traces are sampled (Sentry's free tier).
     tracesSampleRate: environment === "production" ? 0.1 : 1,
     beforeSend: scrubEvent,
-    beforeSendTransaction: scrubEvent,
+    // Traces are streamed (SDK 11): beforeSendTransaction would be ignored.
+    beforeSendSpan: scrubSpan,
     beforeBreadcrumb: scrubBreadcrumb,
   } satisfies BrowserOptions;
 }
