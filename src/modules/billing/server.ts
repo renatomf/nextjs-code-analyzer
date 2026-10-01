@@ -3,12 +3,15 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 
 import { db } from "@/lib/db";
+import { logger } from "@/shared/logger";
 
 import { createQuota, getBillingSnapshot as snapshotFor } from "./application/quota";
+import { estimateCostMicroUsd, type LlmFeature } from "./domain/llm-cost";
 import {
   createBillingRepository,
   type Executor,
 } from "./infrastructure/drizzle-billing-repository";
+import { insertLlmCall } from "./infrastructure/drizzle-llm-calls";
 import { getPlanCatalog, limitsFor, type PlanCatalog, type PlanLimits } from "./index";
 
 /**
@@ -85,6 +88,47 @@ export function withQuota<T>(
  */
 export function refundAnalysisUsage(userId: string, usageId: string): Promise<void> {
   return createQuota(depsFor(db)).refundAnalysisUsage(userId, usageId);
+}
+
+/**
+ * Records one LLM call: tokens, latency, outcome and the estimated cost
+ * (roadmap Phase 4). Counts only, never the prompt or the answer. Never
+ * throws: a failure to record is logged and must not break the user's
+ * request. `userId` comes from the server session and `projectId` from a
+ * project already checked to be that user's.
+ */
+export async function recordLlmCall(call: {
+  userId: string;
+  projectId: string | null;
+  feature: LlmFeature;
+  model: string;
+  usage: { inputTokens?: number; outputTokens?: number } | null;
+  latencyMs: number;
+  ok: boolean;
+}): Promise<void> {
+  const usage = {
+    inputTokens: call.usage?.inputTokens ?? 0,
+    outputTokens: call.usage?.outputTokens ?? 0,
+  };
+  try {
+    await insertLlmCall({
+      userId: call.userId,
+      projectId: call.projectId,
+      feature: call.feature,
+      model: call.model,
+      ...usage,
+      latencyMs: Math.round(call.latencyMs),
+      ok: call.ok,
+      costMicroUsd: estimateCostMicroUsd(call.model, usage),
+    });
+  } catch (err) {
+    logger.error("llm_usage.record_failed", {
+      err,
+      userId: call.userId,
+      projectId: call.projectId ?? undefined,
+      feature: call.feature,
+    });
+  }
 }
 
 // Stripe: loaded on first use, so quota callers (analysis, chat) do not pay

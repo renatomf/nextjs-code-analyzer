@@ -3,7 +3,7 @@ import { z } from "zod";
 
 import { newDataBoundary } from "@/shared/prompt-data";
 
-import { getLanguageModel } from "@/lib/ai/llm";
+import { getLanguageModel, languageModelId } from "@/lib/ai/llm";
 import { auth } from "@/lib/auth";
 import { assertChatRateLimit, RateLimitError } from "@/lib/rate-limit";
 import {
@@ -11,6 +11,7 @@ import {
   extractLastUserText,
   type ChatSource,
 } from "@/modules/chat";
+import { recordLlmCall } from "@/modules/billing/server";
 import { retrieveChatContext } from "@/modules/chat/server";
 import { getChatProject } from "@/modules/projects/server";
 import {
@@ -95,6 +96,17 @@ export async function POST(request: Request) {
       question,
     );
 
+    // Usage recorded when the stream ends, fails or is aborted (Phase 4);
+    // recording never throws.
+    const llmCall = {
+      userId: session.user.id,
+      projectId: project.id,
+      feature: "chat" as const,
+      model: languageModelId(),
+    };
+    const llmStarted = performance.now();
+    const elapsed = () => performance.now() - llmStarted;
+
     const result = streamText({
       model: getLanguageModel(),
       instructions: buildChatSystemPrompt({
@@ -104,6 +116,9 @@ export async function POST(request: Request) {
         boundary: newDataBoundary(),
       }),
       messages: await convertToModelMessages(messages),
+      onEnd: ({ usage }) => recordLlmCall({ ...llmCall, usage, latencyMs: elapsed(), ok: true }),
+      onError: () => recordLlmCall({ ...llmCall, usage: null, latencyMs: elapsed(), ok: false }),
+      onAbort: () => recordLlmCall({ ...llmCall, usage: null, latencyMs: elapsed(), ok: false }),
     });
 
     // AI SDK 7: standalone helpers replace the deprecated

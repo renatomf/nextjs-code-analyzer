@@ -1,6 +1,8 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { codeChunks, projects } from "@/db/schema";
+import { and, eq } from "drizzle-orm";
+
+import { codeChunks, llmCalls, projects } from "@/db/schema";
 import { createFakeLanguageModel, FAKE_CHAT_ANSWER } from "@/lib/ai/fake-llm";
 import { db } from "@/lib/db";
 import { axisEmbedding, createUser, deleteUsers } from "@/test/integration/factories";
@@ -24,7 +26,10 @@ vi.mock("@/modules/ingestion/infrastructure/onnx-embedder", () => ({
   embedTexts: vi.fn(),
   embedQuery: mocks.embedQuery,
 }));
-vi.mock("@/lib/ai/llm", () => ({ getLanguageModel: () => mocks.model }));
+vi.mock("@/lib/ai/llm", () => ({
+  getLanguageModel: () => mocks.model,
+  languageModelId: () => "e2e-fake-model",
+}));
 
 import { POST } from "@/app/api/chat/route";
 
@@ -119,6 +124,22 @@ describe("POST /api/chat (characterization)", () => {
     expect(metadata.sources[0]).toMatchObject({ startLine: 11, endLine: 15 });
     expect(metadata.sources[0].score).toBeCloseTo(1, 5);
     expect(mocks.embedQuery).toHaveBeenCalledWith("What does chunk 1 do?");
+  });
+
+  it("records the call's usage when the answer ends (Phase 4)", async () => {
+    const chatCalls = () =>
+      db
+        .select({ ok: llmCalls.ok, inputTokens: llmCalls.inputTokens, outputTokens: llmCalls.outputTokens, userId: llmCalls.userId })
+        .from(llmCalls)
+        .where(and(eq(llmCalls.projectId, aliceProject), eq(llmCalls.feature, "chat")));
+    const before = (await chatCalls()).length;
+
+    await readStream(await ask(aliceProject, "What does chunk 1 do?"));
+
+    const after = await chatCalls();
+    expect(after).toHaveLength(before + 1);
+    // The E2E fake model reports 10 input and 10 output tokens.
+    expect(after.at(-1)).toEqual({ ok: true, inputTokens: 10, outputTokens: 10, userId: alice });
   });
 
   it("builds the system prompt from the project and its retrieved code", async () => {

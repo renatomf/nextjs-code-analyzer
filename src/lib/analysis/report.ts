@@ -3,6 +3,7 @@ import { logger } from "@/shared/logger";
 import { and, asc, eq } from "drizzle-orm";
 
 import { codeChunks, projects, reports } from "@/db/schema";
+import { structuredLanguageModelId } from "@/lib/ai/llm";
 import { loadProjectSourceFiles } from "@/lib/analysis/project-files";
 import { runLlmHealthReview } from "@/lib/analysis/report-llm";
 import type {
@@ -16,6 +17,7 @@ import {
   computeDeterministicMetrics,
   diminishingPenaltyPolicy,
 } from "@/modules/analysis";
+import { recordLlmCall } from "@/modules/billing/server";
 import { setProjectStatus } from "@/modules/projects/server";
 
 export type GeneratedReport = {
@@ -71,11 +73,18 @@ export async function generateProjectReport(
       );
     }
 
+    // Usage recorded on success and failure (Phase 4); recording never throws.
+    const llmCall = { userId, projectId, feature: "report" as const, model: structuredLanguageModelId() };
+    const llmStarted = performance.now();
     const llm = await runLlmHealthReview({
       projectName: project.name,
       framework: project.framework,
       chunks,
+    }).catch(async (error: unknown) => {
+      await recordLlmCall({ ...llmCall, usage: null, latencyMs: performance.now() - llmStarted, ok: false });
+      throw error;
     });
+    await recordLlmCall({ ...llmCall, usage: llm.usage, latencyMs: performance.now() - llmStarted, ok: true });
 
     // One finding per problem, most severe first (ADR-010).
     const issues = buildReportFindings(metrics.issues, llm.issues);

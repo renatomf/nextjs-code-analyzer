@@ -26,16 +26,26 @@ function createGroqClient() {
   return createGroq({ apiKey });
 }
 
+const FAKE_MODEL_ID = "e2e-fake-model";
+
+/** The id of the chat/explain model, as recorded with each call's usage. */
+export function languageModelId(): string {
+  if (isFakeLlmEnabled()) return FAKE_MODEL_ID;
+  return process.env.GROQ_MODEL ?? "openai/gpt-oss-120b";
+}
+
+/** The id of the structured-output (report) model. */
+export function structuredLanguageModelId(): string {
+  if (isFakeLlmEnabled()) return FAKE_MODEL_ID;
+  return process.env.GROQ_STRUCTURED_MODEL ?? "openai/gpt-oss-120b";
+}
+
 export function getLanguageModel() {
   if (isFakeLlmEnabled()) return createFakeLanguageModel();
-  const groq = createGroqClient();
-  const modelId = process.env.GROQ_MODEL ?? "openai/gpt-oss-120b";
-  return groq(modelId);
+  return createGroqClient()(languageModelId());
 }
 
 export function getStructuredLanguageModel() {
   if (isFakeLlmEnabled()) return createFakeLanguageModel();
-  const groq = createGroqClient();
-  const modelId = process.env.GROQ_STRUCTURED_MODEL ?? "openai/gpt-oss-120b";
-  return groq(modelId);
+  return createGroqClient()(structuredLanguageModelId());
 }
