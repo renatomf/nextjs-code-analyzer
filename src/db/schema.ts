@@ -250,6 +250,14 @@ export const llmCalls = pgTable(
   (t) => [index("llm_calls_user_id_created_at_idx").on(t.userId, t.createdAt)],
 ).enableRLS();
 
+// Kill switches (roadmap Phase 4): turn an LLM feature off without a deploy.
+// No row = on. Flipped with SQL, see docs/runbooks/llm-kill-switch.md.
+export const llmSwitches = pgTable("llm_switches", {
+  feature: llmFeatureEnum("feature").primaryKey(),
+  enabled: boolean("enabled").notNull(),
+  updatedAt: updatedAt(),
+}).enableRLS();
+
 // Relations
 
 export const usersRelations = relations(users, ({ many }) => ({

@@ -7,12 +7,17 @@ import { logger } from "@/shared/logger";
 
 import { createQuota, getBillingSnapshot as snapshotFor } from "./application/quota";
 import { estimateCostMicroUsd, type LlmFeature } from "./domain/llm-cost";
+import { LlmUnavailableError } from "./domain/llm-switch";
 import { assertLlmTokenBudget, quotaDayStart } from "./domain/quota";
 import {
   createBillingRepository,
   type Executor,
 } from "./infrastructure/drizzle-billing-repository";
-import { insertLlmCall, sumLlmTokensSince } from "./infrastructure/drizzle-llm-calls";
+import {
+  insertLlmCall,
+  isLlmFeatureEnabled,
+  sumLlmTokensSince,
+} from "./infrastructure/drizzle-llm-calls";
 import { getPlanCatalog, limitsFor, type PlanCatalog, type PlanLimits } from "./index";
 
 /**
@@ -141,6 +146,14 @@ export async function assertLlmBudget(userId: string): Promise<void> {
   const limits = await getPlanLimitsFor(userId);
   const used = await sumLlmTokensSince(userId, quotaDayStart(new Date()));
   assertLlmTokenBudget(getPlanCatalog(), limits, used);
+}
+
+/**
+ * Throws `LlmUnavailableError` when the feature's kill switch is off. Read on
+ * every call (no cache), so flipping it takes effect on the next request.
+ */
+export async function assertLlmEnabled(feature: LlmFeature): Promise<void> {
+  if (!(await isLlmFeatureEnabled(feature))) throw new LlmUnavailableError(feature);
 }
 
 // Stripe: loaded on first use, so quota callers (analysis, chat) do not pay

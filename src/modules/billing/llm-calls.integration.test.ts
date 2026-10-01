@@ -3,9 +3,9 @@ import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { afterAll, describe, expect, it, vi } from "vitest";
 
-import { llmCalls, projects } from "@/db/schema";
+import { llmCalls, llmSwitches, projects } from "@/db/schema";
 import { db } from "@/lib/db";
-import { assertLlmBudget, recordLlmCall } from "@/modules/billing/server";
+import { assertLlmBudget, assertLlmEnabled, recordLlmCall } from "@/modules/billing/server";
 import { logger } from "@/shared/logger";
 import { createUser, deleteUsers } from "@/test/integration/factories";
 
@@ -153,5 +153,29 @@ describe("assertLlmBudget", () => {
       name: "BillingLimitError",
       code: "llm_tokens",
     });
+  });
+});
+
+describe("assertLlmEnabled (kill switch)", () => {
+  afterAll(async () => {
+    await db.delete(llmSwitches);
+  });
+
+  it("is on without a row, off with enabled = false, and back on with true", async () => {
+    await expect(assertLlmEnabled("explain")).resolves.toBeUndefined();
+
+    await db.insert(llmSwitches).values({ feature: "explain", enabled: false });
+    await expect(assertLlmEnabled("explain")).rejects.toMatchObject({
+      name: "LlmUnavailableError",
+      status: 503,
+    });
+    // One switch per feature.
+    await expect(assertLlmEnabled("chat")).resolves.toBeUndefined();
+
+    await db
+      .update(llmSwitches)
+      .set({ enabled: true })
+      .where(eq(llmSwitches.feature, "explain"));
+    await expect(assertLlmEnabled("explain")).resolves.toBeUndefined();
   });
 });

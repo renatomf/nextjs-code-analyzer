@@ -21,6 +21,7 @@ const mocks = vi.hoisted(() => {
     runFullProjectAnalysis: vi.fn(),
     recordLlmCall: vi.fn(),
     assertLlmBudget: vi.fn(),
+    assertLlmEnabled: vi.fn(),
     RateLimitError,
   };
 });
@@ -41,6 +42,7 @@ vi.mock("@/modules/billing/server", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/modules/billing/server")>()),
   recordLlmCall: mocks.recordLlmCall,
   assertLlmBudget: mocks.assertLlmBudget,
+  assertLlmEnabled: mocks.assertLlmEnabled,
 }));
 vi.mock("@/lib/analysis/pipeline", () => ({
   runFullProjectAnalysis: mocks.runFullProjectAnalysis,
@@ -50,7 +52,7 @@ vi.mock("ai", async (importOriginal) => ({
   generateText: mocks.generateText,
 }));
 
-import { BillingLimitError } from "@/modules/billing";
+import { BillingLimitError, LlmUnavailableError } from "@/modules/billing";
 
 import { POST as chat } from "@/app/api/chat/route";
 import { POST as explain } from "@/app/api/explorer/explain/route";
@@ -99,6 +101,7 @@ beforeEach(() => {
     mocks.runFullProjectAnalysis,
     mocks.recordLlmCall,
     mocks.assertLlmBudget,
+    mocks.assertLlmEnabled,
   ]) {
     fn.mockReset();
   }
@@ -169,6 +172,20 @@ describe("POST /api/chat", () => {
     expect(response.status).toBe(429);
   });
 
+  it("answers 503 while the chat's kill switch is off, using up no rate limit", async () => {
+    mocks.limit
+      .mockResolvedValueOnce([{ id: PROJECT, name: "p", framework: null }])
+      .mockResolvedValueOnce([{ id: "chunk" }]);
+    mocks.assertLlmEnabled.mockRejectedValueOnce(new LlmUnavailableError("chat"));
+    const response = await chat(post({ projectId: PROJECT, messages: [userMessage] }));
+    expect(response.status).toBe(503);
+    expect(await response.json()).toEqual({
+      error: "The AI chat is temporarily unavailable. Try again later.",
+    });
+    expect(mocks.assertLlmEnabled).toHaveBeenCalledWith("chat");
+    expect(mocks.assertChatRateLimit).not.toHaveBeenCalled();
+  });
+
   it("answers 429 with the plan notice once the daily token budget is spent", async () => {
     mocks.limit
       .mockResolvedValueOnce([{ id: PROJECT, name: "p", framework: null }])
@@ -208,6 +225,16 @@ describe("POST /api/explorer/explain", () => {
     mocks.limit.mockResolvedValueOnce([{ id: PROJECT, name: "p" }]);
     mocks.assertChatRateLimit.mockRejectedValueOnce(new mocks.RateLimitError("Too many"));
     expect((await explain(post(body))).status).toBe(429);
+    expect(mocks.readProjectFile).not.toHaveBeenCalled();
+    expect(mocks.generateText).not.toHaveBeenCalled();
+  });
+
+  it("answers 503 while the explain kill switch is off, before the rate limit or the file", async () => {
+    mocks.limit.mockResolvedValueOnce([{ id: PROJECT, name: "p" }]);
+    mocks.assertLlmEnabled.mockRejectedValueOnce(new LlmUnavailableError("explain"));
+    expect((await explain(post(body))).status).toBe(503);
+    expect(mocks.assertLlmEnabled).toHaveBeenCalledWith("explain");
+    expect(mocks.assertChatRateLimit).not.toHaveBeenCalled();
     expect(mocks.readProjectFile).not.toHaveBeenCalled();
     expect(mocks.generateText).not.toHaveBeenCalled();
   });

@@ -441,7 +441,13 @@ Vem antes da ingestão assíncrona: job em segundo plano sem log é caixa preta.
       tamanho da pergunta). É um teto "macio": chamadas já em andamento
       podem ultrapassá-lo, limitadas pelo teto por chamada e pelos rate
       limits. Recalibrar com os dados reais da `llm_calls`.
-- [ ] Kill switch (flag) para desligar chat ou relatório por LLM sem deploy.
+- [x] Kill switch (flag) para desligar chat ou relatório por LLM sem deploy.
+      Feito: tabela `llm_switches` (migração 0005), uma linha por função
+      (`report`, `chat`, `explain`); sem linha = ligado. Lida a cada
+      chamada, sem cache (variável de ambiente exigiria deploy, TD-36).
+      Chat e explicação respondem 503 antes do rate limit; o relatório falha
+      com mensagem de indisponível, com a base de conhecimento já montada.
+      Como ligar e desligar: [runbook](runbooks/llm-kill-switch.md).
 
 **Se sobrar**
 
