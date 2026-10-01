@@ -13,14 +13,25 @@ export async function register() {
 
   // First, so a bad environment below is reported too. No DSN = off.
   const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN;
-  if (dsn) {
-    const Sentry = await import("@sentry/nextjs");
+  const Sentry = dsn ? await import("@sentry/nextjs") : null;
+  if (Sentry) {
     const { sentryOptions } = await import("@/shared/sentry-options");
+    const { waitUntil } = await import("@vercel/functions");
     Sentry.init(sentryOptions(dsn, process.env.VERCEL_ENV));
+
+    // Vercel freezes the function once the response is sent, so buffered
+    // events must be flushed inside waitUntil (withSentryConfig's wrappers
+    // would do it; this app does not use them). No-op outside Vercel.
+    const flushLater = () => waitUntil(Sentry.flush(2_000));
+    Sentry.getClient()?.on("spanEnd", (span) => {
+      if (span === Sentry.getRootSpan(span)) flushLater();
+    });
+
     setErrorReporter((event, err, requestId) => {
       const scope = { tags: { log_event: event, ...(requestId ? { request_id: requestId } : {}) } };
       if (err === undefined) Sentry.captureMessage(event, { level: "error", ...scope });
       else Sentry.captureException(err, scope);
+      flushLater();
     });
   }
 
@@ -34,6 +45,8 @@ export async function register() {
     }
   } catch (error) {
     logger.error("env.invalid", { err: error });
+    // The server stops here: send the event before it does.
+    await Sentry?.flush(2_000);
     throw error;
   }
 }

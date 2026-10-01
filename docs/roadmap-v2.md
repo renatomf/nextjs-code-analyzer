@@ -428,6 +428,11 @@ Vem antes da ingestão assíncrona: job em segundo plano sem log é caixa preta.
       lista, breadcrumbs de console e tokens de compartilhamento, e mascara
       segredos. Sem Session Replay (gravaria o código na tela). Traces: 10%
       em produção. Source maps do navegador: TD-40.
+      Correção (2026-10-01, visto em produção pelo Sentry): o SDK 11 envia
+      traces como spans em streaming, e `beforeSendTransaction` nunca roda;
+      o `url.full` dos spans levava o token de `/r/<token>`. `beforeSendSpan`
+      (`scrubSpan`) aplica as mesmas regras aos spans, e o flush roda dentro
+      do `waitUntil` da Vercel.
 - [x] Tokens, custo e latência por chamada de LLM, gravados por `userId` e
       `projectId`. Feito: tabela `llm_calls` (migração 0004), uma linha por
       chamada do relatório, do chat e da explicação, com sucesso e falha

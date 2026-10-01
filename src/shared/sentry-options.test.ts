@@ -1,7 +1,7 @@
 import type { ErrorEvent } from "@sentry/nextjs";
 import { describe, expect, it } from "vitest";
 
-import { scrubBreadcrumb, scrubEvent, scrubUrl, sentryOptions } from "./sentry-options";
+import { scrubBreadcrumb, scrubEvent, scrubSpan, scrubUrl, sentryOptions } from "./sentry-options";
 
 // What leaves for Sentry (roadmap Phase 4): no PII, none of the user's code,
 // no secrets, no share tokens.
@@ -100,5 +100,50 @@ describe("dataCollection (SDK defaults collect everything)", () => {
       queues: false,
       stackFrameVariables: false,
     });
+  });
+});
+
+describe("scrubSpan (traces are streamed, beforeSendTransaction never runs)", () => {
+  // Shape seen in production on 2026-10-01: url.full carried the share token.
+  const span = {
+    trace_id: "t",
+    span_id: "s",
+    name: "GET /r/tok_live_123",
+    start_timestamp: 1,
+    status: "ok" as const,
+    is_segment: true,
+    attributes: {
+      "url.full": "https://nextjs-codedriven.vercel.app/r/tok_live_123?x=segredo",
+      "http.target": "/r/tok_live_123?x=segredo",
+      "url.query": "x=segredo",
+      "http.request.header.cookie": "authjs.session-token=abc",
+      "client.address": "203.0.113.9",
+      "user.email": "dev@example.com",
+      "db.statement": "connect postgres://app:hunter2@db.internal/app",
+      "http.route": "/r/[token]",
+      "http.response.status_code": 404,
+      "sentry.op": "http.server",
+    },
+  };
+  const scrubbed = scrubSpan(span);
+
+  it("keeps no share token, query, cookie, IP, email or credential", () => {
+    const json = JSON.stringify(scrubbed);
+    for (const leak of ["tok_live_123", "segredo", "abc", "203.0.113.9", "dev@example.com", "hunter2"]) {
+      expect(json).not.toContain(leak);
+    }
+  });
+
+  it("keeps the route, status and operation", () => {
+    expect(scrubbed.name).toBe("GET /r/[REDACTED]");
+    expect(scrubbed.attributes).toMatchObject({
+      "url.full": "https://nextjs-codedriven.vercel.app/r/[REDACTED]",
+      "http.response.status_code": 404,
+      "sentry.op": "http.server",
+    });
+  });
+
+  it("is the span hook of the options", () => {
+    expect(sentryOptions("https://k@o1.ingest.sentry.io/1", "production").beforeSendSpan).toBe(scrubSpan);
   });
 });
