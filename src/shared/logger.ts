@@ -83,9 +83,10 @@ function write(level: Level, event: string, fields: LogFields = {}) {
   else if (level === "warn") console.warn(line);
   else console.log(line);
 
-  if (level === "error" && errorReporter) {
+  const reporter = reporterHolder[REPORTER_KEY];
+  if (level === "error" && reporter) {
     try {
-      errorReporter(event, err, fields.requestId);
+      reporter(event, err, fields.requestId);
     } catch {
       // Reporting must never break the request; the log line is written.
     }
@@ -93,7 +94,13 @@ function write(level: Level, event: string, fields: LogFields = {}) {
 }
 
 type ErrorReporter = (event: string, err: unknown, requestId?: string) => void;
-let errorReporter: ErrorReporter | undefined;
+
+// Next bundles instrumentation.ts and the routes separately, each with its
+// own copy of this module (11 in the production build): a module variable
+// set in instrumentation.ts is never seen by the routes. globalThis is
+// shared by every bundle of the process.
+const REPORTER_KEY = Symbol.for("codedriven.logger.errorReporter");
+const reporterHolder = globalThis as { [REPORTER_KEY]?: ErrorReporter };
 
 /**
  * Also sends every `logger.error` to an error tracker (Sentry, set once in
@@ -101,7 +108,7 @@ let errorReporter: ErrorReporter | undefined;
  * generic 500, so the tracker would never see them otherwise.
  */
 export function setErrorReporter(reporter: ErrorReporter | undefined): void {
-  errorReporter = reporter;
+  reporterHolder[REPORTER_KEY] = reporter;
 }
 
 export const logger = {
