@@ -351,6 +351,22 @@ maintainability) · **Low** (cleanup).
 - **Done:** removed; the download's own limit is covered by the import
   tests (a download error charges nothing).
 
+### TD-41 — The ONNX functions are at Vercel's 250 MB size limit · High
+- **Where:** [next.config.ts](../next.config.ts) (`outputFileTracingIncludes`,
+  `outputFileTracingExcludes`)
+- **Problem:** measured with `vercel inspect --json` on 2026-10-02: in
+  production `api/projects/[id]/analyze` is 259,796,329 bytes (247.8 MiB) and
+  `api/chat` 255,698,917 bytes (243.9 MiB), against a 250 MiB limit. One more
+  dependency in the analysis path breaks the deploy. In the ADR-005 spike, the
+  workflow `flow` function with the real pipeline was 262,166,566 bytes
+  (250.02 MiB): it deployed with no room left.
+- **Direction:** measure what each function ships on Linux and trim what the
+  app never runs: `sharp` and its wasm fallback (no images are processed;
+  ~9 MiB locally), tree-sitter grammars and other platforms' binaries. Record
+  the sizes before and after. Moving embeddings to an API (ADR-006, TD-05)
+  removes the ONNX runtime altogether.
+- **Phase:** Ingestion async (Phase 5), before the pipeline moves into a job.
+
 ---
 
 ## Auth & GitHub

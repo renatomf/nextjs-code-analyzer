@@ -482,7 +482,11 @@ Vem antes da ingestão assíncrona: job em segundo plano sem log é caixa preta.
 
 - [ ] ADR do job runner: Inngest × Vercel Workflow × fila no Postgres + cron.
       Critérios: retry com backoff, idempotência por step, timeout, custo,
-      rodar local.
+      rodar local. Progresso: [ADR-005](decisions/005-job-runner.md)
+      proposto (Vercel Workflows) e spike feito em 2026-10-02 — 7 de 12
+      funções, ONNX e retry funcionam num step; pré-condições: enxugar as
+      funções com ONNX, que estão no limite de 250 MiB (TD-41), e tratar
+      os alertas de dependência do `workflow`.
 - [ ] Pipeline em steps idempotentes: `ImportRequested → Extract → Filter →
       Chunk → Embed → Index → ProjectIndexed`, com `content_hash` para não
       reprocessar (TD-03). Domain events gravados via outbox na mesma

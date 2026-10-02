@@ -102,6 +102,33 @@ durável sem custo, sem fornecedor novo e sem depender do usuário estar com
 a página aberta. Inngest resolve o mesmo, mas acrescenta um terceiro com
 dados de step e segredos para gerir; a fila própria não tem motor no Hobby.
 
+### Resultado do spike (2026-10-02)
+
+Branch descartável `spike/vercel-workflow` (PR #88, fechado sem merge),
+`workflow@5.0.1`, Next 16.3.6, deploy de preview no Hobby. Um workflow com
+steps que só devolvem números; tamanhos lidos com `vercel inspect --json`.
+
+| Pergunta | Resultado |
+|---|---|
+| Funções no deploy | **7 de 12** (produção: 6). Entra só a `flow`; o webhook do Workflow é agrupado com as rotas leves. |
+| ONNX dentro de um step | Funciona: vetor de 384 dimensões; carga do modelo + 1 embedding em 1.273 ms (provável cold start, primeira chamada do deploy). |
+| Postgres dentro de um step | `select 1` em 316 ms, com a conexão. |
+| Retry com backoff | `RetryableError` com `retryAfter: "5s"`: falhou na 1ª tentativa e passou na 2ª. |
+| `FatalError` | Run terminou `failed` em menos de 45 s; o número de tentativas não foi lido (a rota do spike não expõe os eventos). |
+| Pipeline real na `flow` | Carrega, mas a função ficou com **262.166.566 bytes (250,02 MiB)**: no limite de 250 MiB, sem folga (TD-41). |
+| Timeout da `flow` | 300 s, igual ao da `analyze`. |
+| Dependências | `workflow@5.0.1` traz alertas altos (`devalue` ≤ 5.9.2, que serializa os dados dos steps, e `nanoid` fixado em `@workflow/core`); o OSV do CI bloqueia o merge como está. A CLI ainda se anuncia como beta. |
+| World local (dev/CI) | Não testado: o `.env.local` pode apontar para produção. Fica para o primeiro PR da implementação, contra o Postgres local. |
+
+Achado fora do spike: a `analyze` **de produção** já tem 247,8 MiB, a ~2 MiB
+do limite (TD-41). O risco de tamanho existe com ou sem job runner.
+
+Conclusão: as perguntas 1 e 2 passaram. A opção 1 continua a proposta, com
+duas pré-condições antes de migrar o pipeline: (a) enxugar as funções com
+ONNX e medir a folga (TD-41); (b) os alertas do `workflow` resolvidos por
+versão nova ou `overrides`, ou aceitos com prazo no `osv-scanner.toml` se
+não forem alcançáveis — nunca ignorados sem análise.
+
 **Outbox sem tabela nova.** O roadmap pede eventos de domínio gravados na
 mesma transação do estado. Enquanto o único consumidor é o job, o próprio
 projeto é a outbox: a transação que cria o projeto (ou pede a reanálise)
@@ -135,7 +162,8 @@ webhook de saída), com ADR.
   localmente de ponta a ponta sem o runtime do Workflow; mais um painel
   para olhar (Vercel Observability, além do Sentry); dependência da
   disponibilidade do Vercel Queues.
-- **Revisar esta decisão se:** sair da Vercel; o spike estourar 12 funções;
+- **Revisar esta decisão se:** sair da Vercel; o enxugamento do TD-41 não
+  abrir folga para o pipeline na `flow`; o deploy passar de 12 funções;
   o volume passar de ~1.500 análises por mês (fim da cota de eventos do
   Hobby); ou o embedding sair para uma API (ADR-006, TD-05), o que tira a
   restrição do ONNX e torna as opções 2 e 3 mais baratas de operar.
