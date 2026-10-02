@@ -9,3 +9,13 @@
 id = "GHSA-67mh-4wv8-2f99"
 ignoreUntil = 2027-03-31
 reason = "esbuild dev server via drizzle-kit; dev-only, not deployed"
+
+# --- shadcn (CLI) -> fast-glob -> micromatch -> braces 3.0.3; no fixed version
+# yet. Stack-overflow DoS needs an attacker-controlled glob pattern; the app
+# only imports `shadcn/tailwind.css` at build time, never the CLI's globbing,
+# and no user input becomes a glob. Short expiry to pick up the upstream fix.
+
+[[IgnoredVulns]]
+id = "GHSA-vfj7-8cjw-p6xm"
+ignoreUntil = 2026-12-31
+reason = "braces via the shadcn CLI's fast-glob; never called by the app, no user-supplied patterns; no fix released"
