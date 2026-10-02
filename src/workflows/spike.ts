@@ -32,6 +32,14 @@ async function flakyProbe(): Promise<{ attempts: number }> {
   return { attempts: attempt };
 }
 
+// Size probe: pulls the real analysis pipeline into the flow function's
+// bundle (what the migration would ship) without running it.
+async function pipelineSizeProbe(): Promise<{ loaded: boolean }> {
+  "use step";
+  const pipeline = await import("@/lib/analysis/pipeline");
+  return { loaded: typeof pipeline.runFullProjectAnalysis === "function" };
+}
+
 async function fatalProbe(): Promise<never> {
   "use step";
   throw new FatalError("spike: user error, no retry");
@@ -42,6 +50,7 @@ export async function spikeWorkflow(fatal: boolean) {
   const embed = await embedProbe();
   const database = await dbProbe();
   const flaky = await flakyProbe();
+  const pipeline = await pipelineSizeProbe();
   if (fatal) await fatalProbe();
-  return { embed, database, flaky };
+  return { embed, database, flaky, pipeline };
 }
