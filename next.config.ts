@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { withWorkflow } from "workflow/next";
 
 // @huggingface/transformers loads onnxruntime-node with a dynamic require
 // (`requireFromHere("onnxruntime-node")`), and the binding loads
@@ -39,6 +40,8 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     "/api/projects/\\[id\\]/analyze": ONNX_RUNTIME_FILES,
     "/api/chat": ONNX_RUNTIME_FILES,
+    // SPIKE (ADR-005): workflow steps run inside the generated flow route.
+    "/.well-known/workflow/v1/flow": ONNX_RUNTIME_FILES,
   },
   // Never ship: a locally downloaded model cache (it is fetched at runtime),
   // tree-sitter C sources, and native binaries for other platforms.
@@ -84,4 +87,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withWorkflow(nextConfig);
