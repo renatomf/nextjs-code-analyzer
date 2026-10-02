@@ -464,6 +464,11 @@ Vem antes da ingestão assíncrona: job em segundo plano sem log é caixa preta.
       Chat e explicação respondem 503 antes do rate limit; o relatório falha
       com mensagem de indisponível, com a base de conhecimento já montada.
       Como ligar e desligar: [runbook](runbooks/llm-kill-switch.md).
+- [x] Fechamento: [architecture.md](architecture.md) com a seção de
+      observabilidade e custo do LLM, e [retros/phase-4.md](retros/phase-4.md)
+      (a escrever pelo autor). Falta ler em produção os números que o
+      [baseline §5](baseline.md) deixou para esta fase (tokens e custo por
+      relatório/chat, latência do chat, cold start, tempo por etapa).
 
 **Se sobrar**
 
