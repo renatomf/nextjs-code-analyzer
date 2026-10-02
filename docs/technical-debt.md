@@ -366,6 +366,24 @@ maintainability) · **Low** (cleanup).
   the sizes before and after. Moving embeddings to an API (ADR-006, TD-05)
   removes the ONNX runtime altogether.
 - **Phase:** Ingestion async (Phase 5), before the pipeline moves into a job.
+- **Cause found (2026-10-02):** on Linux x64 the `onnxruntime-node`
+  postinstall downloads the CUDA and TensorRT providers from NuGet
+  (`libonnxruntime_providers_{cuda,tensorrt,shared}.so`, ~258 MiB), and
+  `next.config.ts` traced the whole `linux/x64` folder. Vercel has no GPU;
+  the model runs on the CPU. Not `sharp` (17.8 MiB).
+- **Done:** the include lists only the CPU runtime (`libonnxruntime.so.1`,
+  `onnxruntime_binding.node`) and the providers are excluded.
+  `npm run measure:functions` (CI job summary) reports the traced size by
+  package. Before → after:
+
+  | Function | Vercel (`vercel inspect`) | Traced in CI (Linux) |
+  |---|---|---|
+  | `analyze` | 247.8 → **34.1 MiB** | 377.5 → 117.0 MiB |
+  | `chat` | 243.9 → **30.4 MiB** | 336.5 → 76.0 MiB |
+
+  The two methods differ (Vercel counts its own package); production
+  deployed with 377.5 MiB traced, so the limit applies to Vercel's number.
+  The CI table shows where the weight is, `vercel inspect` how much.
 
 ---
 
