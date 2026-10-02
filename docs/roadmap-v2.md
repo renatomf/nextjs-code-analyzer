@@ -909,7 +909,7 @@ Mudam o roadmap a partir da v2.2.
 | 002 | [Convenção dos módulos e regras de arquitetura no CI](decisions/002-module-convention.md) (`dependency-cruiser`) — aceita | 3 |
 | 003 | [Regras da cota](decisions/003-quota.md), inclusive falha do sistema × erro do usuário (TD-12) — proposta | 3 |
 | 004 | Limites de custo do LLM e kill switch | 4 |
-| 005 | Job runner da ingestão + outbox | 5 |
+| 005 | [Job runner da ingestão + outbox](decisions/005-job-runner.md) — proposta | 5 |
 | 006 | Embeddings em runtime serverless (TD-05) | 5 |
 | 007 | GitHub App no lugar do OAuth App (TD-15) | 6 |
 | 008 | Retenção e exclusão de dados | 6 |
