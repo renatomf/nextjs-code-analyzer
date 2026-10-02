@@ -65,6 +65,11 @@ jobs:
         env:
           DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
 
+      # TD-41: the ONNX functions are near Vercel's 250 MiB limit. Prints
+      # their size by package to the job summary (report only, no gate yet).
+      - name: Function size
+        run: npm run measure:functions
+
   eval:
     name: Analysis eval (dogfooding)
     runs-on: ubuntu-latest
