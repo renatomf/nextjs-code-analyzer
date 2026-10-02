@@ -1,7 +1,7 @@
 # Arquitetura atual
 
 Retrato de **como o sistema é hoje** (fim da Fase 3 do
-[roadmap-v2.md](roadmap-v2.md)): um monólito modular com Clean Architecture
+[roadmap-v2.md](roadmap-v2.md), com o que as Fases 7 e 4 acrescentaram): um monólito modular com Clean Architecture
 e DDD aplicados só onde há regra de negócio ([ADR-001](decisions/001-modular-monolith.md)).
 O "antes" está em [architecture-baseline.md](architecture-baseline.md); a
 comparação medida, em [results-phase-3.md](results-phase-3.md). Convenções
@@ -12,7 +12,8 @@ dos módulos em [modules.md](modules.md); linguagem em [glossary.md](glossary.md
 Igual ao baseline: o app (Next.js na Vercel) fala com Neon Postgres +
 pgvector, Groq (LLM), Hugging Face Hub (modelo de embeddings no cold start),
 GitHub (OAuth e zipball), Google (OAuth) e Stripe (checkout e webhook
-assinado).
+assinado). Desde a Fase 4, também com o Sentry (erros e traces, sem PII nem
+código do usuário).
 
 ## C4 — nível 2: contêineres e camadas
 
@@ -22,7 +23,7 @@ flowchart TB
     delivery["Entrega<br/>pages, route handlers (src/app)<br/>server actions (src/lib/actions)"]
     modules["Módulos (src/modules)<br/>billing · projects · ingestion<br/>analysis · chat · identity"]
     lib["src/lib<br/>integrações e o que ainda não migrou<br/>(NextAuth, pipeline, arquivos, GitHub)"]
-    shared["src/shared<br/>logger, redação, erros, env, prompt-data"]
+    shared["src/shared<br/>logger, redação, erros, env, prompt-data<br/>opções do Sentry, tracing"]
   end
   neon[(Neon Postgres + pgvector)]
 
@@ -114,6 +115,34 @@ redigidos.
 
 Checkout, portal e webhook passam pelo módulo; o webhook verifica a
 assinatura e busca o estado atual da assinatura no Stripe (idempotente).
+
+## Observabilidade e custo do LLM (Fase 4)
+
+- **Logs:** `src/shared/logger.ts`, JSON com o erro real e o `x-vercel-id`
+  como correlation id, segredos redigidos (TD-26). Todo `logger.error` vai
+  também ao Sentry; o repórter fica em `globalThis`, porque o Next empacota
+  `instrumentation.ts` e as rotas com cópias separadas do logger.
+- **Sentry:** servidor (`instrumentation.ts`) e navegador
+  (`instrumentation-client.ts`, `global-error.tsx`); sem DSN, fica
+  desligado. `src/shared/sentry-options.ts` concentra as regras:
+  `dataCollection` sem usuário, cookies, headers, corpos, query string nem
+  entradas e saídas do LLM; `scrubEvent`, `scrubBreadcrumb` e `scrubSpan`
+  tiram o token de `/r/<token>` e segredos de eventos e spans. Sem Session
+  Replay. Flush dentro do `waitUntil` da Vercel. Source maps do navegador:
+  TD-40.
+- **Traces:** `tracesSamplerFor` traça toda request de `analyze`, `chat` e
+  `explain` (raras e com rate limit) e 10% do resto em produção.
+  `traced()` (`src/shared/tracing.ts`) cria um span por etapa, só com
+  contagens: `embeddings.model_load`, `pipeline.load_files`,
+  `pipeline.chunk`, `embeddings.embed`, `vector.replace_chunks`,
+  `vector.search`, `report.metrics`, `report.llm_review`.
+- **Uso do LLM (billing):** `recordLlmCall` grava uma linha em `llm_calls`
+  por chamada do relatório, do chat e da explicação (tokens, latência,
+  modelo, custo estimado; nunca o prompt ou a resposta), sem derrubar a
+  request se falhar. Antes de cada chamada, `assertLlmEnabled` (kill switch
+  na tabela `llm_switches`, [runbook](runbooks/llm-kill-switch.md)) e
+  `assertLlmBudget` (orçamento diário de tokens por plano, somado da
+  `llm_calls`); teto por chamada em `maxOutputTokens`.
 
 ## Segurança (resumo)
 
