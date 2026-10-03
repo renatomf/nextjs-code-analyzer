@@ -3,11 +3,14 @@ import type { NextConfig } from "next";
 // @huggingface/transformers loads onnxruntime-node with a dynamic require
 // (`requireFromHere("onnxruntime-node")`), and the binding loads
 // libonnxruntime.so via dlopen: file tracing sees neither, so both the JS
-// package and the Linux x64 binaries are listed by hand.
+// package and the Linux x64 binaries are listed by hand. Only the CPU
+// runtime: on Linux x64 the package's postinstall also downloads the CUDA and
+// TensorRT providers (~258 MiB), which Vercel cannot use (TD-41).
 const ONNX_RUNTIME_FILES = [
   "./node_modules/onnxruntime-node/package.json",
   "./node_modules/onnxruntime-node/dist/**/*",
-  "./node_modules/onnxruntime-node/bin/napi-v6/linux/x64/**/*",
+  "./node_modules/onnxruntime-node/bin/napi-v6/linux/x64/libonnxruntime.so.1",
+  "./node_modules/onnxruntime-node/bin/napi-v6/linux/x64/onnxruntime_binding.node",
   "./node_modules/onnxruntime-common/package.json",
   "./node_modules/onnxruntime-common/dist/cjs/**/*",
 ];
@@ -41,7 +44,8 @@ const nextConfig: NextConfig = {
     "/api/chat": ONNX_RUNTIME_FILES,
   },
   // Never ship: a locally downloaded model cache (it is fetched at runtime),
-  // tree-sitter C sources, and native binaries for other platforms.
+  // tree-sitter C sources, native binaries for other platforms, and the ONNX
+  // GPU providers.
   outputFileTracingExcludes: {
     "/*": [
       "./node_modules/@huggingface/transformers/.cache/**/*",
@@ -49,6 +53,7 @@ const nextConfig: NextConfig = {
       "./node_modules/tree-sitter-*/prebuilds/!(linux-x64)/**/*",
       "./node_modules/onnxruntime-node/bin/napi-v6/!(linux)/**/*",
       "./node_modules/onnxruntime-node/bin/napi-v6/linux/arm64/**/*",
+      "./node_modules/onnxruntime-node/bin/napi-v6/linux/x64/libonnxruntime_providers_*.so",
     ],
   },
   poweredByHeader: false,
