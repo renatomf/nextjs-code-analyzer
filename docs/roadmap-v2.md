@@ -486,8 +486,9 @@ Vem antes da ingestão assíncrona: job em segundo plano sem log é caixa preta.
       proposto (Vercel Workflows) e spike feito em 2026-10-02 — 7 de 12
       funções, ONNX e retry funcionam num step. Pré-condições: funções com
       ONNX no limite de 250 MiB — resolvido (TD-41: só o runtime de CPU,
-      `analyze` 247,8 → 34,1 MiB); falta tratar os alertas de dependência
-      do `workflow`.
+      `analyze` 247,8 → 34,1 MiB); alertas de dependência do `workflow` —
+      resolvidos com `overrides` na mesma major (`npm audit` limpo). Falta
+      a decisão do autor sobre o ADR.
 - [ ] Pipeline em steps idempotentes: `ImportRequested → Extract → Filter →
       Chunk → Embed → Index → ProjectIndexed`, com `content_hash` para não
       reprocessar (TD-03). Domain events gravados via outbox na mesma

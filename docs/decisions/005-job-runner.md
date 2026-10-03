@@ -137,6 +137,18 @@ empacotava a pasta inteira. Só com o runtime de CPU, a `analyze` caiu de
 análise e chat validados no preview. A `flow` com o pipeline deve ficar na
 mesma faixa da `analyze`. Resta a pré-condição (b).
 
+**Atualização (2026-10-03): pré-condição (b) tem solução.** O
+`@workflow/core@5.0.1` fixa `devalue@5.9.2` e `nanoid@5.1.6`. As seis
+vulnerabilidades do `devalue` estão corrigidas na 5.9.3 e as duas do
+`nanoid` na 5.1.16 (OSV), as duas na mesma major. Testado num diretório
+descartável: `workflow@5.0.1` com
+`"overrides": { "@workflow/core": { "devalue": "^5.9.4", "nanoid": "^5.1.16" } }`
+dá `npm audit --omit=dev` com 0 vulnerabilidades. O PR que instalar o
+`workflow` leva esses `overrides` (só dentro do `@workflow/core`) e
+reconfere o comportamento dos steps; sai quando o pacote trouxer as
+versões corrigidas. As duas pré-condições estão atendidas: falta a decisão
+do autor.
+
 **Outbox sem tabela nova.** O roadmap pede eventos de domínio gravados na
 mesma transação do estado. Enquanto o único consumidor é o job, o próprio
 projeto é a outbox: a transação que cria o projeto (ou pede a reanálise)
