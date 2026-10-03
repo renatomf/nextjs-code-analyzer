@@ -371,6 +371,11 @@ maintainability) · **Low** (cleanup).
   whose step dies (timeout, retries used up) ends with `failRunningAnalysis`,
   so it no longer stays "processing". Still open: the import (TD-10) and a
   run that never starts its last step (the workflow itself lost).
+- **Partial (Phase 5):** the project records its run (`analysis_run_id`,
+  migration 0007). Opening the progress page asks Workflow for the run's
+  status: a finished run that left the project "processing" restarts at
+  once, and a live run is never started twice, however long it takes. Still
+  open: a project nobody opens again (the reaper) and the import.
 
 ### TD-12 — Failed imports still consume the daily quota · Medium
 - **Where:** [actions/github.ts:79-97](../src/lib/actions/github.ts#L79-L97)

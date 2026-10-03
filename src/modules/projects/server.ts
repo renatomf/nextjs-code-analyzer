@@ -14,6 +14,7 @@ export {
   findAnalysisCandidate,
   readProgress,
   requeueIdleProject,
+  setAnalysisRunId,
   setProjectProgress,
   setProjectStatus,
   startReanalysis,
