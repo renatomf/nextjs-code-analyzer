@@ -9,11 +9,12 @@ import { createUser, deleteUsers } from "@/test/integration/factories";
 // Characterization of the project lifecycle (queued → processing →
 // completed/failed) before it moves into the projects module: the analyze
 // claim, cancel and re-analyze, against a real Postgres. Only the session,
-// Next's cache and the analysis pipeline (ONNX + LLM) are mocked.
+// Next's cache and the start of the analysis workflow are mocked (the
+// workflow's stages have their own integration tests).
 
 const mocks = vi.hoisted(() => ({
   auth: vi.fn(),
-  runFullProjectAnalysis: vi.fn(),
+  enqueueAnalysis: vi.fn(),
   assertRateLimit: vi.fn(),
 }));
 
@@ -25,13 +26,13 @@ vi.mock("@/lib/rate-limit", async (importOriginal) => ({
   assertRateLimit: mocks.assertRateLimit,
 }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
-vi.mock("@/lib/analysis/pipeline", () => ({
-  runFullProjectAnalysis: mocks.runFullProjectAnalysis,
+vi.mock("@/lib/analysis/analysis-job", () => ({
+  enqueueAnalysis: mocks.enqueueAnalysis,
 }));
 
 import { POST as analyze } from "@/app/api/projects/[id]/analyze/route";
-import { AnalysisCanceledError } from "@/lib/analysis/progress";
 import { retryFullAnalysis } from "@/lib/actions/analysis";
+import { failRunningAnalysis } from "@/modules/projects/server";
 import { cancelAnalysis } from "@/lib/actions/projects";
 
 type Status = "queued" | "processing" | "completed" | "failed";
@@ -44,7 +45,7 @@ afterAll(async () => {
 
 beforeEach(() => {
   mocks.auth.mockReset();
-  mocks.runFullProjectAnalysis.mockReset();
+  mocks.enqueueAnalysis.mockReset().mockResolvedValue("wrun_test");
   mocks.assertRateLimit.mockReset().mockResolvedValue(undefined);
   vi.spyOn(console, "error").mockImplementation(() => {});
 });
@@ -105,14 +106,14 @@ function projectForm(projectId: string) {
 const secondsAgo = (s: number) => new Date(Date.now() - s * 1000);
 
 describe("POST /api/projects/[id]/analyze — claim", () => {
-  it("claims a queued project and runs the analysis once", async () => {
+  it("claims a queued project and starts the analysis workflow once", async () => {
     const userId = await signedInUser();
     const projectId = await createProject(userId, { status: "queued" });
 
     const response = await analyzeRequest(projectId);
 
     expect(response.status).toBe(200);
-    expect(mocks.runFullProjectAnalysis).toHaveBeenCalledExactlyOnceWith(userId, projectId);
+    expect(mocks.enqueueAnalysis).toHaveBeenCalledExactlyOnceWith(userId, projectId);
     expect(await readProject(projectId)).toMatchObject({
       status: "processing",
       progressStep: "Starting analysis",
@@ -127,7 +128,7 @@ describe("POST /api/projects/[id]/analyze — claim", () => {
     expect(await (await analyzeRequest(projectId)).json()).toMatchObject({
       alreadyCompleted: true,
     });
-    expect(mocks.runFullProjectAnalysis).not.toHaveBeenCalled();
+    expect(mocks.enqueueAnalysis).not.toHaveBeenCalled();
   });
 
   it("does not start a second run while one is in flight", async () => {
@@ -140,7 +141,7 @@ describe("POST /api/projects/[id]/analyze — claim", () => {
     expect(await (await analyzeRequest(projectId)).json()).toMatchObject({
       alreadyRunning: true,
     });
-    expect(mocks.runFullProjectAnalysis).not.toHaveBeenCalled();
+    expect(mocks.enqueueAnalysis).not.toHaveBeenCalled();
   });
 
   it("restarts a stale run (no update for more than 360 s)", async () => {
@@ -152,7 +153,7 @@ describe("POST /api/projects/[id]/analyze — claim", () => {
 
     await analyzeRequest(projectId);
 
-    expect(mocks.runFullProjectAnalysis).toHaveBeenCalledOnce();
+    expect(mocks.enqueueAnalysis).toHaveBeenCalledOnce();
   });
 
   it("retries a failed project that has files", async () => {
@@ -161,7 +162,7 @@ describe("POST /api/projects/[id]/analyze — claim", () => {
 
     await analyzeRequest(projectId);
 
-    expect(mocks.runFullProjectAnalysis).toHaveBeenCalledOnce();
+    expect(mocks.enqueueAnalysis).toHaveBeenCalledOnce();
   });
 
   it("refuses a project whose import failed before any file was stored", async () => {
@@ -171,7 +172,7 @@ describe("POST /api/projects/[id]/analyze — claim", () => {
     const response = await analyzeRequest(projectId);
 
     expect(response.status).toBe(400);
-    expect(mocks.runFullProjectAnalysis).not.toHaveBeenCalled();
+    expect(mocks.enqueueAnalysis).not.toHaveBeenCalled();
     expect((await readProject(projectId)).status).toBe("failed");
   });
 
@@ -183,7 +184,7 @@ describe("POST /api/projects/[id]/analyze — claim", () => {
     const response = await analyzeRequest(projectId);
 
     expect(response.status).toBe(404);
-    expect(mocks.runFullProjectAnalysis).not.toHaveBeenCalled();
+    expect(mocks.enqueueAnalysis).not.toHaveBeenCalled();
     expect((await readProject(projectId)).status).toBe("queued");
   });
 
@@ -205,29 +206,26 @@ describe("POST /api/projects/[id]/analyze — claim", () => {
       [analyzeRequest(projectId), analyzeRequest(projectId)].map(async (r) => (await r).json()),
     );
 
-    expect(mocks.runFullProjectAnalysis).toHaveBeenCalledOnce();
+    expect(mocks.enqueueAnalysis).toHaveBeenCalledOnce();
     expect(bodies.filter((b) => b.alreadyRunning)).toHaveLength(1);
   });
 
-  it("reports a project deleted mid-run as canceled", async () => {
+  it("answers at once: the workflow runs the analysis, not the request", async () => {
     const userId = await signedInUser();
     const projectId = await createProject(userId, { status: "queued" });
-    mocks.runFullProjectAnalysis.mockImplementation(async () => {
-      await db.delete(projects).where(eq(projects.id, projectId));
-      throw new AnalysisCanceledError();
-    });
 
     expect(await (await analyzeRequest(projectId)).json()).toEqual({
-      ok: false,
-      canceled: true,
-      status: "failed",
+      ok: true,
+      status: "processing",
+      progressStep: "Starting analysis",
+      progressPercent: 30,
     });
   });
 
-  it("hides a pipeline failure behind a generic 500", async () => {
+  it("releases the claim and hides the error when the workflow cannot start", async () => {
     const userId = await signedInUser();
     const projectId = await createProject(userId, { status: "queued" });
-    mocks.runFullProjectAnalysis.mockRejectedValue(new Error("password=hunter2"));
+    mocks.enqueueAnalysis.mockRejectedValueOnce(new Error("password=hunter2"));
 
     const response = await analyzeRequest(projectId);
 
@@ -235,6 +233,36 @@ describe("POST /api/projects/[id]/analyze — claim", () => {
     const body = await response.text();
     expect(body).toContain("Analysis failed.");
     expect(body).not.toContain("hunter2");
+    expect(await readProject(projectId)).toMatchObject({ status: "failed" });
+    // Released now, not after the stale window: a retry starts it again.
+    await analyzeRequest(projectId);
+    expect(mocks.enqueueAnalysis).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("failRunningAnalysis (end of a workflow run that died)", () => {
+  it("fails a project that is still processing", async () => {
+    const userId = await signedInUser();
+    const projectId = await createProject(userId, { status: "processing" });
+
+    expect(await failRunningAnalysis(userId, projectId, "Analysis failed. Please try again.")).toBe(true);
+    expect((await readProject(projectId)).status).toBe("failed");
+  });
+
+  it("keeps the message a step already wrote", async () => {
+    const userId = await signedInUser();
+    const projectId = await createProject(userId, { status: "failed" });
+
+    expect(await failRunningAnalysis(userId, projectId, "Analysis failed. Please try again.")).toBe(false);
+  });
+
+  it("does not touch another user's project", async () => {
+    const owner = await signedInUser();
+    const projectId = await createProject(owner, { status: "processing" });
+    const intruder = await signedInUser();
+
+    expect(await failRunningAnalysis(intruder, projectId, "x")).toBe(false);
+    expect((await readProject(projectId)).status).toBe("processing");
   });
 });
 

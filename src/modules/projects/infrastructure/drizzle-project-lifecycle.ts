@@ -162,6 +162,24 @@ export async function cancelActiveAnalysis(userId: string, projectId: string): P
   return canceled.length > 0;
 }
 
+/**
+ * Ends a run that stopped without writing its own failure (a step that timed
+ * out, retries exhausted): only a project still "processing" becomes "failed",
+ * so a message a step already stored (e.g. no source files) is kept.
+ */
+export async function failRunningAnalysis(
+  userId: string,
+  projectId: string,
+  errorMessage: string,
+): Promise<boolean> {
+  const [failed] = await db
+    .update(projects)
+    .set({ status: "failed", errorMessage })
+    .where(and(owned(userId, projectId), eq(projects.status, "processing")))
+    .returning({ id: projects.id });
+  return Boolean(failed);
+}
+
 /** Status change without a progress step (report generation). */
 export async function setProjectStatus(
   userId: string,

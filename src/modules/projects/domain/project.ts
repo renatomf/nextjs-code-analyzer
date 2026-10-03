@@ -9,10 +9,11 @@ export type ProjectStatus = "queued" | "processing" | "completed" | "failed";
 export const ACTIVE_STATUSES = ["queued", "processing"] as const satisfies readonly ProjectStatus[];
 
 /**
- * A "processing" project not updated for longer than one full run
- * (the analyze route's maxDuration of 300 s + margin) is stale: its request
- * is gone, so it may restart. A shorter window would start a second run while
- * a slow step still works.
+ * A "processing" project not updated for longer than one workflow step (the
+ * function's maxDuration of 300 s + margin) is stale: its run is gone, so it
+ * may restart. Every step writes progress when it starts, retries included
+ * (ADR-005). A shorter window would start a second run while a slow step
+ * still works.
  */
 export const STALE_AFTER_SECONDS = 360;
 

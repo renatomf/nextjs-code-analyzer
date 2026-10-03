@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { withWorkflow } from "workflow/next";
 
 // @huggingface/transformers loads onnxruntime-node with a dynamic require
 // (`requireFromHere("onnxruntime-node")`), and the binding loads
@@ -36,11 +37,12 @@ const nextConfig: NextConfig = {
       dynamic: 30,
     },
   },
-  // Only the two routes that create embeddings get the ONNX runtime. The
-  // binary is 46 MB: adding it to more routes stops Vercel from grouping them,
-  // and the Hobby plan caps a deployment at 12 functions.
+  // Only the two functions that create embeddings get the ONNX runtime: the
+  // workflow function, where the analysis steps run (ADR-005), and the chat.
+  // The binary is 46 MB: adding it to more routes stops Vercel from grouping
+  // them, and the Hobby plan caps a deployment at 12 functions.
   outputFileTracingIncludes: {
-    "/api/projects/\\[id\\]/analyze": ONNX_RUNTIME_FILES,
+    "/.well-known/workflow/v1/flow": ONNX_RUNTIME_FILES,
     "/api/chat": ONNX_RUNTIME_FILES,
   },
   // Never ship: a locally downloaded model cache (it is fetched at runtime),
@@ -89,4 +91,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withWorkflow(nextConfig);

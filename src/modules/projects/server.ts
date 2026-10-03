@@ -10,6 +10,7 @@ export {
   cancelActiveAnalysis,
   claimAnalysis,
   deleteProject,
+  failRunningAnalysis,
   findAnalysisCandidate,
   readProgress,
   requeueIdleProject,

@@ -18,7 +18,7 @@ const mocks = vi.hoisted(() => {
     assertRateLimit: vi.fn(),
     readProjectFile: vi.fn(),
     generateText: vi.fn(),
-    runFullProjectAnalysis: vi.fn(),
+    enqueueAnalysis: vi.fn(),
     recordLlmCall: vi.fn(),
     assertLlmBudget: vi.fn(),
     assertLlmEnabled: vi.fn(),
@@ -44,8 +44,8 @@ vi.mock("@/modules/billing/server", async (importOriginal) => ({
   assertLlmBudget: mocks.assertLlmBudget,
   assertLlmEnabled: mocks.assertLlmEnabled,
 }));
-vi.mock("@/lib/analysis/pipeline", () => ({
-  runFullProjectAnalysis: mocks.runFullProjectAnalysis,
+vi.mock("@/lib/analysis/analysis-job", () => ({
+  enqueueAnalysis: mocks.enqueueAnalysis,
 }));
 vi.mock("ai", async (importOriginal) => ({
   ...(await importOriginal<typeof import("ai")>()),
@@ -98,7 +98,7 @@ beforeEach(() => {
     mocks.assertRateLimit,
     mocks.readProjectFile,
     mocks.generateText,
-    mocks.runFullProjectAnalysis,
+    mocks.enqueueAnalysis,
     mocks.recordLlmCall,
     mocks.assertLlmBudget,
     mocks.assertLlmEnabled,
@@ -133,7 +133,7 @@ describe("without a session", () => {
     expect(mocks.findFirst).not.toHaveBeenCalled();
     expect(mocks.readProjectFile).not.toHaveBeenCalled();
     expect(mocks.generateText).not.toHaveBeenCalled();
-    expect(mocks.runFullProjectAnalysis).not.toHaveBeenCalled();
+    expect(mocks.enqueueAnalysis).not.toHaveBeenCalled();
   });
 
   it("checks the session before validating the input", async () => {
@@ -338,7 +338,7 @@ describe("POST /api/projects/[id]/analyze", () => {
 
     mocks.limit.mockResolvedValueOnce([]);
     expect((await analyze(request(), params(PROJECT))).status).toBe(404);
-    expect(mocks.runFullProjectAnalysis).not.toHaveBeenCalled();
+    expect(mocks.enqueueAnalysis).not.toHaveBeenCalled();
   });
 
   it("answers 429 when the analysis rate limit is reached, before any work", async () => {
@@ -355,6 +355,6 @@ describe("POST /api/projects/[id]/analyze", () => {
     mocks.assertRateLimit.mockRejectedValueOnce(new mocks.RateLimitError("Too many"));
 
     expect((await analyze(request(), params(PROJECT))).status).toBe(429);
-    expect(mocks.runFullProjectAnalysis).not.toHaveBeenCalled();
+    expect(mocks.enqueueAnalysis).not.toHaveBeenCalled();
   });
 });

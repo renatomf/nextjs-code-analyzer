@@ -29,6 +29,16 @@ export type GeneratedReport = {
   roadmap: ReportIssue[];
 };
 
+export type StageOptions = {
+  /**
+   * False while the workflow will still retry (ADR-005): a transient failure
+   * is then not written to the project, so the progress page does not show
+   * "failed" for a run that may still succeed. User errors (DomainError) are
+   * final and always written.
+   */
+  finalAttempt?: boolean;
+};
+
 /**
  * Generate and persist the project health report. `userId` must come from the
  * server session; the project is only touched if it belongs to that user.
@@ -36,6 +46,7 @@ export type GeneratedReport = {
 export async function generateProjectReport(
   userId: string,
   projectId: string,
+  { finalAttempt = true }: StageOptions = {},
 ): Promise<GeneratedReport> {
   const ownedProject = and(eq(projects.id, projectId), eq(projects.userId, userId));
 
@@ -141,6 +152,10 @@ export async function generateProjectReport(
     // raw errors (LLM provider, DB) may carry internals, so they become a
     // generic message (TD-33).
     const isDomain = error instanceof DomainError;
+    if (!isDomain && !finalAttempt) {
+      logger.warn("analysis.report_retrying", { err: error, userId, projectId });
+      throw error;
+    }
     if (isDomain) {
       logger.warn("analysis.report_rejected", { err: error, userId, projectId });
     } else {
