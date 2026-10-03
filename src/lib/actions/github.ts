@@ -9,7 +9,7 @@ import { z } from "zod";
 import { startAnalysisRun } from "@/lib/analysis/analysis-job";
 import { auth, signIn } from "@/lib/auth";
 import { fullNameSchema, refSchema } from "@/lib/github";
-import { MAX_REPO_SIZE_BYTES } from "@/lib/limits";
+import { MAX_UPLOAD_BYTES, UPLOAD_TOO_BIG_MESSAGE } from "@/lib/limits";
 import { BillingLimitError } from "@/modules/billing";
 import { getPlanCatalogWithPricing } from "@/modules/billing/server";
 import {
@@ -154,10 +154,10 @@ export async function createProjectFromZip(
     return { error: "Only .zip uploads are supported." };
   }
 
-  if (file.size > MAX_REPO_SIZE_BYTES) {
-    return {
-      error: `ZIP exceeds the ${MAX_REPO_SIZE_BYTES / (1024 * 1024)} MB limit.`,
-    };
+  // Same rule as the form (UX only there): a bigger body would not reach a
+  // Vercel function at all (TD-45).
+  if (file.size > MAX_UPLOAD_BYTES) {
+    return { error: UPLOAD_TOO_BIG_MESSAGE };
   }
 
   if (file.size === 0) {

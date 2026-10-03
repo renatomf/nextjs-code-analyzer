@@ -28,7 +28,10 @@ const nextConfig: NextConfig = {
   ],
   experimental: {
     serverActions: {
-      bodySizeLimit: "110mb",
+      // A 4 MB ZIP plus the multipart envelope. Vercel caps any function's
+      // request body at 4.5 MB anyway (TD-45): a bigger limit here was a
+      // promise the platform could not keep.
+      bodySizeLimit: "5mb",
     },
     // Reuse visited dynamic pages for 30s in the client cache, so switching
     // back and forth between project tabs is instant. Server Actions that

@@ -47,4 +47,23 @@ describe("ZipUploadForm", () => {
     expect(again.get("file")).toBe(first.get("file"));
     expect(first.get("confirmReanalyze")).toBeNull();
   });
+
+  // Vercel refuses a function body over 4.5 MB before the app runs (TD-45):
+  // the form is the only place that can tell the user why.
+  it("stops a ZIP over 4 MB before sending it, and says why", async () => {
+    const user = userEvent.setup();
+    render(<ZipUploadForm />);
+    const big = new File([new Uint8Array(4 * 1024 * 1024 + 1)], "big.zip", {
+      type: "application/zip",
+    });
+    const input = screen.getByLabelText("ZIP file");
+    await user.upload(input, big);
+    fireEvent.submit(input.closest("form")!);
+
+    expect(await screen.findByRole("alert")).toHaveProperty(
+      "textContent",
+      "ZIP uploads are limited to 4 MB. For a bigger project, import it from GitHub.",
+    );
+    expect(createProjectFromZip).not.toHaveBeenCalled();
+  });
 });

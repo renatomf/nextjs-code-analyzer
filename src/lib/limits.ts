@@ -3,6 +3,15 @@
  * not a billing tier).
  */
 export const MAX_REPO_SIZE_BYTES = 100 * 1024 * 1024; // 100 MB
+/**
+ * A ZIP sent through the browser: Vercel caps a function's request body at
+ * 4.5 MB, so a bigger upload never reaches the app (TD-45, ADR-011). 4 MB
+ * leaves room for the multipart envelope. Bigger projects come from GitHub
+ * (downloaded by the job, up to MAX_REPO_SIZE_BYTES).
+ */
+export const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
+export const UPLOAD_TOO_BIG_MESSAGE =
+  "ZIP uploads are limited to 4 MB. For a bigger project, import it from GitHub.";
 /** JS/TS files per repository (the files that are read and analyzed). */
 export const MAX_FILE_COUNT = 1000;
 export const MAX_FILE_SIZE_BYTES = 500 * 1024; // 500 KB

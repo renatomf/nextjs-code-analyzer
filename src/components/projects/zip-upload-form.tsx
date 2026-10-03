@@ -9,7 +9,8 @@ import {
   createProjectFromZip,
   type ProjectActionState,
 } from "@/lib/actions/github";
-import { startTransition, useActionState, useRef } from "react";
+import { MAX_UPLOAD_BYTES, UPLOAD_TOO_BIG_MESSAGE } from "@/lib/limits";
+import { startTransition, useActionState, useRef, useState, type FormEvent } from "react";
 
 const initialState: ProjectActionState = {};
 
@@ -25,6 +26,18 @@ export function ZipUploadForm() {
     initialState,
   );
 
+  // A ZIP over the limit never reaches the server on Vercel (TD-45): stop it
+  // here so the user gets a reason, not the platform's 413. The server
+  // checks the same limit.
+  const [tooBig, setTooBig] = useState(false);
+  function checkSize(event: FormEvent<HTMLFormElement>) {
+    const input = event.currentTarget.elements.namedItem("file");
+    const file = input instanceof HTMLInputElement ? input.files?.[0] : undefined;
+    const over = Boolean(file && file.size > MAX_UPLOAD_BYTES);
+    setTooBig(over);
+    if (over) event.preventDefault();
+  }
+
   function analyzeAgain() {
     const last = lastSubmission.current;
     if (!last) return;
@@ -35,7 +48,7 @@ export function ZipUploadForm() {
   }
 
   return (
-    <form action={formAction} className="space-y-4">
+    <form action={formAction} onSubmit={checkSize} className="space-y-4">
       <ReanalyzeDialog state={state} resubmit={analyzeAgain} />
       <div className="space-y-2">
         <Label htmlFor="file">ZIP file</Label>
@@ -45,14 +58,16 @@ export function ZipUploadForm() {
           type="file"
           accept=".zip,application/zip"
           required
+          onChange={() => setTooBig(false)}
         />
         <p className="text-xs text-(--ca-muted)">
-          Max 100 MB. Only JavaScript/TypeScript source files are analyzed.
+          Max 4 MB. For a bigger project, import it from GitHub. Only
+          JavaScript/TypeScript source files are analyzed.
         </p>
       </div>
-      {state.error ? (
+      {tooBig || state.error ? (
         <p role="alert" className="text-sm text-destructive">
-          {state.error}
+          {tooBig ? UPLOAD_TOO_BIG_MESSAGE : state.error}
         </p>
       ) : null}
       {state.limit ? <LimitReachedNotice limit={state.limit} /> : null}

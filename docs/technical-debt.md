@@ -486,6 +486,13 @@ maintainability) · **Low** (cleanup).
   4 MB limit now (form and server), then direct upload from the browser to
   object storage so the job reads the file.
 - **Phase:** Ingestion async (Phase 5).
+- **Partial (2026-10-03):** the promise is now true. `MAX_UPLOAD_BYTES`
+  (4 MB, `limits.ts`) is checked in the form before sending (the only place
+  that can explain it: Vercel refuses a bigger body before the app runs)
+  and again in the action; the message points to the GitHub import, which
+  the job downloads up to 100 MB. `serverActions.bodySizeLimit` is 5 MB.
+  Still open: ZIPs over 4 MB, through Neon Object Storage (ADR-011, after a
+  spike).
 
 ---
 
