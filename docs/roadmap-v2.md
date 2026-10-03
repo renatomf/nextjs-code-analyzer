@@ -506,7 +506,15 @@ Vem antes da ingestão assíncrona: job em segundo plano sem log é caixa preta.
       retry e cache resolvidos (TD-01; TD-05 com ADR).
 - [ ] **Degradação graciosa:** com o LLM fora ou sem cota, o relatório sai só
       determinístico, sinalizado como tal.
-- [ ] Webhooks do Stripe deduplicados pelo `event.id`.
+- [x] Webhooks do Stripe deduplicados pelo `event.id`. Feito de outro
+      jeito, que cobre mais: todo evento que muda o plano busca o estado
+      **atual** da assinatura no Stripe, então duplicatas **e** entregas
+      atrasadas convergem para o estado real, sem tabela de eventos. Os
+      eventos de assinatura já faziam isso (TD-37); o
+      `checkout.session.completed` concedia premium pelo próprio evento, e
+      uma reentrega depois de um cancelamento devolvia o premium (teste que
+      falhava antes da correção). Dedupe por `event.id` barraria a
+      duplicata, não a primeira entrega atrasada.
 
 ## Fase 6 — Segurança e dados
 
