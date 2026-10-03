@@ -121,6 +121,18 @@ export const RETRIEVAL_CASES: RetrievalCase[] = [
         question: "Which code chunks does the LLM reviewer receive?",
         expectedFiles: ["src/modules/analysis/domain/sampling.ts"],
       },
+      // Added 2026-10-02 from a real chat on the preview: asked in Portuguese,
+      // the answer cited unrelated files and missed the auth setup. The
+      // embedding model is English-only; the pair tells a weak retriever
+      // from a weak retriever in Portuguese.
+      {
+        question: "Where is authentication handled?",
+        expectedFiles: ["src/lib/auth.ts", "src/lib/auth.config.ts", "src/proxy.ts"],
+      },
+      {
+        question: "Onde fica a autenticação?",
+        expectedFiles: ["src/lib/auth.ts", "src/lib/auth.config.ts", "src/proxy.ts"],
+      },
     ],
   },
 ];
