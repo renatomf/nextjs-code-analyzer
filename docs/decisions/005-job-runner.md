@@ -1,6 +1,6 @@
 # ADR-005 — Job runner da ingestão e da análise
 
-- **Status:** proposta
+- **Status:** aceita (2026-10-03, pelo autor)
 - **Data:** 2026-10-02
 - **Fase do roadmap:** 5 — Ingestão assíncrona
 
@@ -82,7 +82,7 @@ custo e dentro do limite de funções do Hobby?
    v2.0 ("análise rodando em job, com retry e sem projetos travados") não é
    cumprido.
 
-## Decisão (proposta)
+## Decisão
 
 **Opção 1, Vercel Workflows**, condicionada a um spike num preview que
 prove:
@@ -129,6 +129,30 @@ ONNX e medir a folga (TD-41); (b) os alertas do `workflow` resolvidos por
 versão nova ou `overrides`, ou aceitos com prazo no `osv-scanner.toml` se
 não forem alcançáveis — nunca ignorados sem análise.
 
+**Atualização (2026-10-02, PR #91): pré-condição (a) cumprida.** O peso
+não era do pipeline: o `postinstall` do `onnxruntime-node` baixa, em Linux
+x64, os providers de GPU (CUDA/TensorRT, ~258 MiB), e o `next.config.ts`
+empacotava a pasta inteira. Só com o runtime de CPU, a `analyze` caiu de
+247,8 para 34,1 MiB e o `chat` de 243,9 para 30,4 MiB (`vercel inspect`);
+análise e chat validados no preview. A `flow` com o pipeline deve ficar na
+mesma faixa da `analyze`. Resta a pré-condição (b).
+
+**Atualização (2026-10-03): pré-condição (b) tem solução.** O
+`@workflow/core@5.0.1` fixa `devalue@5.9.2` e `nanoid@5.1.6`. As seis
+vulnerabilidades do `devalue` estão corrigidas na 5.9.3 e as duas do
+`nanoid` na 5.1.16 (OSV), as duas na mesma major. Testado num diretório
+descartável: `workflow@5.0.1` com
+`"overrides": { "@workflow/core": { "devalue": "^5.9.4", "nanoid": "^5.1.16" } }`
+dá `npm audit --omit=dev` com 0 vulnerabilidades. O PR que instalar o
+`workflow` leva esses `overrides` (só dentro do `@workflow/core`) e
+reconfere o comportamento dos steps; sai quando o pacote trouxer as
+versões corrigidas.
+
+**Aceita em 2026-10-03.** As duas pré-condições estão atendidas. O item 3
+do spike (World local em dev, integração e E2E) fica para o primeiro PR da
+implementação, contra o Postgres local; se falhar, esta decisão volta a ser
+discutida antes de seguir.
+
 **Outbox sem tabela nova.** O roadmap pede eventos de domínio gravados na
 mesma transação do estado. Enquanto o único consumidor é o job, o próprio
 projeto é a outbox: a transação que cria o projeto (ou pede a reanálise)
@@ -162,8 +186,8 @@ webhook de saída), com ADR.
   localmente de ponta a ponta sem o runtime do Workflow; mais um painel
   para olhar (Vercel Observability, além do Sentry); dependência da
   disponibilidade do Vercel Queues.
-- **Revisar esta decisão se:** sair da Vercel; o enxugamento do TD-41 não
-  abrir folga para o pipeline na `flow`; o deploy passar de 12 funções;
+- **Revisar esta decisão se:** sair da Vercel; a `flow` voltar a se
+  aproximar de 250 MiB; o deploy passar de 12 funções;
   o volume passar de ~1.500 análises por mês (fim da cota de eventos do
   Hobby); ou o embedding sair para uma API (ADR-006, TD-05), o que tira a
   restrição do ONNX e torna as opções 2 e 3 mais baratas de operar.
