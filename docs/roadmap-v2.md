@@ -492,7 +492,9 @@ Vem antes da ingestão assíncrona: job em segundo plano sem log é caixa preta.
 - [ ] Pipeline em steps idempotentes: `ImportRequested → Extract → Filter →
       Chunk → Embed → Index → ProjectIndexed`, com `content_hash` para não
       reprocessar (TD-03). Domain events gravados via outbox na mesma
-      transação do estado.
+      transação do estado. O mesmo hash reaproveita os achados do LLM quando
+      o código revisado não mudou: hoje o mesmo ZIP reanalisado muda de nota
+      (TD-43).
 - [ ] Progresso vindo do job; sai a lógica de claim/stale da rota `analyze`;
       reaper para projetos travados (TD-10, TD-11).
       Progresso: a **análise** roda como Vercel Workflow (PR #95): a rota
