@@ -6,12 +6,9 @@ import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
+import { startAnalysisRun } from "@/lib/analysis/analysis-job";
 import { auth, signIn } from "@/lib/auth";
-import {
-  downloadGitHubZipball,
-  fullNameSchema,
-  refSchema,
-} from "@/lib/github";
+import { fullNameSchema, refSchema } from "@/lib/github";
 import { MAX_REPO_SIZE_BYTES } from "@/lib/limits";
 import { BillingLimitError } from "@/modules/billing";
 import { getPlanCatalogWithPricing } from "@/modules/billing/server";
@@ -19,7 +16,11 @@ import {
   disconnectGitHub as forgetGitHubConnection,
   getGitHubConnection,
 } from "@/modules/identity/server";
-import { findExistingImport, importArchive } from "@/modules/projects/server";
+import {
+  findExistingImport,
+  importArchive,
+  startGitHubImport,
+} from "@/modules/projects/server";
 
 export type ProjectActionState = {
   error?: string;
@@ -91,7 +92,7 @@ export async function createProjectFromGitHub(
   if (!parsed.success) {
     return { error: "Invalid repository selection." };
   }
-  const { fullName, defaultBranch } = parsed.data;
+  const { fullName } = parsed.data;
 
   const dbUser = await getGitHubConnection(user.id);
 
@@ -110,22 +111,23 @@ export async function createProjectFromGitHub(
   }
 
   try {
-    const zipBuffer = await downloadGitHubZipball(
-      { userId: user.id, encryptedToken: dbUser.githubAccessToken },
-      fullName,
-      defaultBranch,
-    );
-
-    const result = await importArchive({
+    // The download (up to 100 MB), extraction and storage run in the
+    // analysis workflow (ADR-005, TD-10): this request only creates the
+    // project under the quota and starts the run. GitHub refusing the
+    // download then gives the analysis back (fetchGitHubSourcesStage).
+    const { projectId, usageId } = await startGitHubImport({
       userId: user.id,
       name: fullName,
-      source: "github",
       repositoryUrl,
-      zipBuffer,
     });
+    const started = await startAnalysisRun(user.id, projectId, {
+      fetchFromGitHub: true,
+      importUsageId: usageId,
+    });
+    if (!started) return { error: "Failed to import repository." };
 
     revalidatePath("/dashboard");
-    redirect(`/projects/${result.projectId}/progress`);
+    redirect(`/projects/${projectId}/progress`);
   } catch (error) {
     if (isRedirectError(error)) throw error;
     if (error instanceof BillingLimitError) {

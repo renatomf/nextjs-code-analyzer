@@ -33,6 +33,20 @@ async function stage(
   }
 }
 
+/** GitHub projects: fetch the code first (a new import or a re-analysis). */
+async function fetchGitHubSourcesStep(
+  userId: string,
+  projectId: string,
+  importUsageId: string | undefined,
+): Promise<void> {
+  "use step";
+  await stage("github", userId, projectId, async (finalAttempt) => {
+    const { fetchGitHubSourcesStage } = await import("@/modules/projects/server");
+    await fetchGitHubSourcesStage(userId, projectId, { finalAttempt, importUsageId });
+  });
+}
+fetchGitHubSourcesStep.maxRetries = STEP_MAX_RETRIES;
+
 async function buildKnowledgeStep(userId: string, projectId: string): Promise<void> {
   "use step";
   await stage("knowledge", userId, projectId, async (finalAttempt) => {
@@ -67,9 +81,26 @@ async function markFailedStep(userId: string, projectId: string): Promise<void> 
   await failRunningAnalysis(userId, projectId, "Analysis failed. Please try again.");
 }
 
-export async function analysisWorkflow(userId: string, projectId: string): Promise<void> {
+/**
+ * Options of a run (stored with it by Workflow: flags and ids only).
+ * `importUsageId`: the quota record of a new GitHub import, given back if
+ * GitHub fails.
+ */
+export type AnalysisRunOptions = {
+  fetchFromGitHub?: boolean;
+  importUsageId?: string;
+};
+
+export async function analysisWorkflow(
+  userId: string,
+  projectId: string,
+  options: AnalysisRunOptions = {},
+): Promise<void> {
   "use workflow";
   try {
+    if (options.fetchFromGitHub) {
+      await fetchGitHubSourcesStep(userId, projectId, options.importUsageId);
+    }
     await buildKnowledgeStep(userId, projectId);
     await generateReportStep(userId, projectId);
     await completeStep(userId, projectId);

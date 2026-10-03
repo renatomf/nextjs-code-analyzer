@@ -8,13 +8,21 @@ import { persistProjectFiles, readProjectFiles } from "@/lib/files/storage";
 import { saveGitHubConnection } from "@/modules/identity/server";
 import { createUser, deleteUsers } from "@/test/integration/factories";
 
-// Characterization of re-analyzing a GitHub project before it moves into the
-// projects module: fetch the latest code, replace the stored files, queue
-// the project; every failure leaves the project failed with a user-facing
-// message and the previous files in place. Real Postgres, extraction and
-// quota; only the session, Next's cache and the GitHub download are mocked.
+// Re-analyzing a GitHub project. The action checks the repository and the
+// connection (before the quota), claims the project and starts the analysis
+// workflow (ADR-005); the workflow's first step fetches the latest code and
+// replaces the stored files. Here the workflow start is recorded and that
+// step (fetchGitHubSourcesStage) is run directly, as Workflow would. Every
+// failure leaves the project failed with a user-facing message and the
+// previous files in place. Real Postgres, extraction and quota; only the
+// session, Next's cache, the GitHub download and the Workflow start are
+// mocked.
 
-const mocks = vi.hoisted(() => ({ auth: vi.fn(), downloadGitHubZipball: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  auth: vi.fn(),
+  downloadGitHubZipball: vi.fn(),
+  start: vi.fn(),
+}));
 
 vi.mock("@/lib/auth", () => ({ auth: mocks.auth }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
@@ -22,9 +30,12 @@ vi.mock("@/lib/github", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/github")>()),
   downloadGitHubZipball: mocks.downloadGitHubZipball,
 }));
+vi.mock("workflow/api", () => ({ start: mocks.start, getRun: vi.fn() }));
+vi.mock("@/lib/analysis/analysis-workflow", () => ({ analysisWorkflow: "analysisWorkflow" }));
 
 import { retryFullAnalysis } from "@/lib/actions/analysis";
 import { GitHubError } from "@/lib/github";
+import { fetchGitHubSourcesStage } from "@/modules/projects/server";
 
 const created: string[] = [];
 
@@ -35,6 +46,7 @@ afterAll(async () => {
 beforeEach(() => {
   mocks.auth.mockReset();
   mocks.downloadGitHubZipball.mockReset();
+  mocks.start.mockReset().mockResolvedValue({ runId: "wrun_reanalysis" });
   vi.spyOn(console, "error").mockImplementation(() => {});
   vi.spyOn(console, "warn").mockImplementation(() => {});
 });
@@ -95,6 +107,7 @@ async function projectState(projectId: string) {
       progressStep: projects.progressStep,
       errorMessage: projects.errorMessage,
       fileCount: projects.fileCount,
+      analysisRunId: projects.analysisRunId,
     })
     .from(projects)
     .where(eq(projects.id, projectId));
@@ -109,26 +122,46 @@ const usageCount = (userId: string) =>
 
 const redirectsToProgress = { digest: expect.stringMatching(/\/projects\/[0-9a-f-]+\/progress/) };
 
+/** The action, then the workflow's GitHub step (as Workflow would run it). */
+async function reanalyze(userId: string, projectId: string) {
+  await expect(retryFullAnalysis({}, form(projectId))).rejects.toMatchObject(redirectsToProgress);
+  return fetchGitHubSourcesStage(userId, projectId);
+}
+
 describe("retryFullAnalysis (GitHub project)", () => {
-  it("fetches the latest code, replaces the stored files and queues the project", async () => {
+  it("starts the workflow, which fetches the latest code and replaces the stored files", async () => {
     const userId = await githubUser();
     const projectId = await githubProject(userId);
     mocks.downloadGitHubZipball.mockResolvedValue(await zipball());
 
     await expect(retryFullAnalysis({}, form(projectId))).rejects.toMatchObject(redirectsToProgress);
 
+    expect(mocks.start).toHaveBeenCalledWith("analysisWorkflow", [
+      userId,
+      projectId,
+      { fetchFromGitHub: true },
+    ]);
+    expect(await projectState(projectId)).toMatchObject({
+      status: "processing",
+      progressStep: "Fetching latest code from GitHub",
+      analysisRunId: "wrun_reanalysis",
+    });
+    expect(await usageCount(userId)).toBe(1);
+
+    await fetchGitHubSourcesStage(userId, projectId);
+
     expect(mocks.downloadGitHubZipball).toHaveBeenCalledWith(
       { userId, encryptedToken: "encrypted-token" },
       "octo/demo",
     );
     expect(await storedPaths(userId, projectId)).toEqual(["src/more.ts", "src/new.ts"]);
+    // Still the workflow's: "queued" would let the progress page start a second run.
     expect(await projectState(projectId)).toMatchObject({
-      status: "queued",
-      progressStep: "Latest code fetched — waiting to analyze",
+      status: "processing",
+      progressStep: "Files ready for analysis",
       fileCount: 2,
       errorMessage: null,
     });
-    expect(await usageCount(userId)).toBe(1);
   });
 
   it("finds the repository from the URL when the name has no owner", async () => {
@@ -139,7 +172,7 @@ describe("retryFullAnalysis (GitHub project)", () => {
     });
     mocks.downloadGitHubZipball.mockResolvedValue(await zipball());
 
-    await expect(retryFullAnalysis({}, form(projectId))).rejects.toMatchObject(redirectsToProgress);
+    await reanalyze(userId, projectId);
 
     expect(mocks.downloadGitHubZipball.mock.calls[0][1]).toBe("octo/demo");
   });
@@ -163,7 +196,7 @@ describe("retryFullAnalysis (GitHub project)", () => {
     const projectId = await githubProject(userId);
     await setup();
 
-    expect(await retryFullAnalysis({}, form(projectId))).toEqual({ error: message });
+    await expect(reanalyze(userId, projectId)).rejects.toThrow(message);
 
     expect(await projectState(projectId)).toMatchObject({
       status: "failed",
@@ -173,23 +206,55 @@ describe("retryFullAnalysis (GitHub project)", () => {
     expect(await storedPaths(userId, projectId)).toEqual(["src/old.ts"]);
   });
 
-  it("asks to connect GitHub when there is no token", async () => {
+  it("leaves a transient failure unwritten while the workflow will retry", async () => {
+    const userId = await githubUser();
+    const projectId = await githubProject(userId);
+    await expect(retryFullAnalysis({}, form(projectId))).rejects.toMatchObject(redirectsToProgress);
+    mocks.downloadGitHubZipball.mockRejectedValue(new Error("socket hang up"));
+
+    await expect(
+      fetchGitHubSourcesStage(userId, projectId, { finalAttempt: false }),
+    ).rejects.toThrow("socket hang up");
+
+    expect((await projectState(projectId)).status).toBe("processing");
+    expect(await storedPaths(userId, projectId)).toEqual(["src/old.ts"]);
+  });
+
+  it("asks to connect GitHub when there is no token, before using the quota", async () => {
     const userId = await githubUser({ connected: false });
     const projectId = await githubProject(userId);
 
     expect(await retryFullAnalysis({}, form(projectId))).toEqual({
       error: "Connect GitHub in Settings before re-analyzing this repository.",
     });
-    expect(mocks.downloadGitHubZipball).not.toHaveBeenCalled();
+    expect(mocks.start).not.toHaveBeenCalled();
+    expect(await usageCount(userId)).toBe(0);
+    expect((await projectState(projectId)).status).toBe("completed");
   });
 
-  it("fails when the repository cannot be determined", async () => {
+  it("fails when the repository cannot be determined, before using the quota", async () => {
     const userId = await githubUser();
     const projectId = await githubProject(userId, { name: "demo", repositoryUrl: null });
 
     expect(await retryFullAnalysis({}, form(projectId))).toEqual({
       error: "Could not determine the GitHub repository for this project.",
     });
-    expect(mocks.downloadGitHubZipball).not.toHaveBeenCalled();
+    expect(mocks.start).not.toHaveBeenCalled();
+    expect(await usageCount(userId)).toBe(0);
+  });
+
+  it("fails the project at once when the workflow cannot start", async () => {
+    const userId = await githubUser();
+    const projectId = await githubProject(userId);
+    mocks.start.mockRejectedValueOnce(new Error("queue unavailable"));
+
+    expect(await retryFullAnalysis({}, form(projectId))).toEqual({
+      error: "Failed to restart project analysis.",
+    });
+    expect(await projectState(projectId)).toMatchObject({
+      status: "failed",
+      errorMessage: "Failed to start the analysis. Please try again.",
+    });
+    expect(await storedPaths(userId, projectId)).toEqual(["src/old.ts"]);
   });
 });
