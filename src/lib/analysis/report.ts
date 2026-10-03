@@ -2,10 +2,10 @@ import { DomainError } from "@/shared/errors";
 import { logger } from "@/shared/logger";
 import { and, asc, eq } from "drizzle-orm";
 
-import { codeChunks, projects, reports } from "@/db/schema";
+import { codeChunks, projects, reports, type StoredLlmReview } from "@/db/schema";
 import { structuredLanguageModelId } from "@/lib/ai/llm";
 import { loadProjectSourceFiles } from "@/lib/analysis/project-files";
-import { runLlmHealthReview } from "@/lib/analysis/report-llm";
+import { reviewInputHash, runLlmHealthReview } from "@/lib/analysis/report-llm";
 import type {
   CategoryScores,
   CategorySummaries,
@@ -87,24 +87,44 @@ export async function generateProjectReport(
       );
     }
 
-    // Here, not at the entry points: every path to a report ends in this call.
-    await assertLlmEnabled("report");
-    await assertLlmBudget(userId);
+    // Same code as the stored review → same review (TD-43): the model's
+    // answers vary between runs, so asking again could change the score with
+    // no code change. The project's ownership was checked above.
+    const reviewInput = { projectName: project.name, framework: project.framework, chunks };
+    const inputHash = reviewInputHash(reviewInput);
+    const [previous] = await db
+      .select({ llmReview: reports.llmReview })
+      .from(reports)
+      .where(eq(reports.projectId, projectId))
+      .limit(1);
 
-    // Usage recorded on success and failure (Phase 4); recording never throws.
-    const llmCall = { userId, projectId, feature: "report" as const, model: structuredLanguageModelId() };
-    const llmStarted = performance.now();
-    const llm = await traced("report.llm_review", { chunks: chunks.length }, () =>
-      runLlmHealthReview({
-        projectName: project.name,
-        framework: project.framework,
-        chunks,
-      }),
-    ).catch(async (error: unknown) => {
-      await recordLlmCall({ ...llmCall, usage: null, latencyMs: performance.now() - llmStarted, ok: false });
-      throw error;
-    });
-    await recordLlmCall({ ...llmCall, usage: llm.usage, latencyMs: performance.now() - llmStarted, ok: true });
+    let llm: StoredLlmReview;
+    if (previous?.llmReview?.inputHash === inputHash) {
+      llm = previous.llmReview;
+      logger.info("analysis.llm_review_reused", { userId, projectId });
+    } else {
+      // Here, not at the entry points: every path to a new review ends here.
+      await assertLlmEnabled("report");
+      await assertLlmBudget(userId);
+
+      // Usage recorded on success and failure (Phase 4); recording never throws.
+      const llmCall = { userId, projectId, feature: "report" as const, model: structuredLanguageModelId() };
+      const llmStarted = performance.now();
+      const review = await traced("report.llm_review", { chunks: chunks.length }, () =>
+        runLlmHealthReview(reviewInput),
+      ).catch(async (error: unknown) => {
+        await recordLlmCall({ ...llmCall, usage: null, latencyMs: performance.now() - llmStarted, ok: false });
+        throw error;
+      });
+      await recordLlmCall({ ...llmCall, usage: review.usage, latencyMs: performance.now() - llmStarted, ok: true });
+      llm = {
+        inputHash,
+        architectureSummary: review.architectureSummary,
+        securitySummary: review.securitySummary,
+        performanceSummary: review.performanceSummary,
+        issues: review.issues,
+      };
+    }
 
     // One finding per problem, most severe first (ADR-010).
     const issues = buildReportFindings(metrics.issues, llm.issues);
@@ -131,6 +151,7 @@ export async function generateProjectReport(
         summaries: categorySummaries,
       },
       issues,
+      llmReview: llm,
     };
 
     await db

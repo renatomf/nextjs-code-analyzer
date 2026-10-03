@@ -1,8 +1,16 @@
+import { createHash } from "node:crypto";
+
 import { dataBlock, newDataBoundary } from "@/shared/prompt-data";
 
-import { getStructuredLanguageModel } from "@/lib/ai/llm";
+import { getStructuredLanguageModel, structuredLanguageModelId } from "@/lib/ai/llm";
 import type { ReportIssue } from "@/lib/analysis/report-types";
-import { REVIEW_BUDGET, reviewInstructions, sampleForReview, verifyEvidence } from "@/modules/analysis";
+import {
+  REVIEW_BUDGET,
+  REVIEW_PROMPT_VERSION,
+  reviewInstructions,
+  sampleForReview,
+  verifyEvidence,
+} from "@/modules/analysis";
 import { APICallError, generateText, Output } from "ai";
 import { z } from "zod";
 
@@ -84,7 +92,7 @@ export type LlmReportResult = {
   usage: { inputTokens?: number; outputTokens?: number };
 };
 
-export async function runLlmHealthReview(options: {
+export type ReviewInput = {
   projectName: string;
   framework: string | null;
   chunks: Array<{
@@ -93,7 +101,32 @@ export async function runLlmHealthReview(options: {
     startLine: number | null;
     endLine: number | null;
   }>;
-}): Promise<LlmReportResult> {
+};
+
+/**
+ * Fingerprint of everything the review model receives: model, prompt
+ * version, project name, framework and the sampled code (cut as it is sent).
+ * The data boundary is left out: it is random per call and changes nothing
+ * the model reviews. Same hash → reuse the stored review (TD-43).
+ */
+export function reviewInputHash(options: ReviewInput): string {
+  const sampled = sampleForReview(options.chunks);
+  const input = [
+    structuredLanguageModelId(),
+    REVIEW_PROMPT_VERSION,
+    options.projectName,
+    options.framework,
+    sampled.map((chunk) => [
+      chunk.filePath,
+      chunk.startLine,
+      chunk.endLine,
+      chunk.content.slice(0, REVIEW_BUDGET.chunkChars),
+    ]),
+  ];
+  return createHash("sha256").update(JSON.stringify(input)).digest("hex");
+}
+
+export async function runLlmHealthReview(options: ReviewInput): Promise<LlmReportResult> {
   const sampled = sampleForReview(options.chunks);
 
   const review = () => {
