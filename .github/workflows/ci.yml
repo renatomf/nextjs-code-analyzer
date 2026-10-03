@@ -13,6 +13,12 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+# onnxruntime-node's postinstall downloads the CUDA/TensorRT providers from
+# NuGet on Linux x64 (~258 MiB) that the app never ships (TD-41); a network
+# blip there failed `npm ci` (2026-10-03). The CPU runtime is in the package.
+env:
+  ONNXRUNTIME_NODE_INSTALL: skip
+
 jobs:
   check:
     name: Lint, typecheck, test, build
