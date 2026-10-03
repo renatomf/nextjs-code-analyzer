@@ -1,6 +1,6 @@
 # ADR-005 — Job runner da ingestão e da análise
 
-- **Status:** proposta
+- **Status:** aceita (2026-10-03, pelo autor)
 - **Data:** 2026-10-02
 - **Fase do roadmap:** 5 — Ingestão assíncrona
 
@@ -82,7 +82,7 @@ custo e dentro do limite de funções do Hobby?
    v2.0 ("análise rodando em job, com retry e sem projetos travados") não é
    cumprido.
 
-## Decisão (proposta)
+## Decisão
 
 **Opção 1, Vercel Workflows**, condicionada a um spike num preview que
 prove:
@@ -146,8 +146,12 @@ descartável: `workflow@5.0.1` com
 dá `npm audit --omit=dev` com 0 vulnerabilidades. O PR que instalar o
 `workflow` leva esses `overrides` (só dentro do `@workflow/core`) e
 reconfere o comportamento dos steps; sai quando o pacote trouxer as
-versões corrigidas. As duas pré-condições estão atendidas: falta a decisão
-do autor.
+versões corrigidas.
+
+**Aceita em 2026-10-03.** As duas pré-condições estão atendidas. O item 3
+do spike (World local em dev, integração e E2E) fica para o primeiro PR da
+implementação, contra o Postgres local; se falhar, esta decisão volta a ser
+discutida antes de seguir.
 
 **Outbox sem tabela nova.** O roadmap pede eventos de domínio gravados na
 mesma transação do estado. Enquanto o único consumidor é o job, o próprio

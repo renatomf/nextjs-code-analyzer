@@ -480,15 +480,15 @@ Vem antes da ingestão assíncrona: job em segundo plano sem log é caixa preta.
 
 **Obrigatório**
 
-- [ ] ADR do job runner: Inngest × Vercel Workflow × fila no Postgres + cron.
+- [x] ADR do job runner: Inngest × Vercel Workflow × fila no Postgres + cron.
       Critérios: retry com backoff, idempotência por step, timeout, custo,
       rodar local. Progresso: [ADR-005](decisions/005-job-runner.md)
       proposto (Vercel Workflows) e spike feito em 2026-10-02 — 7 de 12
       funções, ONNX e retry funcionam num step. Pré-condições: funções com
       ONNX no limite de 250 MiB — resolvido (TD-41: só o runtime de CPU,
       `analyze` 247,8 → 34,1 MiB); alertas de dependência do `workflow` —
-      resolvidos com `overrides` na mesma major (`npm audit` limpo). Falta
-      a decisão do autor sobre o ADR.
+      resolvidos com `overrides` na mesma major (`npm audit` limpo).
+      **Aceito em 2026-10-03.**
 - [ ] Pipeline em steps idempotentes: `ImportRequested → Extract → Filter →
       Chunk → Embed → Index → ProjectIndexed`, com `content_hash` para não
       reprocessar (TD-03). Domain events gravados via outbox na mesma
@@ -915,7 +915,7 @@ Mudam o roadmap a partir da v2.2.
 | 002 | [Convenção dos módulos e regras de arquitetura no CI](decisions/002-module-convention.md) (`dependency-cruiser`) — aceita | 3 |
 | 003 | [Regras da cota](decisions/003-quota.md), inclusive falha do sistema × erro do usuário (TD-12) — proposta | 3 |
 | 004 | Limites de custo do LLM e kill switch | 4 |
-| 005 | [Job runner da ingestão + outbox](decisions/005-job-runner.md) — proposta | 5 |
+| 005 | [Job runner da ingestão + outbox](decisions/005-job-runner.md) — aceita | 5 |
 | 006 | Embeddings em runtime serverless (TD-05) | 5 |
 | 007 | GitHub App no lugar do OAuth App (TD-15) | 6 |
 | 008 | Retenção e exclusão de dados | 6 |
