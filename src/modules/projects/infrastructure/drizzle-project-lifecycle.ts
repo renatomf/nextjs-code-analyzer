@@ -1,4 +1,4 @@
-import { and, eq, gt, inArray, lt, notInArray, or, sql } from "drizzle-orm";
+import { and, asc, eq, gt, inArray, isNull, lt, notInArray, or, sql } from "drizzle-orm";
 
 import { projects } from "@/db/schema";
 import { db, type Db } from "@/lib/db";
@@ -27,6 +27,7 @@ export async function findAnalysisCandidate(userId: string, projectId: string) {
       progressStep: projects.progressStep,
       progressPercent: projects.progressPercent,
       updatedAt: projects.updatedAt,
+      analysisRunId: projects.analysisRunId,
     })
     .from(projects)
     .where(owned(userId, projectId))
@@ -75,9 +76,15 @@ export async function createImportingProject(
 /**
  * Atomic claim: only one request can move the project into "processing", so
  * parallel calls (two tabs, a refresh) never run the analysis twice. Same
- * rule as `analysisStart` returning "claimable".
+ * rule as `analysisStart` returning "claimable". `deadRunId`: the run the
+ * caller saw finished while the project stayed "processing"; the claim clears
+ * the run id, so of two requests that saw the same dead run only one wins.
  */
-export async function claimAnalysis(userId: string, projectId: string): Promise<boolean> {
+export async function claimAnalysis(
+  userId: string,
+  projectId: string,
+  deadRunId: string | null = null,
+): Promise<boolean> {
   const [claimed] = await db
     .update(projects)
     .set({
@@ -85,6 +92,7 @@ export async function claimAnalysis(userId: string, projectId: string): Promise<
       progressStep: "Starting analysis",
       progressPercent: 30,
       errorMessage: null,
+      analysisRunId: null,
     })
     .where(
       and(
@@ -99,11 +107,26 @@ export async function claimAnalysis(userId: string, projectId: string): Promise<
               sql`now() - make_interval(secs => ${STALE_AFTER_SECONDS})`,
             ),
           ),
+          ...(deadRunId
+            ? [and(eq(projects.status, "processing"), eq(projects.analysisRunId, deadRunId))]
+            : []),
         ),
       ),
     )
     .returning({ id: projects.id });
   return Boolean(claimed);
+}
+
+/** Records the workflow run that now owns a claimed project (ADR-005). */
+export async function setAnalysisRunId(
+  userId: string,
+  projectId: string,
+  runId: string,
+): Promise<void> {
+  await db
+    .update(projects)
+    .set({ analysisRunId: runId })
+    .where(and(owned(userId, projectId), eq(projects.status, "processing")));
 }
 
 /**
@@ -176,6 +199,57 @@ export async function failRunningAnalysis(
     .update(projects)
     .set({ status: "failed", errorMessage })
     .where(and(owned(userId, projectId), eq(projects.status, "processing")))
+    .returning({ id: projects.id });
+  return Boolean(failed);
+}
+
+/**
+ * Projects left "processing" with no write for `olderThanSeconds`, oldest
+ * first (the daily reaper, TD-11). Not scoped by user: a system job behind
+ * CRON_SECRET, never reachable from a session.
+ */
+export async function findStuckProjects(olderThanSeconds: number, limit: number) {
+  return db
+    .select({
+      id: projects.id,
+      userId: projects.userId,
+      fileCount: projects.fileCount,
+      analysisRunId: projects.analysisRunId,
+    })
+    .from(projects)
+    .where(
+      and(
+        eq(projects.status, "processing"),
+        lt(projects.updatedAt, sql`now() - make_interval(secs => ${olderThanSeconds})`),
+      ),
+    )
+    .orderBy(asc(projects.updatedAt))
+    .limit(limit);
+}
+
+/**
+ * Fails a project found stuck, only if it is still the same stuck run: no
+ * write since and the same run id. A project the user restarted in the
+ * meantime (fresh write, new run) is left alone.
+ */
+export async function failStuckProject(
+  project: { id: string; userId: string; analysisRunId: string | null },
+  olderThanSeconds: number,
+  errorMessage: string,
+): Promise<boolean> {
+  const [failed] = await db
+    .update(projects)
+    .set({ status: "failed", errorMessage })
+    .where(
+      and(
+        owned(project.userId, project.id),
+        eq(projects.status, "processing"),
+        lt(projects.updatedAt, sql`now() - make_interval(secs => ${olderThanSeconds})`),
+        project.analysisRunId === null
+          ? isNull(projects.analysisRunId)
+          : eq(projects.analysisRunId, project.analysisRunId),
+      ),
+    )
     .returning({ id: projects.id });
   return Boolean(failed);
 }

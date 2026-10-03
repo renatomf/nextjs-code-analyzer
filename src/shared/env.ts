@@ -53,6 +53,8 @@ const optionalSchemas = {
     .string()
     .regex(/^whsec_/, { message: "must be a Stripe webhook secret" }),
   NEXT_PUBLIC_SENTRY_DSN: z.url(),
+  // Vercel sends it as a Bearer token to the cron routes (TD-11 reaper).
+  CRON_SECRET: z.string().min(32, { message: "must be at least 32 characters" }),
 } satisfies Record<string, z.ZodType<string>>;
 
 type OptionalKey = keyof typeof optionalSchemas;
@@ -63,6 +65,7 @@ const OPTIONAL_FEATURES: Record<string, OptionalKey[]> = {
   "Google login": ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"],
   billing: ["STRIPE_SECRET_KEY", "STRIPE_PRICE_PREMIUM", "STRIPE_WEBHOOK_SECRET"],
   "error monitoring (Sentry)": ["NEXT_PUBLIC_SENTRY_DSN"],
+  "stuck project cleanup (cron)": ["CRON_SECRET"],
 };
 
 export class EnvValidationError extends Error {

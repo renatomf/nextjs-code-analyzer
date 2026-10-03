@@ -378,6 +378,20 @@ maintainability) · **Low** (cleanup).
   whose step dies (timeout, retries used up) ends with `failRunningAnalysis`,
   so it no longer stays "processing". Still open: the import (TD-10) and a
   run that never starts its last step (the workflow itself lost).
+- **Partial (Phase 5):** the project records its run (`analysis_run_id`,
+  migration 0007). Opening the progress page asks Workflow for the run's
+  status: a finished run that left the project "processing" restarts at
+  once, and a live run is never started twice, however long it takes. Still
+  open: a project nobody opens again (the reaper) and the import.
+- **Done (Phase 5):** a daily cron (`vercel.json`, 07:00 UTC; Hobby allows
+  one a day) calls `/api/cron/reap-stuck-projects` with `CRON_SECRET`. It
+  fails projects left "processing" for over an hour (`STUCK_AFTER_SECONDS`),
+  except those whose run Workflow reports alive, with a message the user can
+  act on (import vs analysis). The write re-checks "still stuck, same run",
+  so a project restarted meanwhile is left alone. At most 100 per run. The
+  import itself still runs in the request until TD-10. Quota consumed by a
+  reaped import is not refunded: the usage event is not linked to the
+  project (ADR-003).
 
 ### TD-12 — Failed imports still consume the daily quota · Medium
 - **Where:** [actions/github.ts:79-97](../src/lib/actions/github.ts#L79-L97)

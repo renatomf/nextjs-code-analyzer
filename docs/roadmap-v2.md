@@ -78,7 +78,7 @@ caracterização da análise em snapshot). As Fases 4 a 6 não dependem da 7.
 - [ ] Zero import de `@/lib/db` / `@/db/schema` em `src/app`
 - [ ] Regras de dependência entre camadas e módulos verificadas no CI
 - [ ] Análise rodando em job, com retry e sem projetos travados
-- [ ] Relatório sai (só determinístico) mesmo com o LLM fora
+- [x] Relatório sai (só determinístico) mesmo com o LLM fora
 - [ ] Token de GitHub só com leitura (GitHub App)
 - [x] `npm run eval` com resultado versionado; nenhuma categoria do próprio
       repo zerada por ruído (2026-09-30, `c75ebff`: Code Quality 0 → 67,
@@ -499,16 +499,29 @@ Vem antes da ingestão assíncrona: job em segundo plano sem log é caixa preta.
       reaper para projetos travados (TD-10, TD-11).
       Progresso: a **análise** roda como Vercel Workflow (PR #95): a rota
       só faz o claim e dispara o run, steps com retry e `FatalError`, run
-      que morre termina `failed`, `flow` com 36,0 MiB. Falta: importação
-      no job (TD-10), tirar o stale/claim da rota (precisa do `runId` no
-      projeto) e o reaper (TD-11).
+      que morre termina `failed`, `flow` com 36,0 MiB. `runId` no projeto
+      (migração 0007): a rota pergunta ao Workflow se o run está vivo, em
+      vez de adivinhar pela janela de 360 s — run vivo não é disparado de
+      novo mesmo depois de 360 s, run morto libera na hora. O claim atômico
+      fica (protege contra duas abas); a janela fica só para projeto sem
+      run (importação) ou run que o Workflow não acha mais. Reaper (TD-11):
+      cron diário que marca como falha o projeto parado em `processing` há
+      mais de 1 h, exceto run vivo no Workflow. Falta: importação no job
+      (TD-10).
 - [ ] Parsing fora da thread da request (TD-09); modelo de embeddings com
       retry e cache resolvidos (TD-01; TD-05 com ADR).
       Progresso: parsing da análise num step do workflow (TD-09 parcial,
       PR #95); TD-01 feito (carga com retry e falha que não fica em cache).
       Falta o ADR-006 (TD-05: embeddings em runtime serverless).
-- [ ] **Degradação graciosa:** com o LLM fora ou sem cota, o relatório sai só
-      determinístico, sinalizado como tal.
+- [x] **Degradação graciosa:** com o LLM fora ou sem cota, o relatório sai só
+      determinístico, sinalizado como tal. Feito: kill switch desligado,
+      orçamento diário de tokens gasto ou provedor falhando na **última**
+      tentativa do step → o relatório sai com métricas e regras, sem
+      achados nem resumos do LLM, e grava o motivo (`aiReviewSkipped` em
+      `category_scores`, sem migração). Tentativas anteriores ainda sobem o
+      erro (o workflow tenta de novo). Nada de revisão é guardado, então a
+      próxima análise pede a revisão completa. O relatório (do dono e o
+      link público) mostra "Automated checks only" com o motivo.
 - [x] Webhooks do Stripe deduplicados pelo `event.id`. Feito de outro
       jeito, que cobre mais: todo evento que muda o plano busca o estado
       **atual** da assinatura no Stripe, então duplicatas **e** entregas

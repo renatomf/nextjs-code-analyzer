@@ -83,4 +83,25 @@ describe("ReportView", () => {
     expect(screen.queryAllByRole("link")).toHaveLength(0);
     expect(screen.getByText("src/config.ts")).toBeTruthy();
   });
+
+  it("says when the score comes from the automated checks only (no AI review)", () => {
+    render(<ReportView {...PROPS} projectId="p1" aiReviewSkipped="budget" />);
+
+    const notice = screen.getByRole("status");
+    expect(within(notice).getByText("Automated checks only")).toBeTruthy();
+    expect(notice.textContent).toContain("Today's AI budget for this account is used up.");
+    expect(notice.textContent).toContain("Run the analysis again later");
+  });
+
+  it("does not tell a public viewer to re-run the analysis", () => {
+    render(<ReportView {...PROPS} aiReviewSkipped="unavailable" />);
+
+    expect(screen.getByRole("status").textContent).not.toContain("Run the analysis again");
+  });
+
+  it("shows no notice for a full review", () => {
+    render(<ReportView {...PROPS} projectId="p1" />);
+
+    expect(screen.queryByRole("status")).toBeNull();
+  });
 });

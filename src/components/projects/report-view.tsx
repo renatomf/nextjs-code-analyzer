@@ -2,6 +2,7 @@ import {
   Code2,
   FlaskConical,
   Gauge,
+  Info,
   Layers,
   Shield,
 } from "lucide-react";
@@ -16,6 +17,7 @@ import {
   sortIssues,
 } from "@/lib/analysis/issue-utils";
 import type {
+  AiReviewSkip,
   CategoryScores,
   CategorySummaries,
   IssueCategory,
@@ -54,22 +56,60 @@ export function ReportView({
   summaries,
   issues: unsortedIssues,
   projectId,
+  aiReviewSkipped,
 }: {
   healthScore: number;
   categoryScores: Partial<CategoryScores> | null;
   summaries?: Partial<CategorySummaries>;
   issues: ReportIssue[];
   projectId?: string;
+  /** Set when the report came out without the AI review. */
+  aiReviewSkipped?: AiReviewSkip;
 }) {
   const issues = sortIssues(unsortedIssues);
 
   return (
     <>
+      {aiReviewSkipped ? (
+        <AiReviewNotice reason={aiReviewSkipped} canRerun={Boolean(projectId)} />
+      ) : null}
       <ScoreOverview healthScore={healthScore} categoryScores={categoryScores} />
       <CategoryCards categoryScores={categoryScores} summaries={summaries} />
       <RoadmapList roadmap={issues.slice(0, 8)} />
       <TopIssues issues={issues} projectId={projectId} />
     </>
+  );
+}
+
+const AI_REVIEW_SKIPPED: Record<AiReviewSkip, string> = {
+  disabled: "The AI review is turned off for now.",
+  budget: "Today's AI budget for this account is used up.",
+  unavailable: "The AI provider did not respond.",
+};
+
+/**
+ * Graceful degradation (roadmap Phase 5): the report is real, but its score
+ * and findings come from the automated checks only. Said up front, so the
+ * score is not read as the full review.
+ */
+function AiReviewNotice({ reason, canRerun }: { reason: AiReviewSkip; canRerun: boolean }) {
+  return (
+    <section
+      role="status"
+      className="ca-panel flex gap-3 border-l-2 border-l-(--ca-ink) px-4 py-3"
+    >
+      <Info className="mt-0.5 size-4 shrink-0 text-(--ca-muted)" aria-hidden />
+      <div className="min-w-0">
+        <p className="font-mono text-[0.7rem] tracking-[0.04em] uppercase">
+          Automated checks only
+        </p>
+        <p className="mt-1 text-sm leading-relaxed text-(--ca-muted)">
+          {AI_REVIEW_SKIPPED[reason]} This score and its findings come from the
+          automated checks alone, without the AI review.
+          {canRerun ? " Run the analysis again later for the full review." : ""}
+        </p>
+      </div>
+    </section>
   );
 }
 

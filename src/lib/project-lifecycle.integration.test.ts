@@ -15,6 +15,7 @@ import { createUser, deleteUsers } from "@/test/integration/factories";
 const mocks = vi.hoisted(() => ({
   auth: vi.fn(),
   enqueueAnalysis: vi.fn(),
+  analysisRunStatus: vi.fn(),
   assertRateLimit: vi.fn(),
 }));
 
@@ -28,6 +29,7 @@ vi.mock("@/lib/rate-limit", async (importOriginal) => ({
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/lib/analysis/analysis-job", () => ({
   enqueueAnalysis: mocks.enqueueAnalysis,
+  analysisRunStatus: mocks.analysisRunStatus,
 }));
 
 import { POST as analyze } from "@/app/api/projects/[id]/analyze/route";
@@ -46,6 +48,7 @@ afterAll(async () => {
 beforeEach(() => {
   mocks.auth.mockReset();
   mocks.enqueueAnalysis.mockReset().mockResolvedValue("wrun_test");
+  mocks.analysisRunStatus.mockReset().mockResolvedValue(null);
   mocks.assertRateLimit.mockReset().mockResolvedValue(undefined);
   vi.spyOn(console, "error").mockImplementation(() => {});
 });
@@ -59,7 +62,7 @@ async function signedInUser() {
 
 async function createProject(
   userId: string,
-  values: { status: Status; fileCount?: number; updatedAt?: Date },
+  values: { status: Status; fileCount?: number; updatedAt?: Date; analysisRunId?: string },
 ) {
   const [project] = await db
     .insert(projects)
@@ -186,6 +189,86 @@ describe("POST /api/projects/[id]/analyze — claim", () => {
     expect(response.status).toBe(404);
     expect(mocks.enqueueAnalysis).not.toHaveBeenCalled();
     expect((await readProject(projectId)).status).toBe("queued");
+  });
+
+  it("records the run that owns the project", async () => {
+    const userId = await signedInUser();
+    const projectId = await createProject(userId, { status: "queued" });
+    mocks.enqueueAnalysis.mockResolvedValueOnce("wrun_new");
+
+    await analyzeRequest(projectId);
+
+    const [row] = await db
+      .select({ runId: projects.analysisRunId })
+      .from(projects)
+      .where(eq(projects.id, projectId));
+    expect(row.runId).toBe("wrun_new");
+  });
+
+  it("does not start a second run while the workflow run is alive, even past the stale window", async () => {
+    const userId = await signedInUser();
+    const projectId = await createProject(userId, {
+      status: "processing",
+      updatedAt: secondsAgo(1_000),
+      analysisRunId: "wrun_alive",
+    });
+    mocks.analysisRunStatus.mockResolvedValue("running");
+
+    expect(await (await analyzeRequest(projectId)).json()).toMatchObject({ alreadyRunning: true });
+    expect(mocks.analysisRunStatus).toHaveBeenCalledWith("wrun_alive");
+    expect(mocks.enqueueAnalysis).not.toHaveBeenCalled();
+  });
+
+  it("restarts at once when the run ended but left the project processing", async () => {
+    const userId = await signedInUser();
+    const projectId = await createProject(userId, {
+      status: "processing",
+      updatedAt: secondsAgo(5),
+      analysisRunId: "wrun_dead",
+    });
+    mocks.analysisRunStatus.mockResolvedValue("failed");
+
+    await analyzeRequest(projectId);
+
+    expect(mocks.enqueueAnalysis).toHaveBeenCalledOnce();
+  });
+
+  it("falls back to the stale window when the run's status cannot be read", async () => {
+    const userId = await signedInUser();
+    const projectId = await createProject(userId, {
+      status: "processing",
+      updatedAt: secondsAgo(60),
+      analysisRunId: "wrun_unknown",
+    });
+    mocks.analysisRunStatus.mockResolvedValue(null);
+
+    expect(await (await analyzeRequest(projectId)).json()).toMatchObject({ alreadyRunning: true });
+    expect(mocks.enqueueAnalysis).not.toHaveBeenCalled();
+  });
+
+  it("lets only one of two requests restart the same dead run", async () => {
+    const userId = await signedInUser();
+    const projectId = await createProject(userId, {
+      status: "processing",
+      updatedAt: secondsAgo(5),
+      analysisRunId: "wrun_dead",
+    });
+    mocks.analysisRunStatus.mockResolvedValue("failed");
+    let arrived = 0;
+    let releaseBoth!: () => void;
+    const bothRead = new Promise<void>((resolve) => (releaseBoth = resolve));
+    mocks.assertRateLimit.mockImplementation(async () => {
+      arrived += 1;
+      if (arrived === 2) releaseBoth();
+      await bothRead;
+    });
+
+    const bodies = await Promise.all(
+      [analyzeRequest(projectId), analyzeRequest(projectId)].map(async (r) => (await r).json()),
+    );
+
+    expect(mocks.enqueueAnalysis).toHaveBeenCalledOnce();
+    expect(bodies.filter((b) => b.alreadyRunning)).toHaveLength(1);
   });
 
   it("lets only one of two parallel requests run the analysis", async () => {

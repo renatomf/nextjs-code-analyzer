@@ -1,0 +1,1 @@
+ALTER TABLE "projects" ADD COLUMN "analysis_run_id" text;
