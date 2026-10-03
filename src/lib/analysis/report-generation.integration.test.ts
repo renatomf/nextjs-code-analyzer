@@ -177,6 +177,21 @@ describe("generateProjectReport (characterization)", () => {
     ]);
   });
 
+  it("leaves an LLM failure unwritten while the workflow will retry", async () => {
+    const projectId = await analyzedProject();
+    mocks.runLlmHealthReview.mockRejectedValueOnce(new Error("provider 503"));
+
+    await expect(
+      generateProjectReport(owner, projectId, { finalAttempt: false }),
+    ).rejects.toThrow("provider 503");
+
+    expect(await projectState(projectId)).toEqual({ status: "processing", errorMessage: null });
+    // The failed call still counts against the budget.
+    expect(await llmCallsOf(projectId)).toEqual([
+      { feature: "report", ok: false, inputTokens: 0, outputTokens: 0 },
+    ]);
+  });
+
   it("records the LLM call's usage with the report", async () => {
     const projectId = await analyzedProject();
 

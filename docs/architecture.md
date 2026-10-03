@@ -40,7 +40,9 @@ flowchart TB
   cliente do Drizzle nem o schema (era 12). Pages e rotas chamam as APIs
   públicas dos módulos.
 - **Mesmo deploy, mesmos limites:** um app Next.js 16, no máximo 12 funções
-  (Hobby); o runtime ONNX só em `analyze` e `chat`. Sem fila (Fase 5).
+  (Hobby); o runtime ONNX só na função `flow` do Workflow (onde rodam os
+  steps da análise) e no `chat`. A análise roda como Vercel Workflow
+  ([ADR-005](decisions/005-job-runner.md)); a importação ainda na request.
 
 ## Módulos
 
@@ -89,13 +91,17 @@ devolve a análise (ADR-003, TD-12).
 
 Página de progresso (`useAnalysisProgress`) → `POST /api/projects/:id/analyze`
 → `analysisStart` decide e `claimAnalysis` faz o claim atômico (projects) →
-pipeline: chunking (Tree-sitter) → `storeKnowledge` (ingestion) → métricas
+`enqueueAnalysis` dispara o `analysisWorkflow` e a rota responde na hora; a
+página lê o progresso que os steps gravam (`/status`). Steps
+(`analysis-workflow.ts`): conhecimento → relatório → conclusão, só ids
+entre eles; erro do usuário e cancelamento encerram (`FatalError`), o resto
+tem 2 retries com mensagem genérica; um run que morre sem gravar a falha
+termina em `failRunningAnalysis`. Dentro dos steps, o pipeline: chunking (Tree-sitter) → `storeKnowledge` (ingestion) → métricas
 e regras (analysis) → `sampleForReview` (amostra espalhada pelo projeto) →
 revisão do LLM com o código em blocos de dados
 (TD-28) → `verifyEvidence` (achado do LLM só fica com trecho que existe no
 arquivo citado) → `groupFindings` + `diminishingPenaltyPolicy` (ADR-010) →
-`reports`. Tudo dentro da request
-(`maxDuration` 300 s) até a Fase 5.
+`reports`. Cada step tem até 300 s (duração da função `flow`).
 
 ### Chat (RAG)
 

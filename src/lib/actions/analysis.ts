@@ -56,9 +56,10 @@ export async function retryProjectKnowledge(
 
   try {
     await assertAiActionRateLimit("knowledge", project.userId);
-    // Embeddings run only in the analyze route (the only functions that ship
-    // the ONNX runtime on Vercel), so queue the project and let the progress
-    // page start it. Stored files are reused; no quota is consumed.
+    // Embeddings run only in the analysis workflow (with the chat, the only
+    // functions that ship the ONNX runtime on Vercel), so queue the project
+    // and let the progress page start it. Stored files are reused; no quota
+    // is consumed.
     const queued = await requeueIdleProject(
       project.userId,
       project.id,

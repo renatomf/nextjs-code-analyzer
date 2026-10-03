@@ -156,6 +156,29 @@ describe("buildProjectKnowledge", () => {
     expect(await chunksOf(projectId)).toEqual(before);
   });
 
+  it("leaves a transient failure unwritten while the workflow will retry", async () => {
+    const projectId = await projectWithFiles();
+    mocks.embedTexts.mockRejectedValueOnce(new Error("hub timeout"));
+
+    await expect(
+      buildProjectKnowledge(owner, projectId, { finalAttempt: false }),
+    ).rejects.toThrow("hub timeout");
+
+    // Still "processing": the progress page keeps polling the next attempt.
+    expect(await readProject(projectId)).toMatchObject({ status: "processing", errorMessage: null });
+  });
+
+  it("writes a user error even when the workflow could retry", async () => {
+    const projectId = await projectWithFiles([
+      { relativePath: "README.md", content: "# docs only" },
+    ]);
+
+    await expect(
+      buildProjectKnowledge(owner, projectId, { finalAttempt: false }),
+    ).rejects.toThrow("No JavaScript/TypeScript source files found to analyze.");
+    expect(await readProject(projectId)).toMatchObject({ status: "failed" });
+  });
+
   it("stops as canceled when the project was deleted", async () => {
     const projectId = await projectWithFiles();
     await db.delete(projects).where(eq(projects.id, projectId));

@@ -6,8 +6,9 @@
 import { appendFileSync, existsSync, readFileSync, statSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
-// Routes that ship the ONNX runtime (next.config.ts).
-const ROUTES = ["api/projects/[id]/analyze", "api/chat"];
+// Routes that ship the ONNX runtime (next.config.ts): the workflow function,
+// where the analysis steps run (ADR-005), and the chat.
+const ROUTES = [".well-known/workflow/v1/flow", "api/chat"];
 const TOP_PACKAGES = 12;
 const MiB = 1024 * 1024;
 // Gate on the traced sum, which is always above Vercel's own number: 200 MiB

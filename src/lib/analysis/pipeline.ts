@@ -6,12 +6,16 @@ import {
   setProjectProgress,
 } from "@/lib/analysis/progress";
 import { loadProjectSourceFiles } from "@/lib/analysis/project-files";
-import { generateProjectReport } from "@/lib/analysis/report";
+import { generateProjectReport, type StageOptions } from "@/lib/analysis/report";
 import { storeProjectChunks } from "@/modules/ingestion/server";
 import { traced } from "@/shared/tracing";
 
 // `userId` must come from the server session: every step below is scoped by
 // it, so a projectId sent by the client can never reach another user's data.
+// The stages run as workflow steps (analysis-workflow.ts, ADR-005): each one
+// can run again after a failure, so each one must be safe to repeat.
+
+export type { StageOptions };
 
 /** Progress update that doubles as a checkpoint: stops the run if canceled. */
 async function checkpoint(
@@ -27,6 +31,7 @@ async function checkpoint(
 export async function buildProjectKnowledge(
   userId: string,
   projectId: string,
+  { finalAttempt = true }: StageOptions = {},
 ): Promise<{
   chunkCount: number;
   fileCount: number;
@@ -79,6 +84,10 @@ export async function buildProjectKnowledge(
     // (e.g. no JS/TS files); raw errors (DB, model download) may carry
     // internals, so they become a generic message (TD-33).
     const isDomain = error instanceof DomainError;
+    if (!isDomain && !finalAttempt) {
+      logger.warn("analysis.knowledge_retrying", { err: error, userId, projectId });
+      throw error;
+    }
     const stillExists = await setProjectProgress(userId, projectId, {
       step: "Knowledge build failed",
       percent: 65,
@@ -97,23 +106,12 @@ export async function buildProjectKnowledge(
   }
 }
 
-/**
- * Full analysis path used after import:
- * knowledge base first, then health report.
- */
-export async function runFullProjectAnalysis(
+/** Second stage: metrics, LLM review and the stored report. */
+export async function generateReportStage(
   userId: string,
   projectId: string,
+  options: StageOptions = {},
 ): Promise<void> {
-  await checkpoint(userId, projectId, {
-    step: "Starting analysis",
-    percent: 30,
-    status: "processing",
-    errorMessage: null,
-  });
-
-  await buildProjectKnowledge(userId, projectId);
-
   await checkpoint(userId, projectId, {
     step: "Running analysis",
     percent: 80,
@@ -125,8 +123,11 @@ export async function runFullProjectAnalysis(
     percent: 90,
   });
 
-  await generateProjectReport(userId, projectId);
+  await generateProjectReport(userId, projectId, options);
+}
 
+/** Last stage: the run is done. */
+export async function completeAnalysis(userId: string, projectId: string): Promise<void> {
   await checkpoint(userId, projectId, {
     step: "Complete",
     percent: 100,

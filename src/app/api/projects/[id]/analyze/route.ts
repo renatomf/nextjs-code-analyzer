@@ -1,18 +1,18 @@
 import { logger, requestIdFrom } from "@/shared/logger";
 import { z } from "zod";
 
-import { runFullProjectAnalysis } from "@/lib/analysis/pipeline";
+import { enqueueAnalysis } from "@/lib/analysis/analysis-job";
 import { auth } from "@/lib/auth";
 import { assertRateLimit, RateLimitError } from "@/lib/rate-limit";
-import { AnalysisCanceledError, analysisStart } from "@/modules/projects";
+import { analysisStart } from "@/modules/projects";
 import {
   claimAnalysis,
+  failRunningAnalysis,
   findAnalysisCandidate,
   readProgress,
 } from "@/modules/projects/server";
 
 export const runtime = "nodejs";
-export const maxDuration = 300;
 
 // Embeddings + LLM report: cost protection, keyed by userId.
 const ANALYZE_MAX_PER_HOUR = 10;
@@ -96,33 +96,30 @@ export async function POST(_request: Request, context: RouteContext) {
     return alreadyRunning();
   }
 
+  // The analysis runs as a workflow (ADR-005): this request only starts it;
+  // the progress page polls the status the steps write.
   try {
-    await runFullProjectAnalysis(userId, project.id);
-    const updated = await readProgress(userId, project.id);
-    return Response.json({
-      ok: true,
-      status: updated?.status ?? "completed",
-      progressStep: updated?.progressStep,
-      progressPercent: updated?.progressPercent,
-    });
+    await enqueueAnalysis(userId, project.id);
   } catch (error) {
-    const updated = await readProgress(userId, project.id);
-    // Canceled = the project was deleted mid-run (its writes then fail).
-    if (error instanceof AnalysisCanceledError || !updated) {
-      return Response.json({ ok: false, canceled: true, status: "failed" });
-    }
-
-    // The pipeline already stored a generic, user-facing errorMessage.
-    logger.error("analysis.request_failed", { err: error, projectId: project.id, requestId: requestIdFrom(_request.headers) });
-    return Response.json(
-      {
-        ok: false,
-        status: updated?.status ?? "failed",
-        progressStep: updated?.progressStep,
-        progressPercent: updated?.progressPercent,
-        error: "Analysis failed.",
-      },
-      { status: 500 },
-    );
+    // Not started: release the claim so the user can retry now, not after
+    // the stale window.
+    const requestId = requestIdFrom(_request.headers);
+    logger.error("analysis.enqueue_failed", { err: error, projectId: project.id, requestId });
+    await failRunningAnalysis(
+      userId,
+      project.id,
+      "Failed to start the analysis. Please try again.",
+    ).catch((releaseError: unknown) => {
+      logger.error("analysis.release_failed", { err: releaseError, projectId: project.id, requestId });
+    });
+    return Response.json({ ok: false, status: "failed", error: "Analysis failed." }, { status: 500 });
   }
+
+  const updated = await readProgress(userId, project.id);
+  return Response.json({
+    ok: true,
+    status: updated?.status ?? "processing",
+    progressStep: updated?.progressStep,
+    progressPercent: updated?.progressPercent,
+  });
 }

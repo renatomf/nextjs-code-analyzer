@@ -1,0 +1,80 @@
+import { FatalError, getStepMetadata } from "workflow";
+
+import { classifyStepFailure, isFinalAttempt, STEP_MAX_RETRIES } from "./step-failure";
+
+/**
+ * The analysis as a durable workflow (ADR-005): each stage of the pipeline is
+ * a step, retried on transient failures, and the run survives the request
+ * that started it. Rules for every step:
+ * - only ids go in and out (Workflow stores step inputs, outputs and errors
+ *   with the run; code, files and tokens stay in Postgres);
+ * - each stage re-checks ownership and cancellation (its checkpoints);
+ * - user errors and cancellation are fatal, everything else is retried.
+ * Heavy modules are imported inside the steps: the workflow function itself
+ * runs in a sandbox that only orchestrates.
+ */
+
+/** Runs one pipeline stage inside a step, with the retry rules above. */
+async function stage(
+  name: string,
+  userId: string,
+  projectId: string,
+  run: (finalAttempt: boolean) => Promise<void>,
+): Promise<void> {
+  const { attempt } = getStepMetadata();
+  try {
+    await run(isFinalAttempt(attempt));
+  } catch (error) {
+    const failure = classifyStepFailure(error);
+    if (failure.fatal) throw new FatalError(failure.message);
+    const { logger } = await import("@/shared/logger");
+    logger.warn("analysis.step_failed", { err: error, step: name, attempt, userId, projectId });
+    throw new Error(failure.message);
+  }
+}
+
+async function buildKnowledgeStep(userId: string, projectId: string): Promise<void> {
+  "use step";
+  await stage("knowledge", userId, projectId, async (finalAttempt) => {
+    const { buildProjectKnowledge } = await import("./pipeline");
+    await buildProjectKnowledge(userId, projectId, { finalAttempt });
+  });
+}
+buildKnowledgeStep.maxRetries = STEP_MAX_RETRIES;
+
+async function generateReportStep(userId: string, projectId: string): Promise<void> {
+  "use step";
+  await stage("report", userId, projectId, async (finalAttempt) => {
+    const { generateReportStage } = await import("./pipeline");
+    await generateReportStage(userId, projectId, { finalAttempt });
+  });
+}
+generateReportStep.maxRetries = STEP_MAX_RETRIES;
+
+async function completeStep(userId: string, projectId: string): Promise<void> {
+  "use step";
+  await stage("complete", userId, projectId, async () => {
+    const { completeAnalysis } = await import("./pipeline");
+    await completeAnalysis(userId, projectId);
+  });
+}
+completeStep.maxRetries = STEP_MAX_RETRIES;
+
+/** A step that died without writing its failure (timeout, retries used up). */
+async function markFailedStep(userId: string, projectId: string): Promise<void> {
+  "use step";
+  const { failRunningAnalysis } = await import("@/modules/projects/server");
+  await failRunningAnalysis(userId, projectId, "Analysis failed. Please try again.");
+}
+
+export async function analysisWorkflow(userId: string, projectId: string): Promise<void> {
+  "use workflow";
+  try {
+    await buildKnowledgeStep(userId, projectId);
+    await generateReportStep(userId, projectId);
+    await completeStep(userId, projectId);
+  } catch (error) {
+    await markFailedStep(userId, projectId);
+    throw error;
+  }
+}
