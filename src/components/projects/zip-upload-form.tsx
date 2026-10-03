@@ -9,20 +9,34 @@ import {
   createProjectFromZip,
   type ProjectActionState,
 } from "@/lib/actions/github";
-import { useActionState, useRef } from "react";
+import { startTransition, useActionState, useRef } from "react";
 
 const initialState: ProjectActionState = {};
 
 export function ZipUploadForm() {
+  // React resets the form after its action runs, emptying the file input:
+  // "Analyze again" re-sends the last submission instead of the form.
+  const lastSubmission = useRef<FormData | null>(null);
   const [state, formAction, pending] = useActionState(
-    createProjectFromZip,
+    (previous: ProjectActionState, formData: FormData) => {
+      lastSubmission.current = formData;
+      return createProjectFromZip(previous, formData);
+    },
     initialState,
   );
-  const formRef = useRef<HTMLFormElement>(null);
+
+  function analyzeAgain() {
+    const last = lastSubmission.current;
+    if (!last) return;
+    const again = new FormData();
+    for (const [key, value] of last) again.append(key, value);
+    again.set("confirmReanalyze", "1");
+    startTransition(() => formAction(again));
+  }
 
   return (
-    <form ref={formRef} action={formAction} className="space-y-4">
-      <ReanalyzeDialog state={state} formRef={formRef} />
+    <form action={formAction} className="space-y-4">
+      <ReanalyzeDialog state={state} resubmit={analyzeAgain} />
       <div className="space-y-2">
         <Label htmlFor="file">ZIP file</Label>
         <Input
