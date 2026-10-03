@@ -159,6 +159,17 @@ describe("createProjectFromZip", () => {
     expect(await userProjects(userId)).toHaveLength(1);
   });
 
+  it("refuses a ZIP over 4 MB before touching the quota (TD-45)", async () => {
+    const userId = await signedInUser();
+    const tooBig = Buffer.alloc(4 * 1024 * 1024 + 1);
+
+    expect(await createProjectFromZip({}, zipForm(tooBig))).toEqual({
+      error: "ZIP uploads are limited to 4 MB. For a bigger project, import it from GitHub.",
+    });
+    expect(await userProjects(userId)).toEqual([]);
+    expect(await usageCount(userId)).toBe(0);
+  });
+
   it("rejects a non-ZIP upload before touching the quota", async () => {
     const userId = await signedInUser();
 
