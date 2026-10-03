@@ -1,6 +1,6 @@
 # ADR-011 — Onde o ZIP enviado fica até o job processá-lo
 
-- **Status:** proposta
+- **Status:** aceita (2026-10-03, pelo autor)
 - **Data:** 2026-10-03
 - **Fase do roadmap:** 5 — Ingestão assíncrona (TD-10, TD-45)
 
@@ -65,7 +65,7 @@ sem guardar o código do usuário mais do que o necessário?
    - Contras: abre mão de ZIPs maiores; TD-10 fica aberto para ZIP (pequeno
      o bastante para a request, mas ainda fora do job).
 
-## Decisão (proposta)
+## Decisão
 
 **Opção 4 agora, como correção imediata do TD-45, e opção 1 em seguida**,
 condicionada a um spike no preview que prove: POST assinado do navegador
