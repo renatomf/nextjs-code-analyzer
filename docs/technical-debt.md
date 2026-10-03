@@ -295,6 +295,21 @@ maintainability) · **Low** (cleanup).
   (a test that reaches a file through another module) need the full import
   graph (v2.1 Code Intelligence).
 
+### TD-42 — Chat retrieval misses questions asked in Portuguese · Medium
+- **Where:** [onnx-embedder.ts](../src/modules/ingestion/infrastructure/onnx-embedder.ts)
+  (`Xenova/all-MiniLM-L6-v2`)
+- **Problem:** the embedding model was trained on English. Found in a real
+  chat on the preview (2026-10-02): "onde fica a autenticação?" cited
+  unrelated files. Retrieval eval (`evals/retrieval`, this repository,
+  top 8): "Where is authentication handled?" finds an expected file at
+  rank 2; "Onde fica a autenticação?" misses all of them.
+- **Direction:** measure first with the eval pair, then either a multilingual
+  model with the same 384 dimensions (e.g.
+  `paraphrase-multilingual-MiniLM-L12-v2`; re-embedding everything, which
+  needs the model recorded per vector, TD-03) or translating the question
+  to English before the search (one more LLM call per question).
+- **Phase:** Backlog (with ADR-006, embeddings).
+
 ---
 
 ## Ingestion
