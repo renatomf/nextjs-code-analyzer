@@ -82,6 +82,7 @@ export default async function SharedReportPage({ params }: PageProps) {
           categoryScores={report.categoryScores}
           summaries={report.summaries}
           issues={report.issues}
+          aiReviewSkipped={report.aiReviewSkipped}
         />
       </div>
     </main>

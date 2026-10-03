@@ -101,7 +101,10 @@ e regras (analysis) → `sampleForReview` (amostra espalhada pelo projeto) →
 revisão do LLM com o código em blocos de dados
 (TD-28) → `verifyEvidence` (achado do LLM só fica com trecho que existe no
 arquivo citado) → `groupFindings` + `diminishingPenaltyPolicy` (ADR-010) →
-`reports`. Cada step tem até 300 s (duração da função `flow`).
+`reports`. Cada step tem até 300 s (duração da função `flow`). Sem a
+revisão do LLM (kill switch, orçamento de tokens gasto, provedor falhando
+na última tentativa), o relatório sai só com métricas e regras e grava o
+motivo (`aiReviewSkipped`); a página avisa "Automated checks only".
 
 O projeto guarda o run dono (`analysis_run_id`): a rota pergunta ao
 Workflow se ele está vivo antes de disparar outro (a janela de 360 s só vale

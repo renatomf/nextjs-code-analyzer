@@ -3,7 +3,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 
 import { projects, reportShares, reports } from "@/db/schema";
-import type { ReportIssue } from "@/lib/analysis/report-types";
+import type { AiReviewSkip, ReportIssue } from "@/lib/analysis/report-types";
 import { db } from "@/lib/db";
 
 import {
@@ -109,6 +109,8 @@ export type SharedReport = {
   categoryScores: Record<string, number>;
   summaries: Record<string, string>;
   issues: ReportIssue[];
+  /** Set when the report has no AI review (its score is deterministic only). */
+  aiReviewSkipped?: AiReviewSkip;
 };
 
 /**
@@ -137,7 +139,7 @@ export async function findSharedReport(token: string): Promise<SharedReport | nu
 
   if (!row || !isShareActive(row, new Date())) return null;
 
-  const { summaries: storedSummaries, ...scores } = row.categoryScores;
+  const { summaries: storedSummaries, aiReviewSkipped, ...scores } = row.categoryScores;
   const summaries: Record<string, string> = storedSummaries ?? {};
   return {
     projectName: row.projectName,
@@ -145,6 +147,7 @@ export async function findSharedReport(token: string): Promise<SharedReport | nu
     analyzedAt: row.analyzedAt,
     healthScore: row.healthScore,
     categoryScores: scores,
+    ...(aiReviewSkipped ? { aiReviewSkipped } : {}),
     summaries: Object.fromEntries(
       Object.entries(summaries).map(([category, text]) => [category, redactForPublic(text)]),
     ),

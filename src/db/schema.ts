@@ -14,6 +14,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 import type {
+  AiReviewSkip,
   CategoryScores,
   CategorySummaries,
   ReportIssue,
@@ -197,8 +198,12 @@ export const codeChunks = pgTable(
   (t) => [index("code_chunks_project_id_idx").on(t.projectId)],
 ).enableRLS();
 
-// Shape written by the report step (scores plus per-category summaries).
-type StoredCategoryScores = CategoryScores & { summaries?: CategorySummaries };
+// Shape written by the report step: scores, per-category summaries and, when
+// the report came out without the AI review, why (graceful degradation).
+type StoredCategoryScores = CategoryScores & {
+  summaries?: CategorySummaries;
+  aiReviewSkipped?: AiReviewSkip;
+};
 
 /**
  * The LLM review behind a report, kept so that re-analyzing the same code
