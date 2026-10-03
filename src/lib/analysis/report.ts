@@ -7,6 +7,7 @@ import { structuredLanguageModelId } from "@/lib/ai/llm";
 import { loadProjectSourceFiles } from "@/lib/analysis/project-files";
 import { reviewInputHash, runLlmHealthReview } from "@/lib/analysis/report-llm";
 import type {
+  AiReviewSkip,
   CategoryScores,
   CategorySummaries,
   ReportIssue,
@@ -17,6 +18,7 @@ import {
   computeDeterministicMetrics,
   diminishingPenaltyPolicy,
 } from "@/modules/analysis";
+import { BillingLimitError, LlmUnavailableError } from "@/modules/billing";
 import { assertLlmBudget, assertLlmEnabled, recordLlmCall } from "@/modules/billing/server";
 import { setProjectStatus } from "@/modules/projects/server";
 import { traced } from "@/shared/tracing";
@@ -27,7 +29,64 @@ export type GeneratedReport = {
   categorySummaries: CategorySummaries;
   issues: ReportIssue[];
   roadmap: ReportIssue[];
+  /** Set when the report came out without the AI review (deterministic only). */
+  aiReviewSkipped?: AiReviewSkip;
 };
+
+/**
+ * A new AI review, or why the report goes without one (graceful
+ * degradation, roadmap Phase 5): the kill switch is off, the daily token
+ * budget is spent, or the provider failed on the workflow's last attempt.
+ * Earlier attempts rethrow, so the workflow retries the step first.
+ */
+async function reviewOrSkip(options: {
+  userId: string;
+  projectId: string;
+  reviewInput: Parameters<typeof runLlmHealthReview>[0];
+  inputHash: string;
+  finalAttempt: boolean;
+}): Promise<{ review: StoredLlmReview } | { skipped: AiReviewSkip }> {
+  const { userId, projectId, reviewInput, inputHash, finalAttempt } = options;
+
+  // Here, not at the entry points: every path to a new review ends here.
+  try {
+    await assertLlmEnabled("report");
+  } catch (error) {
+    if (error instanceof LlmUnavailableError) return { skipped: "disabled" };
+    throw error;
+  }
+  try {
+    await assertLlmBudget(userId);
+  } catch (error) {
+    if (error instanceof BillingLimitError && error.code === "llm_tokens") return { skipped: "budget" };
+    throw error;
+  }
+
+  // Usage recorded on success and failure (Phase 4); recording never throws.
+  const llmCall = { userId, projectId, feature: "report" as const, model: structuredLanguageModelId() };
+  const llmStarted = performance.now();
+  let review;
+  try {
+    review = await traced("report.llm_review", { chunks: reviewInput.chunks.length }, () =>
+      runLlmHealthReview(reviewInput),
+    );
+  } catch (error) {
+    await recordLlmCall({ ...llmCall, usage: null, latencyMs: performance.now() - llmStarted, ok: false });
+    if (!finalAttempt) throw error;
+    logger.error("analysis.llm_review_failed", { err: error, userId, projectId });
+    return { skipped: "unavailable" };
+  }
+  await recordLlmCall({ ...llmCall, usage: review.usage, latencyMs: performance.now() - llmStarted, ok: true });
+  return {
+    review: {
+      inputHash,
+      architectureSummary: review.architectureSummary,
+      securitySummary: review.securitySummary,
+      performanceSummary: review.performanceSummary,
+      issues: review.issues,
+    },
+  };
+}
 
 export type StageOptions = {
   /**
@@ -98,36 +157,25 @@ export async function generateProjectReport(
       .where(eq(reports.projectId, projectId))
       .limit(1);
 
-    let llm: StoredLlmReview;
+    let llm: StoredLlmReview | null = null;
+    let aiReviewSkipped: AiReviewSkip | undefined;
     if (previous?.llmReview?.inputHash === inputHash) {
       llm = previous.llmReview;
       logger.info("analysis.llm_review_reused", { userId, projectId });
     } else {
-      // Here, not at the entry points: every path to a new review ends here.
-      await assertLlmEnabled("report");
-      await assertLlmBudget(userId);
-
-      // Usage recorded on success and failure (Phase 4); recording never throws.
-      const llmCall = { userId, projectId, feature: "report" as const, model: structuredLanguageModelId() };
-      const llmStarted = performance.now();
-      const review = await traced("report.llm_review", { chunks: chunks.length }, () =>
-        runLlmHealthReview(reviewInput),
-      ).catch(async (error: unknown) => {
-        await recordLlmCall({ ...llmCall, usage: null, latencyMs: performance.now() - llmStarted, ok: false });
-        throw error;
-      });
-      await recordLlmCall({ ...llmCall, usage: review.usage, latencyMs: performance.now() - llmStarted, ok: true });
-      llm = {
+      const outcome = await reviewOrSkip({
+        userId,
+        projectId,
+        reviewInput,
         inputHash,
-        architectureSummary: review.architectureSummary,
-        securitySummary: review.securitySummary,
-        performanceSummary: review.performanceSummary,
-        issues: review.issues,
-      };
+        finalAttempt,
+      });
+      if ("skipped" in outcome) aiReviewSkipped = outcome.skipped;
+      else llm = outcome.review;
     }
 
     // One finding per problem, most severe first (ADR-010).
-    const issues = buildReportFindings(metrics.issues, llm.issues);
+    const issues = buildReportFindings(metrics.issues, llm?.issues ?? []);
 
     const { categoryScores, healthScore } = diminishingPenaltyPolicy({
       measures: metrics,
@@ -135,9 +183,9 @@ export async function generateProjectReport(
     });
 
     const categorySummaries: CategorySummaries = {
-      architecture: llm.architectureSummary,
-      security: `${metrics.summaries.security} ${llm.securitySummary}`.trim(),
-      performance: llm.performanceSummary,
+      architecture: llm?.architectureSummary ?? "",
+      security: `${metrics.summaries.security} ${llm?.securitySummary ?? ""}`.trim(),
+      performance: llm?.performanceSummary ?? "",
       codeQuality: metrics.summaries.codeQuality,
       testing: metrics.summaries.testing,
     };
@@ -149,8 +197,10 @@ export async function generateProjectReport(
       categoryScores: {
         ...categoryScores,
         summaries: categorySummaries,
+        ...(aiReviewSkipped ? { aiReviewSkipped } : {}),
       },
       issues,
+      // Null when skipped: the next analysis asks the model again.
       llmReview: llm,
     };
 
@@ -167,6 +217,7 @@ export async function generateProjectReport(
       categorySummaries,
       issues,
       roadmap,
+      aiReviewSkipped,
     };
   } catch (error) {
     // errorMessage is shown to the user: a DomainError explains the problem;

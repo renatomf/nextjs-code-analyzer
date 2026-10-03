@@ -127,6 +127,21 @@ describe("findSharedReport", () => {
     expect(report?.issues[0].description).toContain("[REDACTED]");
   });
 
+  it("tells the viewer when the report has no AI review, apart from the scores", async () => {
+    const projectId = await sharedProject("share-no-ai");
+    const scores = { architecture: 90, security: 70, performance: 90, codeQuality: 60, testing: 50 };
+    await db
+      .update(reports)
+      .set({ categoryScores: { ...scores, aiReviewSkipped: "budget" } })
+      .where(eq(reports.projectId, projectId));
+    const share = await createReportShare(alice, projectId, "7d");
+
+    const report = await findSharedReport(share!.token);
+
+    expect(report?.aiReviewSkipped).toBe("budget");
+    expect(report?.categoryScores).toEqual(scores);
+  });
+
   it("shares the evidence's lines but never the quoted code", async () => {
     const projectId = await sharedProject("share-evidence");
     const quoted = "const rows = await db.query(sql + name);";
