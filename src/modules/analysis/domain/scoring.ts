@@ -4,6 +4,15 @@ import type { ProjectMeasures } from "./rules";
 export type CategoryScores = Record<IssueCategory, number>;
 export type CategorySummaries = Record<IssueCategory, string>;
 
+/**
+ * Why a report came out without the AI review (graceful degradation,
+ * roadmap Phase 5): its score covers the deterministic checks only.
+ * - disabled: the report's kill switch is off;
+ * - budget: the user's daily AI token budget is spent;
+ * - unavailable: the AI provider kept failing.
+ */
+export type AiReviewSkip = "disabled" | "budget" | "unavailable";
+
 export const SEVERITY_PENALTY: Record<IssueSeverity, number> = {
   critical: 20,
   high: 12,

@@ -9,6 +9,7 @@ import { ReportView } from "@/components/projects/report-view";
 import { ShareReportDialog } from "@/components/projects/share-report-dialog";
 import { ActionAlert } from "@/components/shared/action-alert";
 import type {
+  AiReviewSkip,
   CategoryScores,
   CategorySummaries,
   ReportIssue,
@@ -22,6 +23,7 @@ type PageProps = {
 
 type StoredCategoryScores = CategoryScores & {
   summaries?: CategorySummaries;
+  aiReviewSkipped?: AiReviewSkip;
 };
 
 export default async function ProjectReportPage({ params }: PageProps) {
@@ -81,6 +83,7 @@ export default async function ProjectReportPage({ params }: PageProps) {
               summaries={categoryScores?.summaries}
               issues={(report.issues ?? []) as ReportIssue[]}
               projectId={project.id}
+              aiReviewSkipped={categoryScores?.aiReviewSkipped}
             />
 
             <div className="ca-panel flex flex-wrap items-center gap-3 p-4">

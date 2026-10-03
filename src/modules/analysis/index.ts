@@ -40,6 +40,7 @@ export {
   findingPenalty,
   linearPenaltyPolicy,
   scoreFromIssues,
+  type AiReviewSkip,
   type CategoryScores,
   type CategorySummaries,
   type ScoringPolicy,
