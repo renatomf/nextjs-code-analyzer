@@ -26,6 +26,26 @@ describe("analysisStart", () => {
     expect(at(STALE_AFTER_SECONDS)).toBe("claimable");
   });
 
+  describe("with the workflow run's status", () => {
+    it("leaves a live run alone even past the stale window (a slow retry is not dead)", () => {
+      const old = project("processing", { updatedAt: secondsBefore(STALE_AFTER_SECONDS * 3) });
+      expect(analysisStart(old, NOW, "running")).toBe("running");
+      expect(analysisStart(old, NOW, "pending")).toBe("running");
+    });
+
+    it.each(["completed", "failed", "cancelled"] as const)(
+      "restarts at once when the run is %s but the project is still processing",
+      (runStatus) => {
+        const fresh = project("processing", { updatedAt: secondsBefore(5) });
+        expect(analysisStart(fresh, NOW, runStatus)).toBe("claimable");
+      },
+    );
+
+    it("does not let a run reopen a completed project", () => {
+      expect(analysisStart(project("completed"), NOW, "failed")).toBe("completed");
+    });
+  });
+
   it("claims a queued project", () => {
     expect(analysisStart(project("queued"), NOW)).toBe("claimable");
   });

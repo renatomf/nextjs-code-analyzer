@@ -1,7 +1,7 @@
 import { logger, requestIdFrom } from "@/shared/logger";
 import { z } from "zod";
 
-import { enqueueAnalysis } from "@/lib/analysis/analysis-job";
+import { analysisRunStatus, enqueueAnalysis } from "@/lib/analysis/analysis-job";
 import { auth } from "@/lib/auth";
 import { assertRateLimit, RateLimitError } from "@/lib/rate-limit";
 import { analysisStart } from "@/modules/projects";
@@ -10,6 +10,7 @@ import {
   failRunningAnalysis,
   findAnalysisCandidate,
   readProgress,
+  setAnalysisRunId,
 } from "@/modules/projects/server";
 
 export const runtime = "nodejs";
@@ -40,7 +41,14 @@ export async function POST(_request: Request, context: RouteContext) {
     return Response.json({ error: "Project not found" }, { status: 404 });
   }
 
-  const start = analysisStart(project, new Date());
+  // A project owned by a run: ask Workflow whether that run is alive instead
+  // of guessing from the last progress write.
+  const runStatus =
+    project.status === "processing" && project.analysisRunId
+      ? await analysisRunStatus(project.analysisRunId)
+      : null;
+  const start = analysisStart(project, new Date(), runStatus);
+  const deadRunId = runStatus === null ? null : project.analysisRunId;
 
   if (start === "completed") {
     return Response.json({
@@ -90,7 +98,7 @@ export async function POST(_request: Request, context: RouteContext) {
   }
 
   // Atomic claim: parallel calls (two tabs, a refresh) never run twice.
-  const claimed = await claimAnalysis(userId, project.id);
+  const claimed = await claimAnalysis(userId, project.id, deadRunId);
 
   if (!claimed) {
     return alreadyRunning();
@@ -98,8 +106,9 @@ export async function POST(_request: Request, context: RouteContext) {
 
   // The analysis runs as a workflow (ADR-005): this request only starts it;
   // the progress page polls the status the steps write.
+  let runId: string;
   try {
-    await enqueueAnalysis(userId, project.id);
+    runId = await enqueueAnalysis(userId, project.id);
   } catch (error) {
     // Not started: release the claim so the user can retry now, not after
     // the stale window.
@@ -114,6 +123,12 @@ export async function POST(_request: Request, context: RouteContext) {
     });
     return Response.json({ ok: false, status: "failed", error: "Analysis failed." }, { status: 500 });
   }
+
+  // The run is already going: failing to record its id must not fail the
+  // analysis (without it, the stale window decides, as before).
+  await setAnalysisRunId(userId, project.id, runId).catch((error: unknown) => {
+    logger.warn("analysis.run_id_not_saved", { err: error, projectId: project.id, runId });
+  });
 
   const updated = await readProgress(userId, project.id);
   return Response.json({

@@ -499,9 +499,13 @@ Vem antes da ingestão assíncrona: job em segundo plano sem log é caixa preta.
       reaper para projetos travados (TD-10, TD-11).
       Progresso: a **análise** roda como Vercel Workflow (PR #95): a rota
       só faz o claim e dispara o run, steps com retry e `FatalError`, run
-      que morre termina `failed`, `flow` com 36,0 MiB. Falta: importação
-      no job (TD-10), tirar o stale/claim da rota (precisa do `runId` no
-      projeto) e o reaper (TD-11).
+      que morre termina `failed`, `flow` com 36,0 MiB. `runId` no projeto
+      (migração 0007): a rota pergunta ao Workflow se o run está vivo, em
+      vez de adivinhar pela janela de 360 s — run vivo não é disparado de
+      novo mesmo depois de 360 s, run morto libera na hora. O claim atômico
+      fica (protege contra duas abas); a janela fica só para projeto sem
+      run (importação) ou run que o Workflow não acha mais. Falta:
+      importação no job (TD-10) e o reaper (TD-11).
 - [ ] Parsing fora da thread da request (TD-09); modelo de embeddings com
       retry e cache resolvidos (TD-01; TD-05 com ADR).
 - [ ] **Degradação graciosa:** com o LLM fora ou sem cota, o relatório sai só

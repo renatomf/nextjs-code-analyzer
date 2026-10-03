@@ -152,6 +152,10 @@ export const projects = pgTable(
     fileCount: integer("file_count").default(0).notNull(),
     progressStep: text("progress_step"),
     progressPercent: integer("progress_percent").notNull(),
+    // The analysis workflow run that owns this project while "processing"
+    // (ADR-005): asked for its status instead of guessing from updatedAt.
+    // Null before the run starts, for imports and for older projects.
+    analysisRunId: text("analysis_run_id"),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },

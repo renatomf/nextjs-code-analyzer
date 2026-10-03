@@ -6,6 +6,7 @@
 export {
   AnalysisCanceledError,
   analysisStart,
+  type AnalysisRunStatus,
   type AnalysisStart,
   type ProjectStatus,
 } from "./domain/project";

@@ -1,6 +1,9 @@
 import "server-only";
 
-import { start } from "workflow/api";
+import { getRun, start } from "workflow/api";
+
+import type { AnalysisRunStatus } from "@/modules/projects";
+import { logger } from "@/shared/logger";
 
 import { analysisWorkflow } from "./analysis-workflow";
 
@@ -12,4 +15,18 @@ import { analysisWorkflow } from "./analysis-workflow";
 export async function enqueueAnalysis(userId: string, projectId: string): Promise<string> {
   const run = await start(analysisWorkflow, [userId, projectId]);
   return run.runId;
+}
+
+/**
+ * Status of the run that owns a project, or null when it cannot be read (an
+ * old run past Workflow's retention, an outage): the caller then falls back
+ * to the stale window instead of guessing either way.
+ */
+export async function analysisRunStatus(runId: string): Promise<AnalysisRunStatus | null> {
+  try {
+    return await getRun(runId).status;
+  } catch (error) {
+    logger.warn("analysis.run_status_unavailable", { err: error, runId });
+    return null;
+  }
 }

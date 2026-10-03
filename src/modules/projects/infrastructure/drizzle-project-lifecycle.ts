@@ -27,6 +27,7 @@ export async function findAnalysisCandidate(userId: string, projectId: string) {
       progressStep: projects.progressStep,
       progressPercent: projects.progressPercent,
       updatedAt: projects.updatedAt,
+      analysisRunId: projects.analysisRunId,
     })
     .from(projects)
     .where(owned(userId, projectId))
@@ -75,9 +76,15 @@ export async function createImportingProject(
 /**
  * Atomic claim: only one request can move the project into "processing", so
  * parallel calls (two tabs, a refresh) never run the analysis twice. Same
- * rule as `analysisStart` returning "claimable".
+ * rule as `analysisStart` returning "claimable". `deadRunId`: the run the
+ * caller saw finished while the project stayed "processing"; the claim clears
+ * the run id, so of two requests that saw the same dead run only one wins.
  */
-export async function claimAnalysis(userId: string, projectId: string): Promise<boolean> {
+export async function claimAnalysis(
+  userId: string,
+  projectId: string,
+  deadRunId: string | null = null,
+): Promise<boolean> {
   const [claimed] = await db
     .update(projects)
     .set({
@@ -85,6 +92,7 @@ export async function claimAnalysis(userId: string, projectId: string): Promise<
       progressStep: "Starting analysis",
       progressPercent: 30,
       errorMessage: null,
+      analysisRunId: null,
     })
     .where(
       and(
@@ -99,11 +107,26 @@ export async function claimAnalysis(userId: string, projectId: string): Promise<
               sql`now() - make_interval(secs => ${STALE_AFTER_SECONDS})`,
             ),
           ),
+          ...(deadRunId
+            ? [and(eq(projects.status, "processing"), eq(projects.analysisRunId, deadRunId))]
+            : []),
         ),
       ),
     )
     .returning({ id: projects.id });
   return Boolean(claimed);
+}
+
+/** Records the workflow run that now owns a claimed project (ADR-005). */
+export async function setAnalysisRunId(
+  userId: string,
+  projectId: string,
+  runId: string,
+): Promise<void> {
+  await db
+    .update(projects)
+    .set({ analysisRunId: runId })
+    .where(and(owned(userId, projectId), eq(projects.status, "processing")));
 }
 
 /**
