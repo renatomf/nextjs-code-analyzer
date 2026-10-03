@@ -103,6 +103,12 @@ revisão do LLM com o código em blocos de dados
 arquivo citado) → `groupFindings` + `diminishingPenaltyPolicy` (ADR-010) →
 `reports`. Cada step tem até 300 s (duração da função `flow`).
 
+O projeto guarda o run dono (`analysis_run_id`): a rota pergunta ao
+Workflow se ele está vivo antes de disparar outro (a janela de 360 s só vale
+sem run). O reaper (`/api/cron/reap-stuck-projects`, cron diário da Vercel
+com `CRON_SECRET`) marca como falha o projeto parado em `processing` há mais
+de 1 h cujo run não está vivo (TD-11).
+
 ### Chat (RAG)
 
 `POST /api/chat`: sessão → zod → `getChatProject` (projects: dono +

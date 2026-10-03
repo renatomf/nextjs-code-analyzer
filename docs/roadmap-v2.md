@@ -504,8 +504,10 @@ Vem antes da ingestão assíncrona: job em segundo plano sem log é caixa preta.
       vez de adivinhar pela janela de 360 s — run vivo não é disparado de
       novo mesmo depois de 360 s, run morto libera na hora. O claim atômico
       fica (protege contra duas abas); a janela fica só para projeto sem
-      run (importação) ou run que o Workflow não acha mais. Falta:
-      importação no job (TD-10) e o reaper (TD-11).
+      run (importação) ou run que o Workflow não acha mais. Reaper (TD-11):
+      cron diário que marca como falha o projeto parado em `processing` há
+      mais de 1 h, exceto run vivo no Workflow. Falta: importação no job
+      (TD-10).
 - [ ] Parsing fora da thread da request (TD-09); modelo de embeddings com
       retry e cache resolvidos (TD-01; TD-05 com ADR).
 - [ ] **Degradação graciosa:** com o LLM fora ou sem cota, o relatório sai só

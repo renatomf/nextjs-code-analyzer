@@ -52,6 +52,20 @@ export function analysisStart(
   return "claimable";
 }
 
+/**
+ * The daily reaper (TD-11) fails a project left "processing" with no write
+ * for this long: far beyond one workflow step plus its retries, so only a
+ * project whose run (or import request) is gone, and nobody reopened.
+ */
+export const STUCK_AFTER_SECONDS = 60 * 60;
+
+/** User-facing reason for a reaped project: an import never stored files. */
+export function stuckProjectMessage(fileCount: number): string {
+  return fileCount === 0
+    ? "The import did not finish. Please create the project again."
+    : "The analysis stopped before finishing. Please try again.";
+}
+
 /** Thrown by the pipeline when the project was canceled (deleted) mid-run. */
 export class AnalysisCanceledError extends Error {
   constructor() {

@@ -29,6 +29,7 @@ describe("validateEnv", () => {
       "Google login",
       "billing",
       "error monitoring (Sentry)",
+      "stuck project cleanup (cron)",
     ]);
   });
 
@@ -93,6 +94,7 @@ describe("validateEnv", () => {
       "GitHub login and import",
       "Google login",
       "error monitoring (Sentry)",
+      "stuck project cleanup (cron)",
     ]);
   });
 });
