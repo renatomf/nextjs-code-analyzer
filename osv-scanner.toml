@@ -19,3 +19,16 @@ reason = "esbuild dev server via drizzle-kit; dev-only, not deployed"
 id = "GHSA-vfj7-8cjw-p6xm"
 ignoreUntil = 2026-12-31
 reason = "braces via the shadcn CLI's fast-glob; never called by the app, no user-supplied patterns; no fix released"
+
+# --- workflow -> @workflow/nest (NestJS integration) -> @swc/cli -> binary
+# downloader -> got -> cacheable-request -> http-cache-semantics 4.2.0; no
+# fixed version yet. The flaw is in a shared HTTP cache serving one user's
+# response to another; this chain only downloads SWC binaries for the NestJS
+# CLI, which the app never loads: none of the 29 traced functions nor the
+# server build include @workflow/nest, @swc/cli or http-cache-semantics
+# (checked 2026-10-03, ADR-005). Short expiry to pick up the upstream fix.
+
+[[IgnoredVulns]]
+id = "GHSA-ch52-4w7c-c8xp"
+ignoreUntil = 2026-12-31
+reason = "http-cache-semantics via @workflow/nest's SWC CLI downloader; not in any deployed function; no fix released"
