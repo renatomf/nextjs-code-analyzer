@@ -198,6 +198,9 @@ maintainability) · **Low** (cleanup).
   inside the request.
 - **Direction:** run in the background job (and a worker thread if needed).
 - **Phase:** Ingestion async.
+- **Partial (Phase 5, PR #95):** the analysis's chunking now runs in a
+  workflow step, not in the user's request. It is still synchronous inside
+  that step; a worker thread only if a step measures close to 300 s.
 
 ### TD-28 — Repository code goes into the prompt as trusted text · Medium
 - **Where:** [report-llm.ts:21-44](../src/lib/analysis/report-llm.ts#L21-L44)
@@ -335,6 +338,10 @@ maintainability) · **Low** (cleanup).
   `STALE_AFTER_SECONDS` (360 s), so the progress page restarts it. A stuck
   **import** is only resolved when someone opens the progress page (the
   claim then fails it for lack of files). The job runner (Phase 5) closes it.
+- **Partial (Phase 5, PR #95):** the analysis runs as a workflow; a run
+  whose step dies (timeout, retries used up) ends with `failRunningAnalysis`,
+  so it no longer stays "processing". Still open: the import (TD-10) and a
+  run that never starts its last step (the workflow itself lost).
 
 ### TD-12 — Failed imports still consume the daily quota · Medium
 - **Where:** [actions/github.ts:79-97](../src/lib/actions/github.ts#L79-L97)
