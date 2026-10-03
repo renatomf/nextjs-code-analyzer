@@ -47,16 +47,8 @@ export async function syncCheckoutSessionForUser(
     return false;
   }
 
+  // Takes the plan from the subscription's current state (expanded above).
   await handleCheckoutSessionCompleted(session);
-
-  const subscription =
-    typeof session.subscription === "string"
-      ? await stripe.subscriptions.retrieve(session.subscription)
-      : session.subscription;
-
-  if (subscription && typeof subscription !== "string") {
-    await syncSubscriptionFromStripe(subscription);
-  }
 
   return true;
 }

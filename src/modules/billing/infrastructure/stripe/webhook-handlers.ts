@@ -7,7 +7,7 @@ import { users } from "@/db/schema";
 import { db } from "@/lib/db";
 
 import { entitlementFor } from "../../domain/subscription";
-import { getPremiumPriceId } from "./client";
+import { getPremiumPriceId, getStripe } from "./client";
 import { subscriptionTermsFromStripe } from "./translate";
 
 const userIdSchema = z.uuid();
@@ -98,19 +98,28 @@ export async function handleCheckoutSessionCompleted(
     return;
   }
 
-  const customerId =
-    typeof session.customer === "string" ? session.customer : null;
-  const subscriptionId =
-    typeof session.subscription === "string" ? session.subscription : null;
+  if (!session.subscription) {
+    logger.warn("stripe.checkout_without_subscription", { sessionId: session.id });
+    return;
+  }
 
-  await db
-    .update(users)
-    .set({
-      ...(customerId ? { stripeCustomerId: customerId } : {}),
-      ...(subscriptionId ? { stripeSubscriptionId: subscriptionId } : {}),
-      plan: "premium",
-      planStatus: "active",
-      stripePriceId: getPremiumPriceId(),
-    })
-    .where(eq(users.id, userId));
+  // Link the customer first, so the subscription can find this user even
+  // without its own metadata.
+  if (typeof session.customer === "string") {
+    await db
+      .update(users)
+      .set({ stripeCustomerId: session.customer })
+      .where(eq(users.id, userId));
+  }
+
+  // The plan comes from the subscription's CURRENT state, never from this
+  // event: Stripe delivers at least once and retries after a non-2xx, so a
+  // checkout event can arrive after a later cancellation. Same rule as the
+  // subscription events: duplicates and late deliveries converge on the real
+  // state, with no events table.
+  const subscription =
+    typeof session.subscription === "string"
+      ? await getStripe().subscriptions.retrieve(session.subscription)
+      : session.subscription;
+  await syncSubscriptionFromStripe(subscription);
 }

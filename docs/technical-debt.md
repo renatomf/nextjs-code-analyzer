@@ -152,6 +152,10 @@ maintainability) · **Low** (cleanup).
   arrives as `customer.subscription.updated` → `past_due`). The Settings
   sync downgrades when no live subscription is found. Now in the billing
   module; pinned by the webhook, handler and sync tests.
+- **Done (Phase 5):** `checkout.session.completed` now follows the same
+  rule: it links the customer, then syncs from the subscription fetched from
+  Stripe. Before, it granted premium from the event itself, so a late or
+  repeated delivery after a cancellation gave premium back.
 
 ### TD-38 — Database TLS verification depends on `sslmode` in the URL · Medium
 - **Where:** [db.ts](../src/lib/db.ts), production `DATABASE_URL` (Vercel)

@@ -1,7 +1,7 @@
 import type Stripe from "stripe";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { update, set, where, findFirst } = vi.hoisted(() => {
+const { update, set, where, findFirst, retrieveSubscription } = vi.hoisted(() => {
   const where = vi.fn();
   const set = vi.fn(() => ({ where }));
   return {
@@ -9,6 +9,7 @@ const { update, set, where, findFirst } = vi.hoisted(() => {
     set,
     where,
     findFirst: vi.fn(),
+    retrieveSubscription: vi.fn(),
   };
 });
 
@@ -27,6 +28,7 @@ vi.mock("@/lib/db", () => ({
 
 vi.mock("./client", () => ({
   getPremiumPriceId: () => "price_premium_test",
+  getStripe: () => ({ subscriptions: { retrieve: retrieveSubscription } }),
 }));
 
 import { users } from "@/db/schema";
@@ -75,7 +77,9 @@ describe("webhook-handlers", () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
   });
 
-  it("handleCheckoutSessionCompleted sets premium active", async () => {
+  it("handleCheckoutSessionCompleted sets premium active from the live subscription", async () => {
+    retrieveSubscription.mockResolvedValue(fakeSubscription());
+
     await handleCheckoutSessionCompleted({
       id: "cs_test",
       object: "checkout.session",
@@ -86,6 +90,7 @@ describe("webhook-handlers", () => {
     } as unknown as Stripe.Checkout.Session);
 
     expect(update).toHaveBeenCalledWith(users);
+    expect(set).toHaveBeenCalledWith({ stripeCustomerId: "cus_test" });
     expect(set).toHaveBeenCalledWith(
       expect.objectContaining({
         plan: "premium",
@@ -96,6 +101,40 @@ describe("webhook-handlers", () => {
       }),
     );
     expect(where).toHaveBeenCalledWith({ eq: [users.id, USER_ID] });
+  });
+
+  it("handleCheckoutSessionCompleted grants nothing without a subscription", async () => {
+    await handleCheckoutSessionCompleted({
+      id: "cs_test",
+      object: "checkout.session",
+      metadata: { userId: USER_ID },
+      customer: "cus_test",
+      subscription: null,
+      payment_status: "paid",
+    } as unknown as Stripe.Checkout.Session);
+
+    expect(update).not.toHaveBeenCalled();
+    expect(retrieveSubscription).not.toHaveBeenCalled();
+  });
+
+  // Stripe delivers at least once and retries after a non-2xx, possibly after
+  // later events: a checkout event that arrives after the cancellation must
+  // not grant premium again.
+  it("handleCheckoutSessionCompleted does not re-grant premium after a cancellation (late or repeated delivery)", async () => {
+    retrieveSubscription.mockResolvedValue(fakeSubscription({ status: "canceled" }));
+
+    await handleCheckoutSessionCompleted({
+      id: "cs_test",
+      object: "checkout.session",
+      metadata: { userId: USER_ID },
+      customer: "cus_test",
+      subscription: "sub_test",
+      payment_status: "paid",
+    } as unknown as Stripe.Checkout.Session);
+
+    expect(retrieveSubscription).toHaveBeenCalledWith("sub_test");
+    expect(set).not.toHaveBeenCalledWith(expect.objectContaining({ plan: "premium" }));
+    expect(set).toHaveBeenCalledWith(expect.objectContaining({ plan: "free", planStatus: "canceled" }));
   });
 
   it("handleCheckoutSessionCompleted no-ops without userId", async () => {
