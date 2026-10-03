@@ -510,6 +510,9 @@ Vem antes da ingestão assíncrona: job em segundo plano sem log é caixa preta.
       (TD-10).
 - [ ] Parsing fora da thread da request (TD-09); modelo de embeddings com
       retry e cache resolvidos (TD-01; TD-05 com ADR).
+      Progresso: parsing da análise num step do workflow (TD-09 parcial,
+      PR #95); TD-01 feito (carga com retry e falha que não fica em cache).
+      Falta o ADR-006 (TD-05: embeddings em runtime serverless).
 - [x] **Degradação graciosa:** com o LLM fora ou sem cota, o relatório sai só
       determinístico, sinalizado como tal. Feito: kill switch desligado,
       orçamento diário de tokens gasto ou provedor falhando na **última**
