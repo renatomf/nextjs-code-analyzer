@@ -196,6 +196,20 @@ export const codeChunks = pgTable(
 // Shape written by the report step (scores plus per-category summaries).
 type StoredCategoryScores = CategoryScores & { summaries?: CategorySummaries };
 
+/**
+ * The LLM review behind a report, kept so that re-analyzing the same code
+ * reuses it instead of asking again (TD-43): the model's answers vary between
+ * runs, so a new call could change the score with no code change.
+ * `inputHash` covers everything the model receives.
+ */
+export type StoredLlmReview = {
+  inputHash: string;
+  architectureSummary: string;
+  securitySummary: string;
+  performanceSummary: string;
+  issues: ReportIssue[];
+};
+
 export const reports = pgTable("reports", {
   id: uuid("id").primaryKey().defaultRandom(),
   projectId: uuid("project_id")
@@ -205,6 +219,8 @@ export const reports = pgTable("reports", {
   healthScore: integer("health_score").notNull(),
   categoryScores: jsonb("category_scores").$type<StoredCategoryScores>().notNull(),
   issues: jsonb("issues").$type<ReportIssue[]>().notNull(),
+  // Null for reports from before TD-43: the next analysis calls the LLM.
+  llmReview: jsonb("llm_review").$type<StoredLlmReview>(),
   createdAt: createdAt(),
 }).enableRLS();
 

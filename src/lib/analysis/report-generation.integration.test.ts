@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { codeChunks, llmCalls, llmSwitches, projects, reports } from "@/db/schema";
@@ -14,7 +14,9 @@ import { axisEmbedding, createUser, deleteUsers } from "@/test/integration/facto
 
 const mocks = vi.hoisted(() => ({ runLlmHealthReview: vi.fn() }));
 
-vi.mock("@/lib/analysis/report-llm", () => ({
+// Only the model call is replaced: the input hash (TD-43) is the real one.
+vi.mock("@/lib/analysis/report-llm", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/analysis/report-llm")>()),
   runLlmHealthReview: mocks.runLlmHealthReview,
 }));
 
@@ -244,6 +246,64 @@ describe("generateProjectReport (characterization)", () => {
     } finally {
       await db.delete(llmSwitches).where(eq(llmSwitches.feature, "report"));
     }
+  });
+
+  describe("re-analysis of the same code (TD-43)", () => {
+    // The model's answers vary between runs: a second review of the same code
+    // that finds less would raise the score with no code change.
+    const KINDER_REVIEW = { ...LLM_REVIEW, issues: [] };
+
+    it("reuses the stored review: same score, no new LLM call", async () => {
+      const projectId = await analyzedProject();
+      const first = await generateProjectReport(owner, projectId);
+      mocks.runLlmHealthReview.mockResolvedValue(KINDER_REVIEW);
+
+      const second = await generateProjectReport(owner, projectId);
+
+      expect(second.healthScore).toBe(first.healthScore);
+      expect(second.issues).toEqual(first.issues);
+      expect(mocks.runLlmHealthReview).toHaveBeenCalledOnce();
+      expect(await llmCallsOf(projectId)).toHaveLength(1);
+    });
+
+    it("asks the LLM again when the reviewed code changed", async () => {
+      const projectId = await analyzedProject();
+      await generateProjectReport(owner, projectId);
+      await db
+        .update(codeChunks)
+        .set({ content: "chunk 0, edited" })
+        .where(and(eq(codeChunks.projectId, projectId), eq(codeChunks.filePath, "src/chunk-000.ts")));
+      mocks.runLlmHealthReview.mockResolvedValue(KINDER_REVIEW);
+
+      const second = await generateProjectReport(owner, projectId);
+
+      expect(mocks.runLlmHealthReview).toHaveBeenCalledTimes(2);
+      expect(second.issues.some((issue) => issue.title === "Business logic in route handlers")).toBe(false);
+    });
+
+    it("reuses the review even while the report's kill switch is off", async () => {
+      const projectId = await analyzedProject();
+      const first = await generateProjectReport(owner, projectId);
+      await db.insert(llmSwitches).values({ feature: "report", enabled: false });
+      try {
+        const second = await generateProjectReport(owner, projectId);
+
+        expect(second.healthScore).toBe(first.healthScore);
+        expect(await projectState(projectId)).toEqual({ status: "completed", errorMessage: null });
+      } finally {
+        await db.delete(llmSwitches).where(eq(llmSwitches.feature, "report"));
+      }
+    });
+
+    it("stores no review when the LLM call fails, so the next run asks again", async () => {
+      const projectId = await analyzedProject();
+      mocks.runLlmHealthReview.mockRejectedValueOnce(new Error("provider 500"));
+      await expect(generateProjectReport(owner, projectId)).rejects.toThrow();
+
+      await generateProjectReport(owner, projectId);
+
+      expect(mocks.runLlmHealthReview).toHaveBeenCalledTimes(2);
+    });
   });
 
   it("never reports on another user's project", async () => {

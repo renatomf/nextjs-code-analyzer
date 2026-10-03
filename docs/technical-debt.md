@@ -329,6 +329,14 @@ maintainability) · **Low** (cleanup).
   call, which also saves tokens. Fits the `content_hash` work of Phase 5
   (TD-03). Measure before and after with the LLM eval's stability.
 - **Phase:** Ingestion async (Phase 5), with TD-03.
+- **Done:** `reviewInputHash` (SHA-256 of model id, `REVIEW_PROMPT_VERSION`,
+  project name, framework and the sampled chunks as sent) is stored with the
+  review in `reports.llm_review` (migration 0006). Same hash on the next run:
+  the review is reused and the score recomputed from fresh metrics, with no
+  LLM call (so neither the budget nor the kill switch blocks it). A failed
+  call stores nothing. Re-analyzing identical code now gives the same score;
+  a changed file in the sample, a new prompt version or another model asks
+  again. Reports from before 0006 have no stored review: their next run asks.
 
 ---
 

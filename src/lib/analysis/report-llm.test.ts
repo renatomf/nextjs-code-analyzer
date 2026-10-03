@@ -8,9 +8,11 @@ const model = vi.hoisted(() => ({
   answers: [] as unknown[],
   calls: 0,
   lastOptions: undefined as unknown,
+  id: "openai/gpt-oss-120b",
 }));
 
 vi.mock("@/lib/ai/llm", () => ({
+  structuredLanguageModelId: () => model.id,
   getStructuredLanguageModel: () =>
     new MockLanguageModelV4({
       doGenerate: async (options) => {
@@ -23,7 +25,7 @@ vi.mock("@/lib/ai/llm", () => ({
     }),
 }));
 
-import { runLlmHealthReview } from "./report-llm";
+import { reviewInputHash, runLlmHealthReview } from "./report-llm";
 
 const usage: LanguageModelV4Usage = {
   inputTokens: { total: 10, noCache: 10, cacheRead: 0, cacheWrite: 0 },
@@ -169,5 +171,33 @@ describe("runLlmHealthReview", () => {
 
     expect(await failure()).toBeInstanceOf(APICallError);
     expect(model.calls).toBe(1);
+  });
+});
+
+describe("reviewInputHash (TD-43)", () => {
+  const input = { projectName: "p", framework: "nextjs", chunks };
+
+  it("is the same for the same input", () => {
+    expect(reviewInputHash(input)).toBe(reviewInputHash({ ...input, chunks: [...chunks] }));
+    expect(reviewInputHash(input)).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  it("changes with anything the model receives", () => {
+    const base = reviewInputHash(input);
+    const edited = [{ ...chunks[0], content: `${chunks[0].content} // edited` }];
+
+    expect(reviewInputHash({ ...input, chunks: edited })).not.toBe(base);
+    expect(reviewInputHash({ ...input, framework: null })).not.toBe(base);
+    expect(reviewInputHash({ ...input, projectName: "other" })).not.toBe(base);
+  });
+
+  it("changes with the model", () => {
+    const base = reviewInputHash(input);
+    model.id = "another/model";
+    try {
+      expect(reviewInputHash(input)).not.toBe(base);
+    } finally {
+      model.id = "openai/gpt-oss-120b";
+    }
   });
 });
