@@ -55,6 +55,12 @@ describe("owner access (sanity check: the data is really there)", () => {
     expect((await getProjectReport(alice, aliceProject))?.hasChunks).toBe(true);
     expect((await listUserProjects(alice)).map((p) => p.id)).toContain(aliceProject);
   });
+
+  it("gets only the report fields the page shows (not the stored LLM review)", async () => {
+    const report = (await getProjectReport(alice, aliceProject))?.report;
+
+    expect(Object.keys(report ?? {}).sort()).toEqual(["categoryScores", "healthScore", "issues"]);
+  });
 });
 
 describe("another user with the owner's project id", () => {

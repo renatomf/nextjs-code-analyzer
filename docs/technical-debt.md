@@ -348,6 +348,8 @@ maintainability) · **Low** (cleanup).
   call stores nothing. Re-analyzing identical code now gives the same score;
   a changed file in the sample, a new prompt version or another model asks
   again. Reports from before 0006 have no stored review: their next run asks.
+  Validated on the preview (2026-10-03): one ZIP, analysis and re-analysis
+  both scored 59, with the same category scores.
 
 ---
 

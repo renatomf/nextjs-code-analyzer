@@ -26,8 +26,19 @@ falha se o `src/db/schema.ts` mudar sem a migration correspondente (passo
    (o Drizzle pode gerar DROP + ADD no lugar de RENAME, perdendo dados).
 4. **Commitar** o schema e toda a pasta `drizzle/` (SQL, snapshot e
    `_journal.json`) no mesmo PR. O CI valida os dois juntos.
-5. **Depois do merge**, aplicar primeiro no `preview`, depois em produção
-   (abaixo).
+5. **Antes do merge**, aplicar primeiro no `preview`, depois em produção
+   (abaixo). A Vercel publica em produção logo após o merge: se o código
+   novo lê uma coluna que o banco ainda não tem, ele quebra no ar. Por isso
+   toda migration precisa ser compatível com o código que **já está** em
+   produção (só adiciona; ver expand/contract abaixo), e aí pode ir antes.
+   A exceção é a etapa *contract* (remover algo): ela vai **depois** do
+   merge do código que parou de usar o que ela remove.
+
+> **Incidente de 2026-10-03.** O PR #97 adicionou `reports.llm_review` e o
+> merge saiu antes da migration (este passo dizia "depois do merge"). Como
+> a página de relatório carregava `with: { report: true }`, ela pedia a
+> coluna nova e quebrou para todos os projetos até a 0006 ser aplicada.
+> Correções: este passo, e consultas que listam as colunas que usam.
 
 ## Aplicar a migration
 
