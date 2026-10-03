@@ -646,6 +646,24 @@ maintainability) · **Low** (cleanup).
   12-function limit of the Hobby plan.
 - **Phase:** Observability (Phase 4, "se sobrar") or later.
 
+### TD-44 — The LLM eval gate fails PRs that did not change the review · Medium
+- **Where:** [llm.eval.ts](../evals/llm/llm.eval.ts) (`LLM_GATE`),
+  [llm-eval.yml](../.github/workflows/llm-eval.yml) (`LLM_EVAL_RUNS: 1`)
+- **Problem:** the gate asks every run to find at least the worst count of
+  the 2026-09-30 baseline (NodeGoat ≥ 6 of 9, measured over 3 runs: 6–7),
+  but CI makes one run per case to save the eval account's quota. The
+  model's findings vary between runs (TD-43), so one run can fall below the
+  minimum by chance. Seen on #97 (2026-10-03), which did not change what the
+  model receives: NodeGoat found 5 (recall 0.56) and failed; the re-run found
+  7 (0.78) and passed. A gate that fails at random is ignored or re-run until
+  green, and then it no longer protects the prompt.
+- **Direction:** compare like with like. Either CI makes as many runs as
+  the baseline (3, about 3× the tokens: check the eval account's daily
+  quota) and gates the best or the median, or the gate allows the spread
+  measured in the baseline (minimum − 1 per real repository) while the
+  synthetic cases keep "all found". Record the choice next to `LLM_GATE`.
+- **Phase:** Evals (Phase 7 follow-up), before the next prompt change.
+
 ---
 
 ## Already addressed during the tutorial
