@@ -21,7 +21,13 @@ export {
   setProjectStatus,
   startReanalysis,
 } from "./infrastructure/drizzle-project-lifecycle";
-export { importArchive, refreshGitHubSources } from "./infrastructure/import-archive";
+export {
+  ArchiveError,
+  assertGitHubSourceReady,
+  fetchGitHubSourcesStage,
+  importArchive,
+  startGitHubImport,
+} from "./infrastructure/import-archive";
 export {
   createReportShare,
   findSharedReport,

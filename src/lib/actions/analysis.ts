@@ -6,14 +6,15 @@ import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
+import { startAnalysisRun } from "@/lib/analysis/analysis-job";
 import { generateProjectReport } from "@/lib/analysis/report";
 import { auth } from "@/lib/auth";
 import { assertRateLimit } from "@/lib/rate-limit";
 import { BillingLimitError } from "@/modules/billing";
 import { withQuota } from "@/modules/billing/server";
 import {
+  assertGitHubSourceReady,
   findReanalysisTarget,
-  refreshGitHubSources,
   requeueIdleProject,
   setProjectProgress,
   startReanalysis,
@@ -87,6 +88,16 @@ export async function retryFullAnalysis(
   const project = await requireOwnedProject(formData);
   if (!project) return { error: "Project not found." };
 
+  // GitHub projects: the repository and the connection are checked before
+  // the quota, so these errors are answered at once and cost nothing.
+  if (project.source === "github") {
+    try {
+      await assertGitHubSourceReady(project);
+    } catch (error) {
+      return { error: publicErrorMessage(error, "Failed to restart project analysis.") };
+    }
+  }
+
   let claimed = false;
 
   try {
@@ -105,18 +116,27 @@ export async function retryFullAnalysis(
       return { error: "Analysis is already running for this project." };
     }
 
-    // Pull fresh GitHub code when possible; ZIP projects reuse stored files.
-    await refreshGitHubSources(project);
-
-    await setProjectProgress(project.userId, project.id, {
-      status: "queued",
-      step:
-        project.source === "github"
-          ? "Latest code fetched — waiting to analyze"
-          : "Waiting to restart analysis",
-      percent: Math.max(project.progressPercent || 0, 25),
-      errorMessage: null,
-    });
+    if (project.source === "github") {
+      // The latest code is fetched by the analysis workflow (ADR-005, TD-10),
+      // which then analyzes it: this request only starts the run.
+      await setProjectProgress(project.userId, project.id, {
+        status: "processing",
+        step: "Fetching latest code from GitHub",
+        percent: 10,
+        errorMessage: null,
+      });
+      if (!(await startAnalysisRun(project.userId, project.id, { fetchFromGitHub: true }))) {
+        return { error: "Failed to restart project analysis." };
+      }
+    } else {
+      // ZIP projects reuse their stored files; the progress page starts the run.
+      await setProjectProgress(project.userId, project.id, {
+        status: "queued",
+        step: "Waiting to restart analysis",
+        percent: Math.max(project.progressPercent || 0, 25),
+        errorMessage: null,
+      });
+    }
     // "layout": the project header/tabs and every tab under it.
     revalidatePath(`/projects/${project.id}`, "layout");
     revalidatePath("/dashboard");

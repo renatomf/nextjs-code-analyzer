@@ -364,6 +364,14 @@ maintainability) · **Low** (cleanup).
 - **Direction:** persist the upload, return immediately, process in a job
   with retry, idempotency and progress (Inngest or similar).
 - **Phase:** Ingestion async.
+- **Partial (Phase 5):** GitHub imports and GitHub re-analyses run in the
+  analysis workflow (ADR-005): the request only creates or claims the
+  project and starts the run; the first step downloads, extracts and stores
+  the files (retried on transient failures), then the analysis follows in
+  the same run. Still open: **ZIP uploads**, whose bytes arrive in the
+  request and would have to be stored somewhere first (a step only takes
+  ids, Workflow caps payloads at 50 MB): a decision for an ADR (Postgres vs
+  object storage, see TD-13).
 
 ### TD-11 — Projects can get stuck in `processing` · Medium
 - **Where:** [actions/github.ts:149-157](../src/lib/actions/github.ts#L149-L157)

@@ -81,11 +81,22 @@ Ollama (v2.2); `AnalysisRunner`, com a fila (Fase 5).
 
 ### Importação (GitHub ou ZIP)
 
-Server action (sessão, zod, duplicado) → download do GitHub fora da cota →
-`importArchive` (projects): `withQuota` do billing cria o projeto e registra
-o uso numa transação → extração segura → arquivos gravados → projeto
-`queued`. Arquivo inválido é erro do usuário e continua cobrado; falha nossa
-devolve a análise (ADR-003, TD-12).
+**GitHub (no job, ADR-005):** server action (sessão, zod, duplicado,
+conexão) → `startGitHubImport` (projects): `withQuota` cria o projeto e
+registra o uso → `startAnalysisRun` dispara o `analysisWorkflow` com
+`fetchFromGitHub` e a action responde na hora. O primeiro step
+(`fetchGitHubSourcesStage`) baixa o zipball, extrai e grava os arquivos
+(projeto continua `processing`), e o workflow segue para a análise. O
+GitHub recusar ou falhar devolve a análise (como antes, quando o download
+vinha antes da cota); arquivo sem nada para analisar continua cobrado. A
+reanálise de um projeto GitHub usa o mesmo step; nome do repositório e
+conexão são checados antes da cota.
+
+**ZIP (ainda na request, TD-10):** server action → `importArchive`
+(projects): `withQuota` cria o projeto → extração segura → arquivos
+gravados → projeto `queued` → a página de progresso dispara a análise.
+Arquivo inválido é erro do usuário e continua cobrado; falha nossa devolve
+a análise (ADR-003, TD-12).
 
 ### Análise
 

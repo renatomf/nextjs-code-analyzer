@@ -18,6 +18,7 @@ const mocks = vi.hoisted(() => ({
   downloadGitHubZipball: vi.fn(),
   persistProjectFiles: vi.fn(),
   realPersist: undefined as undefined | ((...args: never[]) => Promise<unknown>),
+  start: vi.fn(),
 }));
 
 vi.mock("@/lib/auth", () => ({ auth: mocks.auth, signIn: vi.fn() }));
@@ -31,9 +32,14 @@ vi.mock("@/lib/files/storage", async (importOriginal) => {
   mocks.realPersist = original.persistProjectFiles as never;
   return { ...original, persistProjectFiles: mocks.persistProjectFiles };
 });
+// A GitHub import runs in the analysis workflow (ADR-005): the start is
+// recorded and its GitHub step is run directly, as Workflow would.
+vi.mock("workflow/api", () => ({ start: mocks.start, getRun: vi.fn() }));
+vi.mock("@/lib/analysis/analysis-workflow", () => ({ analysisWorkflow: "analysisWorkflow" }));
 
 import { createProjectFromGitHub, createProjectFromZip } from "@/lib/actions/github";
 import { GitHubError } from "@/lib/github";
+import { fetchGitHubSourcesStage } from "@/modules/projects/server";
 
 const created: string[] = [];
 
@@ -45,6 +51,7 @@ beforeEach(() => {
   mocks.auth.mockReset();
   mocks.downloadGitHubZipball.mockReset();
   mocks.persistProjectFiles.mockReset().mockImplementation(mocks.realPersist!);
+  mocks.start.mockReset().mockResolvedValue({ runId: "wrun_import" });
   vi.spyOn(console, "error").mockImplementation(() => {});
 });
 
@@ -176,29 +183,73 @@ describe("createProjectFromGitHub", () => {
     return form;
   }
 
-  it("imports the downloaded repository", async () => {
-    const userId = await githubUser();
-    mocks.downloadGitHubZipball.mockResolvedValue(await validZip());
-
+  /** The action, then the workflow's GitHub step for the new project. */
+  async function importRepository(userId: string) {
     await expect(createProjectFromGitHub({}, repoForm())).rejects.toMatchObject(
       redirectsToProgress,
     );
+    const [project] = await userProjects(userId);
+    const [, , options] = mocks.start.mock.calls[0][1];
+    return { projectId: project.id, run: () => fetchGitHubSourcesStage(userId, project.id, options) };
+  }
+
+  it("answers at once and imports the repository in the workflow", async () => {
+    const userId = await githubUser();
+    mocks.downloadGitHubZipball.mockResolvedValue(await validZip());
+
+    const { projectId, run } = await importRepository(userId);
+
+    // The request only created the project and started the run.
+    expect(mocks.downloadGitHubZipball).not.toHaveBeenCalled();
+    expect(mocks.start).toHaveBeenCalledWith("analysisWorkflow", [
+      userId,
+      projectId,
+      { fetchFromGitHub: true, importUsageId: expect.any(String) },
+    ]);
+    expect(await usageCount(userId)).toBe(1);
+
+    await run();
 
     const [project] = await userProjects(userId);
-    expect(project).toMatchObject({ status: "queued", fileCount: 1 });
-    expect(await usageCount(userId)).toBe(1);
+    expect(project).toMatchObject({ status: "processing", fileCount: 1 });
   });
 
-  it("charges nothing when the download fails (before the quota is used)", async () => {
+  it("charges nothing when GitHub refuses the download", async () => {
     const userId = await githubUser();
     mocks.downloadGitHubZipball.mockRejectedValue(
       new GitHubError("Repository exceeds the 100 MB size limit."),
     );
+    const { run } = await importRepository(userId);
+
+    await expect(run()).rejects.toThrow("Repository exceeds the 100 MB size limit.");
+
+    const [project] = await userProjects(userId);
+    expect(project).toMatchObject({
+      status: "failed",
+      errorMessage: "Repository exceeds the 100 MB size limit.",
+    });
+    expect(await usageCount(userId)).toBe(0);
+  });
+
+  it("keeps the analysis charged when the repository has nothing to analyze (user error)", async () => {
+    const userId = await githubUser();
+    mocks.downloadGitHubZipball.mockResolvedValue(Buffer.from("not a zip"));
+    const { run } = await importRepository(userId);
+
+    await expect(run()).rejects.toThrow("Invalid or corrupted ZIP file.");
+
+    expect((await userProjects(userId))[0]).toMatchObject({ status: "failed" });
+    expect(await usageCount(userId)).toBe(1);
+  });
+
+  it("gives the analysis back when the workflow cannot start", async () => {
+    const userId = await githubUser();
+    mocks.start.mockRejectedValueOnce(new Error("queue unavailable"));
 
     expect(await createProjectFromGitHub({}, repoForm())).toEqual({
-      error: "Repository exceeds the 100 MB size limit.",
+      error: "Failed to import repository.",
     });
-    expect(await userProjects(userId)).toEqual([]);
+    expect((await userProjects(userId))[0]).toMatchObject({ status: "failed" });
     expect(await usageCount(userId)).toBe(0);
   });
 

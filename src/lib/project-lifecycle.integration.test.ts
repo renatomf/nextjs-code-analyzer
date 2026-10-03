@@ -30,6 +30,7 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/lib/analysis/analysis-job", () => ({
   enqueueAnalysis: mocks.enqueueAnalysis,
   analysisRunStatus: mocks.analysisRunStatus,
+  startAnalysisRun: vi.fn(),
 }));
 
 import { POST as analyze } from "@/app/api/projects/[id]/analyze/route";

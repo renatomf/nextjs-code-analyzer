@@ -1,3 +1,4 @@
+import { DomainError } from "@/shared/errors";
 import { logger } from "@/shared/logger";
 import { publicErrorMessage } from "@/shared/public-error-message";
 
@@ -9,7 +10,9 @@ import { downloadGitHubZipball, GitHubError } from "@/lib/github";
 import { refundAnalysisUsage, withQuota } from "@/modules/billing/server";
 import { getGitHubConnection } from "@/modules/identity/server";
 
+import { AnalysisCanceledError } from "../domain/project";
 import { createImportingProject, setProjectProgress } from "./drizzle-project-lifecycle";
+import { findReanalysisTarget } from "./drizzle-project-queries";
 
 /**
  * Import: creates the project under the plan quota, extracts the archive and
@@ -94,7 +97,9 @@ export async function importArchive(options: {
 /**
  * Shared by the import and the re-analysis: stores the extracted files
  * (atomically: the previous files stay if this fails) and queues the
- * project with its framework and source file count.
+ * project with its framework and source file count. Inside the analysis
+ * workflow the project stays "processing": "queued" would let the progress
+ * page start a second run.
  */
 async function storeExtractedFiles(
   userId: string,
@@ -104,6 +109,7 @@ async function storeExtractedFiles(
     allRelativePaths: string[];
     skippedLargeFiles: string[];
   },
+  nextStatus: "queued" | "processing" = "queued",
 ) {
   const framework = detectFramework(
     extracted.sourceFiles,
@@ -118,7 +124,7 @@ async function storeExtractedFiles(
   await setProjectProgress(userId, projectId, {
     step: "Files ready for analysis",
     percent: 25,
-    status: "queued",
+    status: nextStatus,
     framework,
     fileCount: sourceOnly.length,
     errorMessage:
@@ -138,19 +144,30 @@ function githubFullName(project: {
 }
 
 /**
- * Re-analysis of a GitHub project: fetches the latest code and replaces the
- * stored files. Errors are user-facing (`GitHubError`); the caller marks the
- * project failed. Uploaded (ZIP) projects reuse their stored files.
+ * The GitHub archive was fetched but has nothing to analyze (no JS/TS
+ * files, too big once extracted): the user's error, so a new import stays
+ * charged (ADR-003). Anything GitHub itself refuses is a `GitHubError`.
  */
-export async function refreshGitHubSources(project: {
+export class ArchiveError extends DomainError {
+  name = "ArchiveError";
+}
+
+type GitHubSourceProject = {
   id: string;
   userId: string;
   name: string;
   source: "github" | "upload";
   repositoryUrl: string | null;
-}): Promise<void> {
-  if (project.source !== "github") return;
+};
 
+/**
+ * What a GitHub project needs before its code can be fetched: the
+ * repository's name and the owner's GitHub connection. Cheap, so callers run
+ * it before charging the quota and answer at once.
+ */
+export async function assertGitHubSourceReady(
+  project: GitHubSourceProject,
+): Promise<{ fullName: string; encryptedToken: string }> {
   const fullName = githubFullName(project);
   if (!fullName) {
     throw new GitHubError(
@@ -165,7 +182,22 @@ export async function refreshGitHubSources(project: {
       "Connect GitHub in Settings before re-analyzing this repository.",
     );
   }
+  return { fullName, encryptedToken: user.githubAccessToken };
+}
 
+/**
+ * Re-analysis of a GitHub project: fetches the latest code and replaces the
+ * stored files. Errors are user-facing (`GitHubError`, `ArchiveError`); the
+ * caller marks the project failed. Uploaded (ZIP) projects reuse their
+ * stored files. `keepProcessing`: called from the analysis workflow.
+ */
+export async function refreshGitHubSources(
+  project: GitHubSourceProject,
+  { keepProcessing = false }: { keepProcessing?: boolean } = {},
+): Promise<void> {
+  if (project.source !== "github") return;
+
+  const { fullName, encryptedToken } = await assertGitHubSourceReady(project);
   await setProjectProgress(project.userId, project.id, {
     step: "Fetching latest code from GitHub",
     percent: 10,
@@ -175,7 +207,7 @@ export async function refreshGitHubSources(project: {
 
   // Validates `fullName` and aborts past MAX_REPO_SIZE_BYTES.
   const zipBuffer = await downloadGitHubZipball(
-    { userId: project.userId, encryptedToken: user.githubAccessToken },
+    { userId: project.userId, encryptedToken },
     fullName,
   );
 
@@ -188,8 +220,80 @@ export async function refreshGitHubSources(project: {
   const extracted = await extractFromZipBuffer(zipBuffer, { stripRoot: true });
   if (!extracted.ok) {
     // Extraction errors are fixed, user-facing messages.
-    throw new GitHubError(extracted.error);
+    throw new ArchiveError(extracted.error);
   }
 
-  await storeExtractedFiles(project.userId, project.id, extracted);
+  await storeExtractedFiles(
+    project.userId,
+    project.id,
+    extracted,
+    keepProcessing ? "processing" : "queued",
+  );
+}
+
+/**
+ * A new GitHub import, before any download: the project is created under
+ * the plan quota and left "processing" for the analysis workflow, which
+ * fetches the code (ADR-005). `usageId` lets the workflow give the analysis
+ * back if GitHub then fails.
+ */
+export async function startGitHubImport(options: {
+  userId: string;
+  name: string;
+  repositoryUrl: string;
+}): Promise<{ projectId: string; usageId: string }> {
+  const { project, usageId } = await withQuota(options.userId, "project", async (tx, usage) => {
+    const created = await createImportingProject(tx, { ...options, source: "github" });
+    return { consumed: true, value: { project: created, usageId: usage.id } };
+  });
+  await setProjectProgress(options.userId, project.id, {
+    step: "Fetching code from GitHub",
+    percent: 10,
+    status: "processing",
+  });
+  return { projectId: project.id, usageId };
+}
+
+/**
+ * Workflow stage (ADR-005): fetches the GitHub code into a project the
+ * workflow owns, for a new import or a re-analysis. Writes its own failure,
+ * with a user-facing message. A new import (`importUsageId`) charges nothing
+ * when GitHub refuses or fails, as before the job (the download came before
+ * the quota); an archive with nothing to analyze stays charged (ADR-003).
+ * `finalAttempt`: false while the workflow will retry a transient failure.
+ */
+export async function fetchGitHubSourcesStage(
+  userId: string,
+  projectId: string,
+  options: { finalAttempt?: boolean; importUsageId?: string } = {},
+): Promise<void> {
+  const { finalAttempt = true, importUsageId } = options;
+  const project = await findReanalysisTarget(userId, projectId);
+  if (!project) throw new AnalysisCanceledError();
+
+  try {
+    await refreshGitHubSources(project, { keepProcessing: true });
+  } catch (error) {
+    const isDomain = error instanceof DomainError;
+    if (!isDomain && !finalAttempt) {
+      logger.warn("project.github_fetch_retrying", { err: error, userId, projectId });
+      throw error;
+    }
+    if (!isDomain) logger.error("project.github_fetch_failed", { err: error, userId, projectId });
+
+    const stillExists = await setProjectProgress(userId, projectId, {
+      step: importUsageId ? "Import failed" : "Re-analyze failed",
+      percent: 10,
+      status: "failed",
+      errorMessage: publicErrorMessage(error, "Failed to fetch the repository from GitHub."),
+    });
+    if (!stillExists) throw new AnalysisCanceledError();
+
+    if (importUsageId && !(error instanceof ArchiveError)) {
+      await refundAnalysisUsage(userId, importUsageId).catch((refundError) => {
+        logger.error("billing.refund_failed", { err: refundError, projectId });
+      });
+    }
+    throw error;
+  }
 }

@@ -47,6 +47,7 @@ vi.mock("@/modules/billing/server", async (importOriginal) => ({
 vi.mock("@/lib/analysis/analysis-job", () => ({
   enqueueAnalysis: mocks.enqueueAnalysis,
   analysisRunStatus: vi.fn(async () => null),
+  startAnalysisRun: vi.fn(),
 }));
 vi.mock("ai", async (importOriginal) => ({
   ...(await importOriginal<typeof import("ai")>()),
