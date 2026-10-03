@@ -449,6 +449,12 @@ maintainability) · **Low** (cleanup).
   The two methods differ (Vercel counts its own package); production
   deployed with 377.5 MiB traced, so the limit applies to Vercel's number.
   The CI table shows where the weight is, `vercel inspect` how much.
+- **Follow-up (2026-10-03):** the GPU providers were still downloaded on
+  every install, only to be left out of the functions, and a network blip
+  in that NuGet download failed `npm ci` in CI. `ONNXRUNTIME_NODE_INSTALL=skip`
+  (read by the package's postinstall) now skips it in the CI workflows; on
+  Vercel it is a build environment variable. Not an `.npmrc` key: npm warns
+  that unknown project keys stop working in its next major version.
 
 ---
 

@@ -22,6 +22,10 @@ concurrency:
   group: llm-eval-${{ github.ref }}
   cancel-in-progress: true
 
+# Skip onnxruntime-node's GPU download from NuGet (see ci.yml).
+env:
+  ONNXRUNTIME_NODE_INSTALL: skip
+
 jobs:
   llm-review:
     name: LLM review eval (real model)
