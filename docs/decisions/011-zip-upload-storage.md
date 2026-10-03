@@ -77,6 +77,27 @@ decisão nova; o armazenamento de objetos é o único caminho que passa do
 limite sem fornecedor novo, e o do Neon acompanha os branches do banco —
 o mesmo isolamento entre preview e produção que o projeto já tem.
 
+### Resultado do spike (2026-10-03)
+
+Branch descartável `spike/neon-storage` (PR #110, fechado sem merge), no
+preview: bucket privado `uploads` criado só no branch `preview` do Neon
+(o `main` continuou sem bucket), credencial criada no branch `preview`,
+variáveis `NEON_STORAGE_*` só em Preview na Vercel (nomes próprios: a Vercel
+pode injetar `AWS_*` nas funções). `@aws-sdk/client-s3` e
+`@aws-sdk/s3-presigned-post` 3.1146.0, sem alertas novos no `npm audit`.
+
+| Pergunta | Resultado |
+|---|---|
+| CORS aplicado pelo próprio deploy (`PutBucketCors`) | ✅ origem do preview; a credencial não saiu da Vercel |
+| Upload direto do navegador por POST assinado | ✅ `204`, 73.693 bytes |
+| Servidor lê e apaga o objeto (o que o step fará) | ✅ mesmo tamanho lido; releitura dá `NoSuchKey` |
+| Arquivo acima do limite assinado (2.149.891 > 2.097.152 bytes) | ✅ recusado pelo bucket: `400 InvalidArgument` (código genérico, não `EntityTooLarge`) |
+| Credencial do preview no endpoint do `main` | ✅ `AccessDenied` |
+
+Para a implementação: o formulário checa o tamanho antes de enviar e
+qualquer `400` do bucket vira mensagem própria; produção precisa de bucket
+no branch `main`, credencial criada no `main` e variáveis só em Production.
+
 ## Trade-offs e consequências
 
 - **Regras obrigatórias (opção 1):**
