@@ -313,6 +313,23 @@ maintainability) · **Low** (cleanup).
   to English before the search (one more LLM call per question).
 - **Phase:** Backlog (with ADR-006, embeddings).
 
+### TD-43 — The same code can get a different score on re-analysis · High
+- **Where:** [report.ts](../src/lib/analysis/report.ts) (`runLlmHealthReview`
+  feeds the findings that `diminishingPenaltyPolicy` scores)
+- **Problem:** found on the preview (2026-10-03): the same uploaded ZIP,
+  analyzed and then re-analyzed, scored green the first time and yellow the
+  second. The deterministic part is stable; the LLM's findings are not, even
+  at `temperature: 0` (gpt-oss-120b is a reasoning model). The Phase 7 LLM
+  eval (`evals/results/2026-09-30-d7c5284-llm.json`, 3 runs per case)
+  measured a findings stability (overlap between runs) of 0.42 to 0.92. A
+  score that changes color with no code change undermines the report.
+- **Direction:** reuse the LLM findings when the reviewed code did not
+  change: a hash of the sampled chunks (same input → same findings → same
+  score), stored with the report; re-analysis of identical code skips the LLM
+  call, which also saves tokens. Fits the `content_hash` work of Phase 5
+  (TD-03). Measure before and after with the LLM eval's stability.
+- **Phase:** Ingestion async (Phase 5), with TD-03.
+
 ---
 
 ## Ingestion
