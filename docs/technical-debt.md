@@ -152,6 +152,10 @@ maintainability) · **Low** (cleanup).
   arrives as `customer.subscription.updated` → `past_due`). The Settings
   sync downgrades when no live subscription is found. Now in the billing
   module; pinned by the webhook, handler and sync tests.
+- **Done (Phase 5):** `checkout.session.completed` now follows the same
+  rule: it links the customer, then syncs from the subscription fetched from
+  Stripe. Before, it granted premium from the event itself, so a late or
+  repeated delivery after a cancellation gave premium back.
 
 ### TD-38 — Database TLS verification depends on `sslmode` in the URL · Medium
 - **Where:** [db.ts](../src/lib/db.ts), production `DATABASE_URL` (Vercel)
@@ -369,6 +373,20 @@ maintainability) · **Low** (cleanup).
   whose step dies (timeout, retries used up) ends with `failRunningAnalysis`,
   so it no longer stays "processing". Still open: the import (TD-10) and a
   run that never starts its last step (the workflow itself lost).
+- **Partial (Phase 5):** the project records its run (`analysis_run_id`,
+  migration 0007). Opening the progress page asks Workflow for the run's
+  status: a finished run that left the project "processing" restarts at
+  once, and a live run is never started twice, however long it takes. Still
+  open: a project nobody opens again (the reaper) and the import.
+- **Done (Phase 5):** a daily cron (`vercel.json`, 07:00 UTC; Hobby allows
+  one a day) calls `/api/cron/reap-stuck-projects` with `CRON_SECRET`. It
+  fails projects left "processing" for over an hour (`STUCK_AFTER_SECONDS`),
+  except those whose run Workflow reports alive, with a message the user can
+  act on (import vs analysis). The write re-checks "still stuck, same run",
+  so a project restarted meanwhile is left alone. At most 100 per run. The
+  import itself still runs in the request until TD-10. Quota consumed by a
+  reaped import is not refunded: the usage event is not linked to the
+  project (ADR-003).
 
 ### TD-12 — Failed imports still consume the daily quota · Medium
 - **Where:** [actions/github.ts:79-97](../src/lib/actions/github.ts#L79-L97)
@@ -647,6 +665,24 @@ maintainability) · **Low** (cleanup).
   at build and delete them from the deploy; check the build time and the
   12-function limit of the Hobby plan.
 - **Phase:** Observability (Phase 4, "se sobrar") or later.
+
+### TD-44 — The LLM eval gate fails PRs that did not change the review · Medium
+- **Where:** [llm.eval.ts](../evals/llm/llm.eval.ts) (`LLM_GATE`),
+  [llm-eval.yml](../.github/workflows/llm-eval.yml) (`LLM_EVAL_RUNS: 1`)
+- **Problem:** the gate asks every run to find at least the worst count of
+  the 2026-09-30 baseline (NodeGoat ≥ 6 of 9, measured over 3 runs: 6–7),
+  but CI makes one run per case to save the eval account's quota. The
+  model's findings vary between runs (TD-43), so one run can fall below the
+  minimum by chance. Seen on #97 (2026-10-03), which did not change what the
+  model receives: NodeGoat found 5 (recall 0.56) and failed; the re-run found
+  7 (0.78) and passed. A gate that fails at random is ignored or re-run until
+  green, and then it no longer protects the prompt.
+- **Direction:** compare like with like. Either CI makes as many runs as
+  the baseline (3, about 3× the tokens: check the eval account's daily
+  quota) and gates the best or the median, or the gate allows the spread
+  measured in the baseline (minimum − 1 per real repository) while the
+  synthetic cases keep "all found". Record the choice next to `LLM_GATE`.
+- **Phase:** Evals (Phase 7 follow-up), before the next prompt change.
 
 ---
 

@@ -6,8 +6,11 @@
 export {
   AnalysisCanceledError,
   analysisStart,
+  type AnalysisRunStatus,
   type AnalysisStart,
   type ProjectStatus,
+  STUCK_AFTER_SECONDS,
+  stuckProjectMessage,
 } from "./domain/project";
 export {
   DEFAULT_SHARE_EXPIRY,

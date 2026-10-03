@@ -30,10 +30,12 @@ export function verifyStripeWebhook(
 }
 
 /**
- * Idempotent and order-safe without an events table: for subscription events
- * the current subscription is fetched from Stripe and its full state is
- * written, so retries, duplicates and out-of-order deliveries converge on the
- * real state.
+ * Idempotent and order-safe without an events table: every event that
+ * changes the plan (checkout completed and the subscription events) fetches
+ * the current subscription from Stripe and writes its full state, so retries,
+ * duplicates and out-of-order deliveries converge on the real state. A
+ * dedupe by `event.id` would stop a repeated delivery but not a first one
+ * that arrives late (roadmap Phase 5).
  */
 export async function handleStripeEvent(event: Stripe.Event): Promise<void> {
   if (event.type === "checkout.session.completed") {

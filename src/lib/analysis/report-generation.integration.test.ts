@@ -162,21 +162,45 @@ describe("generateProjectReport (characterization)", () => {
     expect(mocks.runLlmHealthReview).not.toHaveBeenCalled();
   });
 
-  it("hides an LLM failure behind a generic message and stores no report", async () => {
+  // Graceful degradation (roadmap Phase 5): with the AI review out, the
+  // report still comes out, from the automated checks, and says so.
+  const storedReport = async (projectId: string) => {
+    const [row] = await db
+      .select({ categoryScores: reports.categoryScores, issues: reports.issues, llmReview: reports.llmReview })
+      .from(reports)
+      .where(eq(reports.projectId, projectId));
+    return row;
+  };
+
+  it("gives a deterministic report, flagged, when the LLM fails on the last attempt", async () => {
     const projectId = await analyzedProject();
     mocks.runLlmHealthReview.mockRejectedValue(new Error("provider 500: key=gsk_hunter2"));
 
-    await expect(generateProjectReport(owner, projectId)).rejects.toThrow();
+    const report = await generateProjectReport(owner, projectId);
 
-    expect(await projectState(projectId)).toEqual({
-      status: "failed",
-      errorMessage: "Failed to generate health report.",
-    });
-    expect(await db.select().from(reports).where(eq(reports.projectId, projectId))).toEqual([]);
+    expect(report.aiReviewSkipped).toBe("unavailable");
+    expect(await projectState(projectId)).toEqual({ status: "completed", errorMessage: null });
+    const stored = await storedReport(projectId);
+    expect(stored.categoryScores.aiReviewSkipped).toBe("unavailable");
+    expect(stored.issues.some((issue) => issue.title === "Business logic in route handlers")).toBe(false);
+    expect(stored.llmReview).toBeNull();
+    expect(JSON.stringify(stored)).not.toContain("hunter2");
     // The failed call is recorded too (Phase 4): latency, no tokens.
     expect(await llmCallsOf(projectId)).toEqual([
       { feature: "report", ok: false, inputTokens: 0, outputTokens: 0 },
     ]);
+  });
+
+  it("asks the model again on the next run after a report without the AI review", async () => {
+    const projectId = await analyzedProject();
+    mocks.runLlmHealthReview.mockRejectedValueOnce(new Error("provider 500"));
+    await generateProjectReport(owner, projectId);
+
+    const second = await generateProjectReport(owner, projectId);
+
+    expect(mocks.runLlmHealthReview).toHaveBeenCalledTimes(2);
+    expect(second.aiReviewSkipped).toBeUndefined();
+    expect((await storedReport(projectId)).categoryScores.aiReviewSkipped).toBeUndefined();
   });
 
   it("leaves an LLM failure unwritten while the workflow will retry", async () => {
@@ -204,7 +228,7 @@ describe("generateProjectReport (characterization)", () => {
     ]);
   });
 
-  it("refuses before calling the LLM once the daily token budget is spent", async () => {
+  it("skips the LLM once the daily token budget is spent: deterministic report, flagged", async () => {
     process.env.PLAN_FREE_LLM_TOKENS_PER_DAY = "1000";
     try {
       const projectId = await analyzedProject();
@@ -218,31 +242,27 @@ describe("generateProjectReport (characterization)", () => {
         ok: true,
       });
 
-      await expect(generateProjectReport(owner, projectId)).rejects.toMatchObject({ code: "llm_tokens" });
+      const report = await generateProjectReport(owner, projectId);
+
       expect(mocks.runLlmHealthReview).not.toHaveBeenCalled();
-      // A plan limit, so the user sees why (DomainError message).
-      expect(await projectState(projectId)).toEqual({
-        status: "failed",
-        errorMessage: expect.stringContaining("Daily AI usage limit reached"),
-      });
+      expect(report.aiReviewSkipped).toBe("budget");
+      expect(await projectState(projectId)).toEqual({ status: "completed", errorMessage: null });
+      expect((await storedReport(projectId)).categoryScores.aiReviewSkipped).toBe("budget");
     } finally {
       delete process.env.PLAN_FREE_LLM_TOKENS_PER_DAY;
     }
   });
 
-  it("refuses before calling the LLM while the report's kill switch is off", async () => {
+  it("skips the LLM while the report's kill switch is off: deterministic report, flagged", async () => {
     await db.insert(llmSwitches).values({ feature: "report", enabled: false });
     try {
       const projectId = await analyzedProject();
 
-      await expect(generateProjectReport(owner, projectId)).rejects.toMatchObject({
-        name: "LlmUnavailableError",
-      });
+      const report = await generateProjectReport(owner, projectId);
+
       expect(mocks.runLlmHealthReview).not.toHaveBeenCalled();
-      expect(await projectState(projectId)).toEqual({
-        status: "failed",
-        errorMessage: "The AI review is temporarily unavailable. Try again later.",
-      });
+      expect(report.aiReviewSkipped).toBe("disabled");
+      expect(await projectState(projectId)).toEqual({ status: "completed", errorMessage: null });
     } finally {
       await db.delete(llmSwitches).where(eq(llmSwitches.feature, "report"));
     }
@@ -298,7 +318,10 @@ describe("generateProjectReport (characterization)", () => {
     it("stores no review when the LLM call fails, so the next run asks again", async () => {
       const projectId = await analyzedProject();
       mocks.runLlmHealthReview.mockRejectedValueOnce(new Error("provider 500"));
-      await expect(generateProjectReport(owner, projectId)).rejects.toThrow();
+      // An attempt the workflow will retry: the failure goes up, nothing stored.
+      await expect(
+        generateProjectReport(owner, projectId, { finalAttempt: false }),
+      ).rejects.toThrow();
 
       await generateProjectReport(owner, projectId);
 

@@ -6,6 +6,7 @@
 export {
   SEVERITY_ORDER,
   SEVERITY_PENALTY,
+  type AiReviewSkip,
   type CategoryScores,
   type CategorySummaries,
   type Finding as ReportIssue,
