@@ -29,17 +29,39 @@ type FeatureExtractor = (
   options: { pooling: "mean"; normalize: boolean },
 ) => Promise<EmbeddingOutput>;
 
+// The hub download can fail for a moment (network, Hugging Face outage):
+// retry within the call before giving up (TD-01).
+const LOAD_RETRY_DELAYS_MS = [1_000, 3_000];
+
 let extractorPromise: Promise<FeatureExtractor> | null = null;
 
-async function getExtractor(): Promise<FeatureExtractor> {
-  if (!extractorPromise) {
-    // Cold start: downloads (~23MB) and loads the model once per instance.
-    extractorPromise = traced("embeddings.model_load", {}, () =>
-      pipeline("feature-extraction", MODEL_ID, {
+async function loadExtractor(): Promise<FeatureExtractor> {
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      return (await pipeline("feature-extraction", MODEL_ID, {
         revision: MODEL_REVISION,
         dtype: MODEL_DTYPE,
-      }),
-    ) as unknown as Promise<FeatureExtractor>;
+      })) as unknown as FeatureExtractor;
+    } catch (error) {
+      const delay = LOAD_RETRY_DELAYS_MS[attempt];
+      if (delay === undefined) throw error;
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+  }
+}
+
+function getExtractor(): Promise<FeatureExtractor> {
+  if (!extractorPromise) {
+    // Cold start: downloads (~23MB) and loads the model once per instance;
+    // calls made meanwhile share the same load.
+    const loading = traced("embeddings.model_load", {}, loadExtractor);
+    extractorPromise = loading;
+    // A failed load is not kept: the next call loads again instead of
+    // failing until the instance restarts (TD-01). Only this load is cleared,
+    // never a newer one.
+    loading.catch(() => {
+      if (extractorPromise === loading) extractorPromise = null;
+    });
   }
   return extractorPromise;
 }

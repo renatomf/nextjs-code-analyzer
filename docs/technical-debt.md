@@ -15,13 +15,20 @@ maintainability) · **Low** (cleanup).
 ## AI / RAG
 
 ### TD-01 — Failed model load is cached forever · High
-- **Where:** [embeddings.ts:19-29](../src/lib/analysis/embeddings.ts#L19-L29)
+- **Where:** [onnx-embedder.ts](../src/modules/ingestion/infrastructure/onnx-embedder.ts)
+  (was `src/lib/analysis/embeddings.ts`)
 - **Problem:** `extractorPromise` keeps the rejected promise if `pipeline()`
   fails once (network, Hugging Face outage). Every later call fails until the
   process restarts.
 - **Direction:** reset `extractorPromise = null` on rejection; add a retry with
   backoff.
 - **Phase:** Ingestion async.
+- **Done (Phase 5):** the load retries twice (1 s, then 3 s) within the
+  call, and a load that still fails is cleared, so the next analysis or chat
+  loads again; only that load is cleared, never a newer one. Calls made
+  during a load share it. Pinned by `onnx-embedder.test.ts` (fake hub); two
+  of its three tests fail on the old code. Above this, a failed analysis
+  step is retried by the workflow (ADR-005).
 
 ### TD-02 — Chunk size does not match the embedding model · High
 - **Where:** [chunking.ts:13-15](../src/lib/analysis/chunking.ts#L13-L15),

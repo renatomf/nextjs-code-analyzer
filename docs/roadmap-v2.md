@@ -504,6 +504,9 @@ Vem antes da ingestão assíncrona: job em segundo plano sem log é caixa preta.
       projeto) e o reaper (TD-11).
 - [ ] Parsing fora da thread da request (TD-09); modelo de embeddings com
       retry e cache resolvidos (TD-01; TD-05 com ADR).
+      Progresso: parsing da análise num step do workflow (TD-09 parcial,
+      PR #95); TD-01 feito (carga com retry e falha que não fica em cache).
+      Falta o ADR-006 (TD-05: embeddings em runtime serverless).
 - [ ] **Degradação graciosa:** com o LLM fora ou sem cota, o relatório sai só
       determinístico, sinalizado como tal.
 - [x] Webhooks do Stripe deduplicados pelo `event.id`. Feito de outro
