@@ -164,7 +164,10 @@ export async function getProjectReport(userId: string, projectId: string) {
   const project = await db.query.projects.findFirst({
     where: owned(userId, projectId),
     columns: { id: true, name: true, errorMessage: true },
-    with: { report: true },
+    // Only what the page shows. `report: true` would also load every new
+    // column: llm_review (TD-43) is internal, and loading a column that was
+    // not migrated yet broke every report page in production (2026-10-03).
+    with: { report: { columns: { healthScore: true, categoryScores: true, issues: true } } },
   });
   if (!project) return undefined;
   return { ...project, hasChunks: await hasCodeChunks(project.id) };
